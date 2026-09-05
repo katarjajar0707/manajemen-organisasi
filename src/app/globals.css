@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 0 0% 5%;        /* #0d0d0d — hampir hitam */
+    --foreground: 0 0% 94%;       /* putih lembut */
+
+    --card: 0 0% 9%;              /* #171717 — charcoal gelap */
+    --card-foreground: 0 0% 94%;
+
+    --popover: 0 0% 8%;           /* #141414 */
+    --popover-foreground: 0 0% 94%;
+
+    --primary: 160 84% 39%;       /* emerald — tidak berubah */
+    --primary-foreground: 0 0% 5%;
+
+    --secondary: 0 0% 14%;        /* #242424 */
+    --secondary-foreground: 0 0% 88%;
+
+    --muted: 0 0% 14%;            /* #242424 */
+    --muted-foreground: 0 0% 52%; /* abu-abu sedang */
+
+    --accent: 237 74% 73%;        /* indigo accent — tidak berubah */
+    --accent-foreground: 0 0% 5%;
+
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 18%;           /* #2e2e2e */
+    --input: 0 0% 12%;            /* #1f1f1f */
+    --ring: 160 84% 39%;
+
+    --radius: 0.75rem;
+
+    /* Emerald glow custom tokens */
+    --emerald: 160 84% 39%;
+    --emerald-glow: rgba(16, 185, 129, 0.18);
+    --violet: 238 76% 68%;
+    --sky-accent: 199 89% 60%;
+    --amber-accent: 38 92% 50%;
+
+    --sidebar-background: 0 0% 4%;     /* #0a0a0a — lebih gelap dari bg */
+    --sidebar-foreground: 0 0% 52%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 0 0% 11%;        /* #1c1c1c */
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 0 0% 15%;        /* #262626 */
+    --sidebar-ring: 160 84% 39%;
+  }
+
+
+  /* Light mode fallback (tidak digunakan secara default, tapi disediakan) */
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 160 84% 35%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 237 74% 60%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 160 84% 35%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 160 84% 35%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 160 84% 35%;
+  }
+}
+
+@theme inline {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Emerald glow utilities */
+.glow-emerald {
+  box-shadow: 0 0 20px var(--emerald-glow), 0 0 40px rgba(16, 185, 129, 0.08);
+}
+
+.glow-bar-top::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary)), transparent);
+  opacity: 0.5;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* Scrollbar custom */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: hsl(var(--background)); }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.5); }
+
+/* Smooth transitions */
+* { transition-property: color, background-color, border-color, box-shadow; transition-duration: 150ms; }
