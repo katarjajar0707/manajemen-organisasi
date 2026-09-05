@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,181 +42,150 @@ import {
   Edit,
   Trash2,
   CheckCircle2,
-  Clock,
-  Sparkles,
   Layers,
+  Loader2,
+  AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
+import { AgendaData, createAgenda, updateAgenda, deleteAgenda } from "@/actions/agenda";
 
-export interface AgendaItem {
+interface BagianOption {
   id: string;
   nama: string;
-  bagian: string;
   slug: string;
-  periode: string;
-  status: "Aktif" | "Persiapan" | "Selesai";
-  totalAnggota: number;
-  deskripsi: string;
-  penanggungJawab: string;
 }
 
-export const INITIAL_DEPARTEMEN = [
-  "Pengurus Harian",
-  "Sekretariat",
-  "Bendahara",
-  "Acara & Kegiatan",
-  "Sarana & Prasarana",
-  "Humas & Publikasi",
-  "Lingkungan Hidup",
-  "Olahraga & Seni",
-];
+interface StrukturManagerProps {
+  initialAgendas?: AgendaData[];
+  bagianList?: BagianOption[];
+  userRole?: string;
+}
 
-export const INITIAL_AGENDAS: AgendaItem[] = [
-  {
-    id: "1",
-    nama: "Kepengurusan Inti Karang Taruna RW 05",
-    bagian: "Pengurus Harian",
-    slug: "utama",
-    periode: "2025 – 2027",
-    status: "Aktif",
-    totalAnggota: 24,
-    deskripsi: "Struktur organisasi induk karang taruna tingkat RW periode kerja 2 tahun.",
-    penanggungJawab: "Azzam Azhari (Ketua)",
-  },
-  {
-    id: "2",
-    nama: "Kepanitiaan Peringatan HUT RI ke-81",
-    bagian: "Acara & Kegiatan",
-    slug: "acara",
-    periode: "Juli – Agustus 2026",
-    status: "Aktif",
-    totalAnggota: 15,
-    deskripsi: "Panitia khusus penyelenggaraan karnaval, panggung gembira, dan aneka lomba 17-an.",
-    penanggungJawab: "Rian Pratama (Koordinator Acara)",
-  },
-  {
-    id: "3",
-    nama: "Panitia Ramadhan & Bakti Sosial Berkah",
-    bagian: "Humas & Publikasi",
-    slug: "humas",
-    periode: "Februari – Maret 2026",
-    status: "Selesai",
-    totalAnggota: 18,
-    deskripsi: "Kepanitiaan safari tarawih, buka puasa bersama anak yatim, dan pembagian paket sembako.",
-    penanggungJawab: "Ahmad Zaki (Wakil Ketua)",
-  },
-  {
-    id: "4",
-    nama: "Panitia Turnamen Futsal Pemuda Antar RT",
-    bagian: "Olahraga & Seni",
-    slug: "olahraga",
-    periode: "Mei 2026",
-    status: "Persiapan",
-    totalAnggota: 10,
-    deskripsi: "Komite pelaksana turnamen futsal persahabatan pemuda RW 05.",
-    penanggungJawab: "Fajar Nugraha",
-  },
-];
-
-export function StrukturManager() {
-  const [agendas, setAgendas] = useState<AgendaItem[]>(INITIAL_AGENDAS);
-  const [departemens, setDepartemens] = useState<string[]>(INITIAL_DEPARTEMEN);
+export function StrukturManager({
+  initialAgendas = [],
+  bagianList = [],
+  userRole = "anggota",
+}: StrukturManagerProps) {
+  const [agendas, setAgendas] = useState<AgendaData[]>(initialAgendas);
   const [filterStatus, setFilterStatus] = useState<"semua" | "Aktif" | "Persiapan" | "Selesai">("semua");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Dialog Agenda
+  // Dialog State
   const [isAgendaDialogOpen, setIsAgendaDialogOpen] = useState(false);
-  const [editingAgenda, setEditingAgenda] = useState<AgendaItem | null>(null);
+  const [editingAgenda, setEditingAgenda] = useState<AgendaData | null>(null);
   const [namaAgenda, setNamaAgenda] = useState("");
-  const [bagianAgenda, setBagianAgenda] = useState(INITIAL_DEPARTEMEN[0]);
+  const [bagianId, setBagianId] = useState(bagianList[0]?.id || "");
   const [periodeAgenda, setPeriodeAgenda] = useState("");
   const [statusAgenda, setStatusAgenda] = useState<"Aktif" | "Persiapan" | "Selesai">("Aktif");
   const [deskripsiAgenda, setDeskripsiAgenda] = useState("");
-  const [pjAgenda, setPjAgenda] = useState("");
-
-  // Dialog Departemen Baru
-  const [isDeptDialogOpen, setIsDeptDialogOpen] = useState(false);
-  const [newDeptName, setNewDeptName] = useState("");
-  const [newDeptPj, setNewDeptPj] = useState("");
-
-  // Delete Dialog
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const isAdminOrKetua = userRole === "admin" || userRole === "ketua";
 
   const handleOpenCreateAgenda = () => {
     setEditingAgenda(null);
     setNamaAgenda("");
-    setBagianAgenda(departemens[0] || "Pengurus Harian");
-    setPeriodeAgenda("");
+    setBagianId(bagianList[0]?.id || "");
+    setPeriodeAgenda("Periode 2025–2027");
     setStatusAgenda("Aktif");
     setDeskripsiAgenda("");
-    setPjAgenda("");
+    setErrorMessage(null);
     setIsAgendaDialogOpen(true);
   };
 
-  const handleOpenEditAgenda = (agenda: AgendaItem) => {
+  const handleOpenEditAgenda = (agenda: AgendaData) => {
     setEditingAgenda(agenda);
     setNamaAgenda(agenda.nama);
-    setBagianAgenda(agenda.bagian);
+    setBagianId(agenda.bagianId);
     setPeriodeAgenda(agenda.periode);
     setStatusAgenda(agenda.status);
     setDeskripsiAgenda(agenda.deskripsi);
-    setPjAgenda(agenda.penanggungJawab);
+    setErrorMessage(null);
     setIsAgendaDialogOpen(true);
   };
 
   const handleSaveAgenda = () => {
-    if (!namaAgenda.trim() || !periodeAgenda.trim()) return;
-
-    if (editingAgenda) {
-      setAgendas((prev) =>
-        prev.map((item) =>
-          item.id === editingAgenda.id
-            ? {
-                ...item,
-                nama: namaAgenda,
-                bagian: bagianAgenda,
-                periode: periodeAgenda,
-                status: statusAgenda,
-                deskripsi: deskripsiAgenda,
-                penanggungJawab: pjAgenda || item.penanggungJawab,
-              }
-            : item
-        )
-      );
-    } else {
-      const slug = bagianAgenda.toLowerCase().replace(/[^a-z0-9]/g, "-") || "umum";
-      const newAgenda: AgendaItem = {
-        id: Date.now().toString(),
-        nama: namaAgenda,
-        bagian: bagianAgenda,
-        slug,
-        periode: periodeAgenda,
-        status: statusAgenda,
-        totalAnggota: 1,
-        deskripsi: deskripsiAgenda,
-        penanggungJawab: pjAgenda || "Azzam Azhari",
-      };
-      setAgendas([newAgenda, ...agendas]);
+    if (!namaAgenda.trim()) {
+      setErrorMessage("Nama agenda wajib diisi.");
+      return;
     }
 
-    setIsAgendaDialogOpen(false);
-  };
+    setErrorMessage(null);
 
-  const handleSaveDepartment = () => {
-    if (!newDeptName.trim()) return;
-    const trimmed = newDeptName.trim();
-    if (!departemens.includes(trimmed)) {
-      setDepartemens([...departemens, trimmed]);
-    }
-    setNewDeptName("");
-    setNewDeptPj("");
-    setIsDeptDialogOpen(false);
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("nama_agenda", namaAgenda);
+      formData.set("bagian_id", bagianId);
+      formData.set("deskripsi", deskripsiAgenda);
+      formData.set("status", statusAgenda);
+
+      if (editingAgenda) {
+        const res = await updateAgenda(editingAgenda.id, formData);
+        if (res.error) {
+          setErrorMessage(res.error);
+          return;
+        }
+
+        const selectedBagian = bagianList.find((b) => b.id === bagianId);
+        setAgendas((prev) =>
+          prev.map((item) =>
+            item.id === editingAgenda.id
+              ? {
+                  ...item,
+                  nama: namaAgenda,
+                  bagian: selectedBagian?.nama || item.bagian,
+                  bagianSlug: selectedBagian?.slug || item.bagianSlug,
+                  bagianId,
+                  status: statusAgenda,
+                  deskripsi: deskripsiAgenda,
+                }
+              : item
+          )
+        );
+      } else {
+        formData.set("nama_periode", periodeAgenda || "Periode 2025–2027");
+        const res = await createAgenda(formData);
+        if (res.error) {
+          setErrorMessage(res.error);
+          return;
+        }
+
+        const selectedBagian = bagianList.find((b) => b.id === bagianId);
+        const newAgenda: AgendaData = {
+          id: res.agendaId || Date.now().toString(),
+          nama: namaAgenda,
+          bagian: selectedBagian?.nama || "Umum",
+          bagianSlug: selectedBagian?.slug || "umum",
+          bagianId,
+          periode: periodeAgenda || "Periode 2025–2027",
+          activePeriodeId: null,
+          status: statusAgenda,
+          totalAnggota: 0,
+          deskripsi: deskripsiAgenda,
+          penanggungJawab: `Pengurus (${userRole})`,
+          createdAt: new Date().toISOString(),
+        };
+        setAgendas([newAgenda, ...agendas]);
+      }
+
+      setIsAgendaDialogOpen(false);
+    });
   };
 
   const handleDeleteAgenda = () => {
-    if (deleteId) {
+    if (!deleteId) return;
+
+    startTransition(async () => {
+      const res = await deleteAgenda(deleteId);
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
       setAgendas((prev) => prev.filter((a) => a.id !== deleteId));
       setDeleteId(null);
-    }
+    });
   };
 
   const filteredAgendas = agendas.filter((ag) => {
@@ -240,27 +209,25 @@ export function StrukturManager() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Struktur Organisasi (Multi-Agenda)</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Kelola bagan kepengurusan dinamis, kepanitiaan event, dan integrasi departemen/seksi.
+            Daftar kepengurusan dan agenda panitia karang taruna. Terbuka untuk seluruh anggota dan pengurus.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 shadow-xs flex-1 sm:flex-initial text-xs h-8"
-            onClick={() => setIsDeptDialogOpen(true)}
-          >
-            <Building2 className="h-4 w-4 text-primary" />
-            <span>Tambah Departemen</span>
-          </Button>
-          <Button
-            size="sm"
-            className="gap-1.5 shadow-sm bg-primary hover:bg-primary/90 flex-1 sm:flex-initial text-xs h-8"
-            onClick={handleOpenCreateAgenda}
-          >
-            <Plus className="h-4 w-4" />
-            <span>Buat Agenda</span>
-          </Button>
+          {isAdminOrKetua ? (
+            <Button
+              size="sm"
+              className="gap-1.5 shadow-sm bg-primary hover:bg-primary/90 flex-1 sm:flex-initial text-xs h-8"
+              onClick={handleOpenCreateAgenda}
+            >
+              <Plus className="h-4 w-4" />
+              <span>Buat Agenda Baru</span>
+            </Button>
+          ) : (
+            <Badge variant="outline" className="text-xs py-1 px-2.5 gap-1.5 text-muted-foreground">
+              <ShieldAlert className="h-3.5 w-3.5" />
+              <span>Pembuatan agenda khusus Ketua & Admin</span>
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -287,7 +254,7 @@ export function StrukturManager() {
             <div>
               <p className="text-xs text-muted-foreground font-medium">Total Anggota Ditugaskan</p>
               <h3 className="text-2xl font-bold mt-1">{totalAnggotaAll}</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Tersebar di berbagai kepanitiaan</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Terdaftar dalam bagan periode</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
               <Users className="h-5 w-5" />
@@ -298,9 +265,9 @@ export function StrukturManager() {
         <Card className="bg-card/70 border shadow-xs">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Departemen / Seksi</p>
-              <h3 className="text-2xl font-bold mt-1">{departemens.length}</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Terhubung otomatis ke agenda</p>
+              <p className="text-xs text-muted-foreground font-medium">Departemen / Bagian</p>
+              <h3 className="text-2xl font-bold mt-1">{bagianList.length}</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Bagian aktif dalam sistem</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <Layers className="h-5 w-5" />
@@ -328,7 +295,7 @@ export function StrukturManager() {
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Cari nama agenda atau periode..."
+            placeholder="Cari nama agenda atau bagian..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8 h-8 text-xs bg-muted/30"
@@ -337,89 +304,103 @@ export function StrukturManager() {
       </div>
 
       {/* Agenda Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredAgendas.map((item) => (
-          <Card
-            key={item.id}
-            className="hover:shadow-md transition-all flex flex-col justify-between border group"
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-2">
-                <Badge
-                  variant={
-                    item.status === "Aktif"
-                      ? "default"
-                      : item.status === "Persiapan"
-                      ? "outline"
-                      : "secondary"
-                  }
-                  className="text-xs"
-                >
-                  {item.status}
-                </Badge>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1 mr-1">
-                    <Users className="h-3.5 w-3.5 text-primary" />
-                    {item.totalAnggota} Anggota
-                  </span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleOpenEditAgenda(item)}>
-                        <Edit className="h-3.5 w-3.5 mr-2" />
-                        <span>Edit Agenda</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setDeleteId(item.id)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-2" />
-                        <span>Hapus Agenda</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+      {filteredAgendas.length === 0 ? (
+        <div className="text-center py-12 border rounded-xl bg-card/40">
+          <FolderKanban className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+          <h3 className="text-base font-semibold">Belum Ada Agenda Organisasi</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+            {isAdminOrKetua
+              ? "Klik tombol 'Buat Agenda Baru' di atas untuk membuat kepanitiaan atau susunan pengurus."
+              : "Belum ada agenda organisasi yang didaftarkan oleh pengurus."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredAgendas.map((item) => (
+            <Card
+              key={item.id}
+              className="hover:shadow-md transition-all flex flex-col justify-between border group"
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Badge
+                    variant={
+                      item.status === "Aktif"
+                        ? "default"
+                        : item.status === "Persiapan"
+                        ? "outline"
+                        : "secondary"
+                    }
+                    className="text-xs"
+                  >
+                    {item.status}
+                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1 mr-1">
+                      <Users className="h-3.5 w-3.5 text-primary" />
+                      {item.totalAnggota} Anggota
+                    </span>
+                    {isAdminOrKetua && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleOpenEditAgenda(item)}>
+                            <Edit className="h-3.5 w-3.5 mr-2" />
+                            <span>Edit Agenda</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setDeleteId(item.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" />
+                            <span>Hapus Agenda</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <CardTitle className="text-base sm:text-lg mt-2 group-hover:text-primary transition-colors leading-snug">
-                {item.nama}
-              </CardTitle>
+                <CardTitle className="text-base sm:text-lg mt-2 group-hover:text-primary transition-colors leading-snug">
+                  {item.nama}
+                </CardTitle>
 
-              <CardDescription className="text-xs leading-relaxed line-clamp-2 mt-1">
-                {item.deskripsi}
-              </CardDescription>
+                <CardDescription className="text-xs leading-relaxed line-clamp-2 mt-1">
+                  {item.deskripsi || "Tidak ada deskripsi tambahan."}
+                </CardDescription>
 
-              <div className="space-y-1 pt-2 border-t mt-3 text-xs text-muted-foreground">
-                <p className="flex items-center gap-1">
-                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  Bagian: <span className="font-medium text-foreground">{item.bagian}</span>
-                </p>
-                <p className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  Periode: <span className="font-medium text-foreground">{item.periode}</span>
-                </p>
-                <p className="flex items-center gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
-                  PJ: <span className="font-medium text-foreground">{item.penanggungJawab}</span>
-                </p>
-              </div>
-            </CardHeader>
+                <div className="space-y-1 pt-2 border-t mt-3 text-xs text-muted-foreground">
+                  <p className="flex items-center gap-1">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    Bagian: <span className="font-medium text-foreground">{item.bagian}</span>
+                  </p>
+                  <p className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    Periode Aktif: <span className="font-medium text-foreground">{item.periode}</span>
+                  </p>
+                  <p className="flex items-center gap-1">
+                    <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                    Dibuat: <span className="font-medium text-foreground">{item.penanggungJawab}</span>
+                  </p>
+                </div>
+              </CardHeader>
 
-            <CardContent className="pt-0 pb-4">
-              <Link href={`/struktur/${item.slug}/agenda/${item.id}`}>
-                <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs group-hover:border-primary group-hover:text-primary">
-                  <span>Buka Bagan & Kelola Anggota</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              <CardContent className="pt-0 pb-4">
+                <Link href={`/struktur/${item.bagianSlug}/agenda/${item.id}`}>
+                  <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs group-hover:border-primary group-hover:text-primary">
+                    <span>Buka Bagan & Kelola Anggota</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Dialog Buat / Edit Agenda */}
       <Dialog open={isAgendaDialogOpen} onOpenChange={setIsAgendaDialogOpen}>
@@ -430,13 +411,20 @@ export function StrukturManager() {
               <span>{editingAgenda ? "Edit Agenda Organisasi" : "Buat Agenda / Kepanitiaan Baru"}</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Agenda ini akan otomatis terhubung dengan struktur bagan kepengurusan dan modul terkait.
+              Agenda ini akan otomatis terhubung dengan struktur bagan kepengurusan dan data anggota.
             </DialogDescription>
           </DialogHeader>
 
+          {errorMessage && (
+            <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-lg flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           <div className="space-y-3.5 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Nama Agenda / Kepanitiaan</Label>
+              <Label className="text-xs">Nama Agenda / Kepanitiaan *</Label>
               <Input
                 value={namaAgenda}
                 onChange={(e) => setNamaAgenda(e.target.value)}
@@ -447,15 +435,15 @@ export function StrukturManager() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Bagian / Departemen Induk</Label>
-                <Select value={bagianAgenda} onValueChange={setBagianAgenda}>
+                <Label className="text-xs">Bagian Organisasi *</Label>
+                <Select value={bagianId} onValueChange={setBagianId}>
                   <SelectTrigger className="text-xs">
-                    <SelectValue />
+                    <SelectValue placeholder="Pilih bagian..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {departemens.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
+                    {bagianList.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.nama}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -480,129 +468,84 @@ export function StrukturManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {!editingAgenda && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Periode Waktu Pelaksanaan</Label>
+                <Label className="text-xs">Nama Periode Awal</Label>
                 <Input
                   value={periodeAgenda}
                   onChange={(e) => setPeriodeAgenda(e.target.value)}
-                  placeholder="Contoh: Juli – Agustus 2026"
+                  placeholder="Contoh: Periode 2025–2027 atau Juli - Agustus 2026"
                   className="text-xs"
                 />
               </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Koordinator / Penanggung Jawab</Label>
-                <Input
-                  value={pjAgenda}
-                  onChange={(e) => setPjAgenda(e.target.value)}
-                  placeholder="Contoh: Rian Pratama"
-                  className="text-xs"
-                />
-              </div>
-            </div>
+            )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Deskripsi Singkat / Tujuan Kegiatan</Label>
+              <Label className="text-xs">Deskripsi Singkat (Opsional)</Label>
               <Textarea
                 value={deskripsiAgenda}
                 onChange={(e) => setDeskripsiAgenda(e.target.value)}
-                placeholder="Jelaskan ruang lingkup dan sasaran kepanitiaan ini..."
+                placeholder="Tuliskan tujuan agenda atau tugas kepanitiaan..."
                 rows={3}
-                className="text-xs leading-relaxed"
+                className="text-xs resize-none"
               />
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" size="sm" onClick={() => setIsAgendaDialogOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => setIsAgendaDialogOpen(false)}
+              disabled={isPending}
+            >
               Batal
             </Button>
-            <Button size="sm" onClick={handleSaveAgenda} disabled={!namaAgenda.trim() || !periodeAgenda.trim()}>
-              {editingAgenda ? "Simpan Perubahan" : "Buat Agenda"}
+            <Button
+              size="sm"
+              className="text-xs bg-primary hover:bg-primary/90 gap-1.5"
+              onClick={handleSaveAgenda}
+              disabled={isPending}
+            >
+              {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>{editingAgenda ? "Simpan Perubahan" : "Buat Agenda"}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Tambah Departemen Baru */}
-      <Dialog open={isDeptDialogOpen} onOpenChange={setIsDeptDialogOpen}>
-        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              <span>Tambah Departemen / Seksi Baru</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Departemen baru akan langsung terintegrasi dan dapat dipilih pada semua agenda kerja.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nama Departemen / Seksi</Label>
-              <Input
-                value={newDeptName}
-                onChange={(e) => setNewDeptName(e.target.value)}
-                placeholder="Contoh: Media Kreatif & Dokumentasi"
-                className="text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Penanggung Jawab Divisi (Opsional)</Label>
-              <Input
-                value={newDeptPj}
-                onChange={(e) => setNewDeptPj(e.target.value)}
-                placeholder="Contoh: Farhan Maulana"
-                className="text-xs"
-              />
-            </div>
-
-            <div className="p-3 bg-muted/40 rounded-lg text-xs space-y-1">
-              <p className="font-semibold text-foreground flex items-center gap-1">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                Departemen yang sudah ada:
-              </p>
-              <div className="flex flex-wrap gap-1 pt-1">
-                {departemens.map((d) => (
-                  <Badge key={d} variant="secondary" className="text-[10px]">
-                    {d}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" size="sm" onClick={() => setIsDeptDialogOpen(false)}>
-              Batal
-            </Button>
-            <Button size="sm" onClick={handleSaveDepartment} disabled={!newDeptName.trim()}>
-              Simpan Departemen
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation */}
-      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <DialogContent className="max-w-md">
+      {/* Dialog Konfirmasi Hapus */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base text-destructive flex items-center gap-2">
-              <Trash2 className="h-4 w-4" />
-              <span>Hapus Agenda</span>
+              <Trash2 className="h-5 w-5" />
+              <span>Hapus Agenda Organisasi?</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Apakah Anda yakin ingin menghapus agenda ini? Susunan bagan yang terkait akan ikut terhapus.
+              Tindakan ini akan menghapus agenda ini beserta periode dan susunan anggota di dalamnya. Tindakan ini tidak dapat dibatalkan.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" size="sm" onClick={() => setDeleteId(null)}>
+          <DialogFooter className="gap-2 mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => setDeleteId(null)}
+              disabled={isPending}
+            >
               Batal
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleDeleteAgenda}>
-              Hapus Permanen
+            <Button
+              variant="destructive"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={handleDeleteAgenda}
+              disabled={isPending}
+            >
+              {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>Ya, Hapus</span>
             </Button>
           </DialogFooter>
         </DialogContent>
