@@ -1,24 +1,23 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { MAIN_NAV_ITEMS, ADMIN_NAV_ITEMS } from "@/constants/navigation";
-import { useSidebarStore } from "@/store/sidebar-store";
-import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { MAIN_NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/constants/navigation';
+import { useSidebarStore } from '@/store/sidebar-store';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-import { useAuthStore } from "@/store/auth-store";
-import { LogoutButton } from "@/components/common/logout-button";
+import { useAuthStore } from '@/store/auth-store';
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  userRole?: string;
+}
+
+export function AppSidebar({ userRole: propUserRole }: AppSidebarProps) {
   const pathname = usePathname();
   const isCollapsed = useSidebarStore((s) => s.isCollapsed);
-  const userRole = useAuthStore((s) => s.userRole) || "admin";
+  const storeRole = useAuthStore((s) => s.userRole);
+  const userRole = propUserRole || storeRole || 'anggota';
 
   const isAuthorized = (itemRoles?: string[]) => {
     if (!itemRoles || itemRoles.length === 0) return true;
@@ -27,37 +26,24 @@ export function AppSidebar() {
 
   const navItemClass = (isActive: boolean) =>
     cn(
-      "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
-      isCollapsed ? "justify-center w-10 mx-auto px-0" : "gap-3",
-      isActive
-        ? [
-            "bg-primary/10 text-primary",
-            "border border-primary/20",
-            "shadow-[0_0_12px_rgba(16,185,129,0.12)]",
-          ]
-        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      'flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
+      isCollapsed ? 'justify-center w-10 mx-auto px-0' : 'gap-3',
+      isActive ? ['bg-primary/10 text-primary', 'border border-primary/20', 'shadow-[0_0_12px_rgba(16,185,129,0.12)]'] : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
     );
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside
-        className={cn(
-          "hidden lg:flex flex-col h-screen border-r border-border/60 bg-sidebar shrink-0",
-          "transition-[width] duration-200 ease-in-out",
-          isCollapsed ? "w-[60px]" : "w-60"
-        )}
-      >
+      <aside className={cn('hidden lg:flex flex-col h-screen border-r border-border/60 bg-sidebar shrink-0', 'transition-[width] duration-200 ease-in-out', isCollapsed ? 'w-[60px]' : 'w-60')}>
         {/* ── PART 1: SIDEBAR HEADER (h-14, sejajar AppHeader) ── */}
-        <div className={cn(
-          "flex h-14 items-center border-b border-border/60 shrink-0",
-          isCollapsed ? "justify-center px-0" : "gap-3 px-4"
-        )}>
-          <div className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg shrink-0",
-            "bg-gradient-to-br from-primary to-emerald-400",
-            "text-primary-foreground font-extrabold text-sm tracking-tight",
-            "shadow-[0_0_16px_rgba(16,185,129,0.3)]"
-          )}>
+        <div className={cn('flex h-14 items-center border-b border-border/60 shrink-0', isCollapsed ? 'justify-center px-0' : 'gap-3 px-4')}>
+          <div
+            className={cn(
+              'flex h-8 w-8 items-center justify-center rounded-lg shrink-0',
+              'bg-gradient-to-br from-primary to-emerald-400',
+              'text-primary-foreground font-extrabold text-sm tracking-tight',
+              'shadow-[0_0_16px_rgba(16,185,129,0.3)]',
+            )}
+          >
             KT
           </div>
           {/* Label brand — disembunyikan saat collapsed */}
@@ -71,26 +57,19 @@ export function AppSidebar() {
 
         {/* ── PART 2: SIDEBAR MENU (scrollable) ── */}
         <div className="flex-1 overflow-y-auto px-2 py-3 space-y-5">
-
           {/* Menu Utama */}
           <div>
-            {!isCollapsed && (
-              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                Menu Utama
-              </p>
-            )}
-            <nav className={cn("space-y-0.5", isCollapsed && "px-1.5")}>
+            {!isCollapsed && <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Menu Utama</p>}
+            <nav className={cn('space-y-0.5', isCollapsed && 'px-1.5')}>
               {MAIN_NAV_ITEMS.filter((item) => isAuthorized(item.roles)).map((item) => {
                 const Icon = item.icon;
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
                 return isCollapsed ? (
                   <Tooltip key={item.href}>
                     <TooltipTrigger asChild>
                       <Link href={item.href} className={navItemClass(isActive)}>
-                        <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
+                        <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="font-medium">
@@ -99,11 +78,9 @@ export function AppSidebar() {
                   </Tooltip>
                 ) : (
                   <Link key={item.href} href={item.href} className={navItemClass(isActive)}>
-                    <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
+                    <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                     <span className="truncate">{item.title}</span>
-                    {isActive && (
-                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-                    )}
+                    {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />}
                   </Link>
                 );
               })}
@@ -111,62 +88,33 @@ export function AppSidebar() {
           </div>
 
           {/* Menu Administrasi */}
-          <div>
-            {!isCollapsed && (
-              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                Administrasi
-              </p>
-            )}
-            <nav className={cn("space-y-0.5", isCollapsed ? "px-0" : "px-1")}>
-              {ADMIN_NAV_ITEMS.filter((item) => isAuthorized(item.roles)).map((item) => {
-                const Icon = item.icon;
-                const isActive =
-                  pathname === item.href || pathname.startsWith(item.href);
+          {ADMIN_NAV_ITEMS.some((item) => isAuthorized(item.roles)) && (
+            <div>
+              {!isCollapsed && <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Administrasi</p>}
+              <nav className={cn('space-y-0.5', isCollapsed ? 'px-0' : 'px-1')}>
+                {ADMIN_NAV_ITEMS.filter((item) => isAuthorized(item.roles)).map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href || pathname.startsWith(item.href);
 
-                return isCollapsed ? (
-                  <Tooltip key={item.href}>
-                    <TooltipTrigger asChild>
-                      <Link href={item.href} className={navItemClass(isActive)}>
-                        <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="font-medium">
-                      {item.title}
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Link key={item.href} href={item.href} className={navItemClass(isActive)}>
-                    <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
-                    <span className="truncate">{item.title}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-        </div>
-
-        {/* ── BOTTOM: Logout button & Version tag ── */}
-        <div className={cn(
-          "border-t border-border/60 shrink-0 p-2",
-          isCollapsed ? "flex justify-center" : "px-3 py-2"
-        )}>
-          {isCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <LogoutButton showText={false} size="icon" className="h-8 w-8 rounded-lg" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="font-medium text-destructive">
-                Keluar
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <div className="space-y-1 w-full">
-              <LogoutButton variant="ghost" size="sm" className="w-full justify-start text-xs h-8 px-2" />
-              <p className="text-[10px] font-mono text-muted-foreground/40 text-center">
-                Portal Pengurus Karang Taruna
-              </p>
+                  return isCollapsed ? (
+                    <Tooltip key={item.href}>
+                      <TooltipTrigger asChild>
+                        <Link href={item.href} className={navItemClass(isActive)}>
+                          <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium">
+                        {item.title}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Link key={item.href} href={item.href} className={navItemClass(isActive)}>
+                      <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
+                      <span className="truncate">{item.title}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
           )}
         </div>

@@ -27,7 +27,7 @@ export interface KegiatanData {
 function calculateStatus(mulaiIso: string, selesaiIso: string | null): "Mendatang" | "Berlangsung" | "Selesai" {
   const now = new Date();
   const mulai = new Date(mulaiIso);
-  const selesai = selesaiIso ? new Date(selesaiIso) : new Date(mulai.getTime() + 4 * 60 * 60 * 1000);
+  const selesai = selesaiIso ? new Date(selesaiIso) : new Date(mulai.getTime() + 24 * 60 * 60 * 1000 - 1);
 
   if (now < mulai) {
     return "Mendatang";
@@ -99,11 +99,7 @@ export async function getKegiatanList(filters?: {
     const status = calculateStatus(item.tanggal_mulai, item.tanggal_selesai);
     const totalFoto = Array.isArray(item.dokumentasi_kegiatan) ? item.dokumentasi_kegiatan.length : 0;
 
-    const pjText = bagianObj?.nama
-      ? bagianObj.nama
-      : authorObj?.nama
-      ? `${authorObj.nama} (${authorObj.role})`
-      : "Pengurus Karang Taruna";
+    const pjText = bagianObj?.nama || "Semua Bagian";
 
     return {
       id: item.id,
@@ -115,7 +111,7 @@ export async function getKegiatanList(filters?: {
       waktuSelesai: waktuSelesaiStr,
       lokasi: item.lokasi || "Balai Warga RW 05",
       bagianId: item.bagian_id,
-      bagianNama: bagianObj?.nama || "Umum",
+      bagianNama: bagianObj?.nama || "Semua Bagian",
       penanggungJawab: pjText,
       totalFoto,
       status,
@@ -174,7 +170,9 @@ export async function getKegiatanById(id: string) {
 
   return {
     ...data,
-    bagian: bagianObj,
+    bagian: bagianObj || { nama: "Semua Bagian" },
+    bagianNama: bagianObj?.nama || "Semua Bagian",
+    penanggungJawab: bagianObj?.nama || "Semua Bagian",
     author: authorObj,
     tanggalMulai: mulaiDate.toISOString().split("T")[0],
     tanggalSelesai: selesaiDate ? selesaiDate.toISOString().split("T")[0] : mulaiDate.toISOString().split("T")[0],
@@ -201,8 +199,8 @@ export async function createKegiatan(formData: FormData) {
     const deskripsi = formData.get("deskripsi") as string;
     const tanggalMulai = formData.get("tanggal_mulai") as string;
     const tanggalSelesai = (formData.get("tanggal_selesai") as string) || tanggalMulai;
-    const waktuMulai = (formData.get("waktu_mulai") as string) || "08:00";
-    const waktuSelesai = (formData.get("waktu_selesai") as string) || "12:00";
+    const waktuMulai = (formData.get("waktu_mulai") as string) || "00:00";
+    const waktuSelesai = (formData.get("waktu_selesai") as string) || "23:59";
     const lokasi = formData.get("lokasi") as string;
     const bagian_id = (formData.get("bagian_id") as string) || null;
 
@@ -211,7 +209,7 @@ export async function createKegiatan(formData: FormData) {
     }
 
     const startIso = new Date(`${tanggalMulai}T${waktuMulai}:00`).toISOString();
-    const endIso = new Date(`${tanggalSelesai}T${waktuSelesai}:00`).toISOString();
+    const endIso = new Date(`${tanggalSelesai}T${waktuSelesai}:59`).toISOString();
 
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -251,8 +249,8 @@ export async function updateKegiatan(id: string, formData: FormData) {
     const deskripsi = formData.get("deskripsi") as string;
     const tanggalMulai = formData.get("tanggal_mulai") as string;
     const tanggalSelesai = (formData.get("tanggal_selesai") as string) || tanggalMulai;
-    const waktuMulai = (formData.get("waktu_mulai") as string) || "08:00";
-    const waktuSelesai = (formData.get("waktu_selesai") as string) || "12:00";
+    const waktuMulai = (formData.get("waktu_mulai") as string) || "00:00";
+    const waktuSelesai = (formData.get("waktu_selesai") as string) || "23:59";
     const lokasi = formData.get("lokasi") as string;
     const bagian_id = (formData.get("bagian_id") as string) || null;
 
@@ -261,7 +259,7 @@ export async function updateKegiatan(id: string, formData: FormData) {
     }
 
     const startIso = new Date(`${tanggalMulai}T${waktuMulai}:00`).toISOString();
-    const endIso = new Date(`${tanggalSelesai}T${waktuSelesai}:00`).toISOString();
+    const endIso = new Date(`${tanggalSelesai}T${waktuSelesai}:59`).toISOString();
 
     const supabase = await createClient();
     const { error } = await supabase

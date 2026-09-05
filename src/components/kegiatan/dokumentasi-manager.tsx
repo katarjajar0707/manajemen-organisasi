@@ -223,7 +223,7 @@ export function DokumentasiManager({
               <Badge variant="outline" className="text-xs">
                 Dokumentasi Acara
               </Badge>
-              <span className="text-xs text-muted-foreground">• {kegiatan.bagian?.nama || "Umum"}</span>
+              <span className="text-xs text-muted-foreground">• {kegiatan.bagian?.nama || "Semua Bagian"}</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight mt-0.5">
               {kegiatan.judul}

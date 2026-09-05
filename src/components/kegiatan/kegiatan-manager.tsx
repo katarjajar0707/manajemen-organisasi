@@ -21,13 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Calendar as CalendarIcon,
@@ -279,17 +273,13 @@ interface KegiatanFormData {
   deskripsi: string;
   tanggalMulai: string;
   tanggalSelesai: string;
-  waktuMulai: string;
-  waktuSelesai: string;
   lokasi: string;
-  bagianId: string;
 }
 
 function KegiatanFormDialog({
   open,
   mode,
   initial,
-  bagianList,
   isPending,
   errorMessage,
   onClose,
@@ -298,7 +288,6 @@ function KegiatanFormDialog({
   open: boolean;
   mode: "create" | "edit";
   initial: Partial<KegiatanData> | null;
-  bagianList: BagianItem[];
   isPending: boolean;
   errorMessage: string | null;
   onClose: () => void;
@@ -309,10 +298,7 @@ function KegiatanFormDialog({
     deskripsi: "",
     tanggalMulai: new Date().toISOString().split("T")[0],
     tanggalSelesai: new Date().toISOString().split("T")[0],
-    waktuMulai: "08:00",
-    waktuSelesai: "12:00",
     lokasi: "Balai Warga RW 05",
-    bagianId: bagianList[0]?.id || "",
   };
 
   const [form, setForm] = useState<KegiatanFormData>(emptyForm);
@@ -325,10 +311,7 @@ function KegiatanFormDialog({
           deskripsi: initial.deskripsi || "",
           tanggalMulai: initial.tanggalMulai || emptyForm.tanggalMulai,
           tanggalSelesai: initial.tanggalSelesai || initial.tanggalMulai || emptyForm.tanggalSelesai,
-          waktuMulai: initial.waktuMulai || "08:00",
-          waktuSelesai: initial.waktuSelesai || "12:00",
           lokasi: initial.lokasi || "Balai Warga RW 05",
-          bagianId: initial.bagianId || bagianList[0]?.id || "",
         });
       } else {
         setForm(emptyForm);
@@ -404,27 +387,6 @@ function KegiatanFormDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Waktu Mulai</Label>
-              <Input
-                type="time"
-                value={form.waktuMulai}
-                onChange={(e) => setForm((p) => ({ ...p, waktuMulai: e.target.value }))}
-                className="text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Waktu Selesai</Label>
-              <Input
-                type="time"
-                value={form.waktuSelesai}
-                onChange={(e) => setForm((p) => ({ ...p, waktuSelesai: e.target.value }))}
-                className="text-xs"
-              />
-            </div>
-          </div>
-
           <div className="space-y-1.5">
             <Label className="text-xs">Lokasi Kegiatan</Label>
             <Input
@@ -434,27 +396,6 @@ function KegiatanFormDialog({
               className="text-xs"
             />
           </div>
-
-          {bagianList.length > 0 && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">Bagian Penanggung Jawab</Label>
-              <Select
-                value={form.bagianId}
-                onValueChange={(v) => setForm((p) => ({ ...p, bagianId: v }))}
-              >
-                <SelectTrigger className="text-xs">
-                  <SelectValue placeholder="Pilih bagian..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {bagianList.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.nama}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
 
         <DialogFooter className="gap-2">
@@ -487,7 +428,6 @@ export function KegiatanManager({
   const [kegiatan, setKegiatan] = useState<KegiatanData[]>(initialKegiatan);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
-  const [bagianFilter, setBagianFilter] = useState("semua");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const [formOpen, setFormOpen] = useState(false);
@@ -510,10 +450,9 @@ export function KegiatanManager({
         k.lokasi.toLowerCase().includes(search.toLowerCase()) ||
         k.penanggungJawab.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "Semua" || k.status === statusFilter;
-      const matchBagian = bagianFilter === "semua" || k.bagianId === bagianFilter;
-      return matchSearch && matchStatus && matchBagian;
+      return matchSearch && matchStatus;
     });
-  }, [kegiatan, search, statusFilter, bagianFilter]);
+  }, [kegiatan, search, statusFilter]);
 
   // Counts
   const counts = useMemo(
@@ -550,10 +489,7 @@ export function KegiatanManager({
       formData.set("deskripsi", data.deskripsi);
       formData.set("tanggal_mulai", data.tanggalMulai);
       formData.set("tanggal_selesai", data.tanggalSelesai);
-      formData.set("waktu_mulai", data.waktuMulai);
-      formData.set("waktu_selesai", data.waktuSelesai);
       formData.set("lokasi", data.lokasi);
-      if (data.bagianId) formData.set("bagian_id", data.bagianId);
 
       if (formMode === "edit" && editTarget) {
         const res = await updateKegiatan(editTarget.id, formData);
@@ -562,15 +498,14 @@ export function KegiatanManager({
           return;
         }
 
-        const selectedBagian = bagianList.find((b) => b.id === data.bagianId);
         setKegiatan((prev) =>
           prev.map((k) =>
             k.id === editTarget.id
               ? {
                   ...k,
                   ...data,
-                  bagianNama: selectedBagian?.nama || k.bagianNama,
-                  penanggungJawab: selectedBagian?.nama || k.penanggungJawab,
+                  bagianNama: "Semua Bagian",
+                  penanggungJawab: "Semua Bagian",
                 }
               : k
           )
@@ -582,19 +517,18 @@ export function KegiatanManager({
           return;
         }
 
-        const selectedBagian = bagianList.find((b) => b.id === data.bagianId);
         const newK: KegiatanData = {
           id: res.kegiatan?.id || Date.now().toString(),
           judul: data.judul,
           deskripsi: data.deskripsi,
           tanggalMulai: data.tanggalMulai,
           tanggalSelesai: data.tanggalSelesai,
-          waktuMulai: data.waktuMulai,
-          waktuSelesai: data.waktuSelesai,
+          waktuMulai: "00:00",
+          waktuSelesai: "23:59",
           lokasi: data.lokasi,
-          bagianId: data.bagianId,
-          bagianNama: selectedBagian?.nama || "Umum",
-          penanggungJawab: selectedBagian?.nama || "Pengurus",
+          bagianId: "",
+          bagianNama: "Semua Bagian",
+          penanggungJawab: "Semua Bagian",
           totalFoto: 0,
           status: "Mendatang",
           dibuatOleh: currentUserId || "",
@@ -681,29 +615,14 @@ export function KegiatanManager({
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Cari nama, lokasi, seksi..."
+                placeholder="Cari judul atau lokasi kegiatan..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8 h-8 text-xs bg-muted/30"
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-              {bagianList.length > 0 && (
-                <Select value={bagianFilter} onValueChange={setBagianFilter}>
-                  <SelectTrigger className="h-8 text-xs w-[120px]">
-                    <SelectValue placeholder="Bagian" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="semua">Semua Bagian</SelectItem>
-                    {bagianList.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {b.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+            <div className="flex items-center gap-2">
 
               <div className="flex items-center border rounded-lg p-0.5 bg-muted/30">
                 <Button
@@ -818,18 +737,12 @@ export function KegiatanManager({
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-3 border-t grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
+                    <div className="mt-3 pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <CalendarIcon className="h-3.5 w-3.5 text-primary shrink-0" />
                         <span>
                           {formatTanggalShort(k.tanggalMulai)}
                           {k.tanggalSelesai !== k.tanggalMulai ? ` – ${formatTanggalShort(k.tanggalSelesai)}` : ""}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span>
-                          {k.waktuMulai} – {k.waktuSelesai} WIB
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -870,7 +783,8 @@ export function KegiatanManager({
                       <div className="flex items-center gap-1.5">
                         <CalendarIcon className="h-3.5 w-3.5 text-primary shrink-0" />
                         <span className="truncate">
-                          {formatTanggalShort(k.tanggalMulai)} ({k.waktuMulai})
+                          {formatTanggalShort(k.tanggalMulai)}
+                          {k.tanggalSelesai !== k.tanggalMulai ? ` – ${formatTanggalShort(k.tanggalSelesai)}` : ""}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -946,7 +860,6 @@ export function KegiatanManager({
         open={formOpen}
         mode={formMode}
         initial={editTarget}
-        bagianList={bagianList}
         isPending={isPending}
         errorMessage={errorMessage}
         onClose={() => setFormOpen(false)}

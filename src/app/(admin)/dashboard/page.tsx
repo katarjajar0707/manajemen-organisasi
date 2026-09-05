@@ -17,6 +17,8 @@ import { LogoutButton } from "@/components/common/logout-button";
 import { getDiskusis } from "@/actions/diskusi";
 import { getPengumumanList } from "@/actions/pengumuman";
 import { getPublicTransparencyData } from "@/actions/transparansi";
+import { getProfile } from "@/lib/supabase/server";
+import { DashboardAnnouncementBanner } from "@/components/dashboard/dashboard-announcement-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +28,11 @@ function formatRupiah(amount: number): string {
 }
 
 export default async function DashboardPage() {
-  const [diskusis, announcements, summaryData] = await Promise.all([
+  const [diskusis, announcements, summaryData, profile] = await Promise.all([
     getDiskusis(),
     getPengumumanList(),
     getPublicTransparencyData(),
+    getProfile(),
   ]);
 
   const latestDiskusis = diskusis.slice(0, 4);
@@ -79,6 +82,13 @@ export default async function DashboardPage() {
           <LogoutButton variant="outline" size="sm" className="flex-1 sm:flex-initial" />
         </div>
       </div>
+
+      {/* Pengumuman Banner untuk User / Role yang Ditentukan */}
+      <DashboardAnnouncementBanner
+        announcements={announcements}
+        userRole={profile?.role}
+        userBagianNama={profile?.bagian?.nama}
+      />
 
       {/* Quick Summary Cards */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">

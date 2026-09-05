@@ -19,6 +19,8 @@ export interface ArsipItem {
   uploader: string;
   deskripsi: string;
   createdAt: string;
+  driveUrl?: string | null;
+  imageUrl?: string | null;
 }
 
 /**
@@ -71,14 +73,36 @@ export async function getArsipList(filters?: {
       year: "numeric",
     });
 
-    // Detect file type from URL or field
+    // Detect Drive URL & Image URL
+    let driveUrl: string | null = null;
+    let imageUrl: string | null = null;
+
+    if (doc.nomor_surat && (doc.nomor_surat.startsWith("http://") || doc.nomor_surat.startsWith("https://"))) {
+      driveUrl = doc.nomor_surat;
+    }
+
+    if (doc.file_url && doc.file_url !== "#" && doc.file_url !== "-") {
+      const isImg = /\.(png|jpg|jpeg|webp|gif)(\?.*)?$/i.test(doc.file_url) || doc.file_type === "IMG";
+      if (isImg) {
+        imageUrl = doc.file_url;
+      } else if (doc.file_url.startsWith("http://") || doc.file_url.startsWith("https://")) {
+        if (!driveUrl) {
+          driveUrl = doc.file_url;
+        }
+      }
+    }
+
+    // Detect file type
     let detectedType = doc.file_type || "PDF";
-    if (doc.file_url) {
+    if (imageUrl) {
+      detectedType = "IMG";
+    } else if (driveUrl) {
+      detectedType = "LINK";
+    } else if (doc.file_url) {
       const lower = doc.file_url.toLowerCase();
       if (lower.endsWith(".docx") || lower.endsWith(".doc")) detectedType = "DOCX";
       else if (lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".csv")) detectedType = "XLSX";
       else if (lower.endsWith(".pdf")) detectedType = "PDF";
-      else if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp")) detectedType = "IMG";
     }
 
     const agendaObj = Array.isArray(doc.agenda) ? doc.agenda[0] : doc.agenda;
@@ -87,17 +111,19 @@ export async function getArsipList(filters?: {
     return {
       id: doc.id,
       judul: doc.judul,
-      nomorSurat: doc.nomor_surat || "-",
+      nomorSurat: doc.nomor_surat && !doc.nomor_surat.startsWith("http") ? doc.nomor_surat : "-",
       kategori: doc.kategori || "lainnya",
       fileUrl: doc.file_url,
       fileType: detectedType,
-      size: doc.file_size || "Dokumen",
+      size: doc.file_size || (driveUrl ? "Google Drive" : "Dokumen"),
       tanggal: formattedDate,
       agendaOrganisasiId: doc.agenda_organisasi_id || null,
       agendaTerkait: agendaObj?.nama_agenda || "Umum / Organisasi",
       uploader: authorObj?.nama || "Pengurus",
       deskripsi: doc.deskripsi || "",
       createdAt: doc.created_at,
+      driveUrl,
+      imageUrl,
     };
   });
 }
@@ -108,12 +134,14 @@ export async function getArsipList(filters?: {
 export async function createArsip(payload: {
   judul: string;
   nomorSurat?: string;
-  kategori: KategoriArsip;
-  fileUrl: string;
+  kategori?: KategoriArsip;
+  fileUrl?: string;
   fileType?: string;
   fileSize?: string;
   agendaOrganisasiId?: string | null;
   deskripsi?: string;
+  driveUrl?: string | null;
+  imageUrl?: string | null;
 }): Promise<{ success: boolean; data?: ArsipItem; error?: string }> {
   try {
     const supabase = await createClient();
@@ -127,17 +155,22 @@ export async function createArsip(payload: {
       return { success: false, error: "Judul arsip dokumen wajib diisi." };
     }
 
-    if (!payload.fileUrl?.trim()) {
-      return { success: false, error: "File lampiran arsip wajib diunggah." };
-    }
+    const driveUrl = payload.driveUrl?.trim() || null;
+    const imageUrl = payload.imageUrl?.trim() || null;
+
+    // file_url must not be null in database
+    const fileUrl = imageUrl || driveUrl || payload.fileUrl?.trim() || "#";
+    const nomorSurat = driveUrl || payload.nomorSurat?.trim() || null;
+    const fileType = imageUrl ? "IMG" : driveUrl ? "LINK" : payload.fileType || "PDF";
+    const fileSize = imageUrl ? (payload.fileSize || "Gambar") : driveUrl ? "Google Drive" : (payload.fileSize || "Dokumen");
 
     const insertData: any = {
       judul: payload.judul.trim(),
-      nomor_surat: payload.nomorSurat?.trim() || null,
+      nomor_surat: nomorSurat,
       kategori: payload.kategori || "lainnya",
-      file_url: payload.fileUrl.trim(),
-      file_type: payload.fileType || "PDF",
-      file_size: payload.fileSize || "1 MB",
+      file_url: fileUrl,
+      file_type: fileType,
+      file_size: fileSize,
       agenda_organisasi_id: payload.agendaOrganisasiId || null,
       deskripsi: payload.deskripsi?.trim() || null,
       dibuat_oleh: profile.id,
@@ -180,17 +213,19 @@ export async function createArsip(payload: {
       data: {
         id: data.id,
         judul: data.judul,
-        nomorSurat: data.nomor_surat || "-",
+        nomorSurat: data.nomor_surat && !data.nomor_surat.startsWith("http") ? data.nomor_surat : "-",
         kategori: data.kategori,
         fileUrl: data.file_url,
-        fileType: data.file_type || "PDF",
-        size: data.file_size || "Dokumen",
+        fileType: fileType,
+        size: fileSize,
         tanggal: formattedDate,
         agendaOrganisasiId: data.agenda_organisasi_id,
         agendaTerkait: agendaObj?.nama_agenda || "Umum / Organisasi",
         uploader: authorObj?.nama || profile.nama,
         deskripsi: data.deskripsi || "",
         createdAt: data.created_at,
+        driveUrl,
+        imageUrl,
       },
     };
   } catch (err: any) {
@@ -212,6 +247,8 @@ export async function updateArsip(
     fileSize?: string;
     agendaOrganisasiId?: string | null;
     deskripsi?: string;
+    driveUrl?: string | null;
+    imageUrl?: string | null;
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -224,13 +261,31 @@ export async function updateArsip(
 
     const updateData: any = {};
     if (payload.judul !== undefined) updateData.judul = payload.judul.trim();
-    if (payload.nomorSurat !== undefined) updateData.nomor_surat = payload.nomorSurat.trim();
     if (payload.kategori !== undefined) updateData.kategori = payload.kategori;
-    if (payload.fileUrl !== undefined) updateData.file_url = payload.fileUrl;
+    if (payload.agendaOrganisasiId !== undefined) updateData.agenda_organisasi_id = payload.agendaOrganisasiId;
+    if (payload.deskripsi !== undefined) updateData.deskripsi = payload.deskripsi?.trim() || null;
+
+    if (payload.driveUrl !== undefined) {
+      updateData.nomor_surat = payload.driveUrl?.trim() || null;
+      if (!payload.imageUrl && payload.driveUrl) {
+        updateData.file_url = payload.driveUrl.trim();
+        updateData.file_type = "LINK";
+      }
+    } else if (payload.nomorSurat !== undefined) {
+      updateData.nomor_surat = payload.nomorSurat.trim();
+    }
+
+    if (payload.imageUrl !== undefined) {
+      if (payload.imageUrl) {
+        updateData.file_url = payload.imageUrl.trim();
+        updateData.file_type = "IMG";
+      }
+    } else if (payload.fileUrl !== undefined) {
+      updateData.file_url = payload.fileUrl;
+    }
+
     if (payload.fileType !== undefined) updateData.file_type = payload.fileType;
     if (payload.fileSize !== undefined) updateData.file_size = payload.fileSize;
-    if (payload.agendaOrganisasiId !== undefined) updateData.agenda_organisasi_id = payload.agendaOrganisasiId;
-    if (payload.deskripsi !== undefined) updateData.deskripsi = payload.deskripsi.trim();
 
     const { error } = await supabase
       .from("arsip_dokumen")

@@ -63,6 +63,7 @@ function buildCrumbs(pathname: string) {
 interface AppHeaderProps {
   userRole?: string;
   userName?: string;
+  userAvatarUrl?: string | null;
 }
 
 import { useAuthStore } from "@/store/auth-store";
@@ -70,11 +71,16 @@ import { useAuthStore } from "@/store/auth-store";
 export function AppHeader({
   userRole: propUserRole,
   userName: propUserName,
+  userAvatarUrl,
 }: AppHeaderProps) {
   const storeRole = useAuthStore((s) => s.userRole);
   const storeName = useAuthStore((s) => s.userName);
+  const storeAvatarUrl = useAuthStore((s) => s.avatarUrl);
+  const setAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
   const userRole = propUserRole || storeRole || "admin";
   const userName = propUserName || storeName || "Azzam Azhari";
+  // The effective avatar: store takes priority (realtime updates), fallback to server prop
+  const avatarUrl = storeAvatarUrl || userAvatarUrl || null;
   const pathname = usePathname();
   const router = useRouter();
   const { setTheme, theme, systemTheme } = useTheme();
@@ -93,6 +99,13 @@ export function AppHeader({
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Seed the store with server-provided avatar URL on first mount
+  React.useEffect(() => {
+    if (userAvatarUrl && !storeAvatarUrl) {
+      setAvatarUrl(userAvatarUrl);
+    }
+  }, [userAvatarUrl, storeAvatarUrl, setAvatarUrl]);
 
   const currentTheme = theme === "system" ? systemTheme : theme;
   const isDark = currentTheme === "dark";
@@ -200,15 +213,24 @@ export function AppHeader({
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg",
-                "bg-gradient-to-br from-primary to-emerald-400",
+                "flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden",
+                !avatarUrl && "bg-gradient-to-br from-primary to-emerald-400",
                 "text-primary-foreground font-bold text-xs",
                 "shadow-[0_0_12px_rgba(16,185,129,0.25)]",
                 "hover:shadow-[0_0_18px_rgba(16,185,129,0.4)]",
                 "transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40"
               )}
             >
-              {initials}
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt={userName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                initials
+              )}
             </button>
           </DropdownMenuTrigger>
 

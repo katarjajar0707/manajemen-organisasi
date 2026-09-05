@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { BOTTOM_NAV_ITEMS } from "@/constants/navigation";
 import { cn } from "@/lib/utils";
 
-import { LayoutGrid, Menu } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { useSidebarStore } from "@/store/sidebar-store";
 
 export function AppBottomNav() {
@@ -14,84 +14,127 @@ export function AppBottomNav() {
   const isMobileOpen = useSidebarStore((s) => s.isMobileOpen);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 w-full items-center justify-around border-t border-border/60 bg-background/95 backdrop-blur-md lg:hidden px-1">
-      {BOTTOM_NAV_ITEMS.map((item) => {
-        const Icon = item.icon;
-        const isActive = pathname === item.href;
+    <nav
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-40 lg:hidden",
+        // Glassmorphism container
+        "border-t border-white/[0.06]",
+        "bg-gradient-to-t from-black/90 via-black/80 to-black/60",
+        "backdrop-blur-xl backdrop-saturate-150",
+        // Safe area padding for notched phones + extra bottom padding
+        "pb-[env(safe-area-inset-bottom,8px)]"
+      )}
+    >
+      {/* Top glow line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+      <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-primary/20 to-transparent blur-sm" />
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
+      {/* Nav items container */}
+      <div className="flex items-end justify-around px-2 pt-1.5 pb-2">
+        {BOTTOM_NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "group relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 transition-all duration-300 ease-out",
+                "active:scale-90",
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground/70 hover:text-foreground/80"
+              )}
+            >
+              {/* Active background pill */}
+              <div
+                className={cn(
+                  "relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out",
+                  isActive
+                    ? "bg-primary/15 shadow-[0_0_16px_rgba(16,185,129,0.25),0_0_4px_rgba(16,185,129,0.15)] scale-110"
+                    : "group-hover:bg-white/[0.04] scale-100"
+                )}
+              >
+                {/* Active dot indicator above icon */}
+                <div
+                  className={cn(
+                    "absolute -top-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-primary transition-all duration-300 ease-out",
+                    isActive ? "w-3 opacity-100" : "w-0 opacity-0"
+                  )}
+                />
+                <Icon
+                  className={cn(
+                    "transition-all duration-300 ease-out",
+                    isActive
+                      ? "h-[18px] w-[18px] stroke-[2.5] text-primary drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]"
+                      : "h-4 w-4 stroke-[1.8] group-hover:stroke-2"
+                  )}
+                />
+              </div>
+              <span
+                className={cn(
+                  "text-[10px] leading-tight truncate max-w-[56px] transition-all duration-300 ease-out",
+                  isActive
+                    ? "font-bold text-primary translate-y-0 opacity-100"
+                    : "font-medium text-muted-foreground/50 translate-y-0.5 opacity-70 group-hover:opacity-90"
+                )}
+              >
+                {item.title}
+              </span>
+            </Link>
+          );
+        })}
+
+        {/* Button Menu Lengkap (Drawer) */}
+        <button
+          type="button"
+          onClick={toggleMobile}
+          className={cn(
+            "group relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 transition-all duration-300 ease-out",
+            "active:scale-90",
+            isMobileOpen
+              ? "text-primary"
+              : "text-muted-foreground/70 hover:text-foreground/80"
+          )}
+        >
+          {/* Active background pill */}
+          <div
             className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-1 py-1 transition-all duration-150",
-              isActive
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
+              "relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out",
+              isMobileOpen
+                ? "bg-primary/15 shadow-[0_0_16px_rgba(16,185,129,0.25),0_0_4px_rgba(16,185,129,0.15)] scale-110"
+                : "group-hover:bg-white/[0.04] scale-100"
             )}
           >
+            {/* Active dot indicator above icon */}
             <div
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg transition-all",
-                isActive
-                  ? "bg-primary/10 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                  : ""
+                "absolute -top-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-primary transition-all duration-300 ease-out",
+                isMobileOpen ? "w-3 opacity-100" : "w-0 opacity-0"
               )}
-            >
-              <Icon
-                className={cn(
-                  "h-4 w-4",
-                  isActive ? "stroke-[2.5] text-primary" : "stroke-2"
-                )}
-              />
-            </div>
-            <span
+            />
+            <LayoutGrid
               className={cn(
-                "text-[10px] font-bold truncate max-w-[60px]",
-                isActive ? "text-primary" : "text-muted-foreground"
+                "transition-all duration-300 ease-out",
+                isMobileOpen
+                  ? "h-[18px] w-[18px] stroke-[2.5] text-primary drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]"
+                  : "h-4 w-4 stroke-[1.8] group-hover:stroke-2"
               )}
-            >
-              {item.title}
-            </span>
-          </Link>
-        );
-      })}
-
-      {/* Button Menu Lengkap (Drawer) */}
-      <button
-        type="button"
-        onClick={toggleMobile}
-        className={cn(
-          "flex flex-1 flex-col items-center justify-center gap-1 py-1 transition-all duration-150",
-          isMobileOpen
-            ? "text-primary"
-            : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <div
-          className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg transition-all",
-            isMobileOpen
-              ? "bg-primary/10 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-              : ""
-          )}
-        >
-          <LayoutGrid
+            />
+          </div>
+          <span
             className={cn(
-              "h-4 w-4",
-              isMobileOpen ? "stroke-[2.5] text-primary" : "stroke-2"
+              "text-[10px] leading-tight truncate max-w-[56px] transition-all duration-300 ease-out",
+              isMobileOpen
+                ? "font-bold text-primary translate-y-0 opacity-100"
+                : "font-medium text-muted-foreground/50 translate-y-0.5 opacity-70 group-hover:opacity-90"
             )}
-          />
-        </div>
-        <span
-          className={cn(
-            "text-[10px] font-bold truncate max-w-[60px]",
-            isMobileOpen ? "text-primary" : "text-muted-foreground"
-          )}
-        >
-          Menu
-        </span>
-      </button>
+          >
+            Menu
+          </span>
+        </button>
+      </div>
     </nav>
   );
 }

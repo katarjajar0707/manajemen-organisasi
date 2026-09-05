@@ -34,6 +34,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { updateProfile, updateAvatar, changePassword } from "@/actions/profil";
+import { useAuthStore } from "@/store/auth-store";
 
 interface ProfileData {
   id: string;
@@ -69,6 +70,7 @@ export function ProfilManager({ profile }: ProfilManagerProps) {
 
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const setStoreAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
 
   // Password Modal
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -118,6 +120,8 @@ export function ProfilManager({ profile }: ProfilManagerProps) {
         setAvatarUrl(profile.foto_url); // Revert
       } else if (res?.url) {
         setAvatarUrl(res.url);
+        // Push to global store so the app header updates in real-time
+        setStoreAvatarUrl(res.url);
         setFeedback({ type: "success", message: "Foto profil berhasil diperbarui!" });
       }
       clearFeedback();
