@@ -18,6 +18,8 @@ import { getDiskusis } from "@/actions/diskusi";
 import { getPengumumanList } from "@/actions/pengumuman";
 import { getPublicTransparencyData } from "@/actions/transparansi";
 
+export const dynamic = "force-dynamic";
+
 function formatRupiah(amount: number): string {
   const rounded = Math.round(Number(amount) || 0);
   return `Rp ${rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createPublicClient } from "@/lib/supabase/server";
 
 export interface PublicTransparencyData {
   keuangan: {
@@ -58,7 +58,7 @@ function formatWaktuIndo(dateStr: string): string {
  */
 export async function getPublicTransparencyData(): Promise<PublicTransparencyData> {
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
 
     // 1. Fetch Keuangan
     const { data: rawKeuangan } = await supabase

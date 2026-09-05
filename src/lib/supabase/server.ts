@@ -48,6 +48,25 @@ export async function createAdminClient() {
   });
 }
 
+/**
+ * Creates a Supabase client using anon key WITHOUT cookies.
+ * Use for public, read-only queries that don't need authentication.
+ * This avoids calling cookies() which forces dynamic rendering.
+ */
+export function createPublicClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-supabase.supabase.co";
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
+
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return [];
+      },
+      setAll() {},
+    },
+  });
+}
+
 export async function getProfile() {
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
