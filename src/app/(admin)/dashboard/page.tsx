@@ -16,11 +16,21 @@ import {
 import { LogoutButton } from "@/components/common/logout-button";
 import { getDiskusis } from "@/actions/diskusi";
 import { getPengumumanList } from "@/actions/pengumuman";
+import { getPublicTransparencyData } from "@/actions/transparansi";
+
+function formatRupiah(amount: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
 
 export default async function DashboardPage() {
-  const [diskusis, announcements] = await Promise.all([
+  const [diskusis, announcements, summaryData] = await Promise.all([
     getDiskusis(),
     getPengumumanList(),
+    getPublicTransparencyData(),
   ]);
 
   const latestDiskusis = diskusis.slice(0, 4);
@@ -35,7 +45,7 @@ export default async function DashboardPage() {
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
       if (diffMinutes < 1) return "Baru saja";
-      if (diffMinutes < 60) return `${diffMinutes} jam lalu`;
+      if (diffMinutes < 60) return `${diffMinutes} menit lalu`;
       if (diffHours < 24) return `${diffHours} jam lalu`;
       if (diffDays < 7) return `${diffDays} hari lalu`;
       return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
@@ -72,61 +82,77 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Kas Bendahara
-            </CardTitle>
-            <Wallet className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Rp 12.850.000</div>
-            <div className="flex items-center text-xs text-emerald-600 dark:text-emerald-400 mt-1 gap-1">
-              <TrendingUp className="h-3 w-3" />
-              <span>+Rp 1.500.000 bulan ini</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Anggota Terdata
-            </CardTitle>
-            <Users className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">48 Orang</div>
-            <p className="text-xs text-muted-foreground mt-1">Periode aktif 2025–2027</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Kegiatan Bulan Ini
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-indigo-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3 Acara</div>
-            <p className="text-xs text-muted-foreground mt-1">1 terdekat minggu ini</p>
-          </CardContent>
-        </Card>
-
-        <Link href="/pengumuman">
-          <Card className="hover:border-amber-500/40 transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pengumuman Baru
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <Link href="/bagian/bendahara" className="block">
+          <Card className="hover:border-primary/40 transition-colors h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3.5 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
+                Kas Bendahara
               </CardTitle>
-              <Megaphone className="h-4 w-4 text-amber-600" />
+              <Wallet className="h-4 w-4 text-primary shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{announcements.length} Info</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {announcements.length > 0 ? "Lihat broadcast terbaru" : "Belum ada pengumuman baru"}
+            <CardContent className="p-3.5 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold truncate">
+                {formatRupiah(summaryData.keuangan.saldoAkhir)}
+              </div>
+              <div className="flex items-center text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 mt-1 gap-1">
+                <TrendingUp className="h-3 w-3 shrink-0" />
+                <span className="truncate">Saldo kas aktif</span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/anggota" className="block">
+          <Card className="hover:border-emerald-500/40 transition-colors h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3.5 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
+                Anggota Aktif
+              </CardTitle>
+              <Users className="h-4 w-4 text-emerald-600 shrink-0" />
+            </CardHeader>
+            <CardContent className="p-3.5 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">
+                {summaryData.anggota.totalAktif} Orang
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 truncate">
+                {summaryData.anggota.totalSemua} total terdaftar
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/kegiatan" className="block">
+          <Card className="hover:border-indigo-500/40 transition-colors h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3.5 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
+                Agenda Kegiatan
+              </CardTitle>
+              <Calendar className="h-4 w-4 text-indigo-600 shrink-0" />
+            </CardHeader>
+            <CardContent className="p-3.5 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">
+                {summaryData.kegiatan.totalProgram} Program
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 truncate">
+                {summaryData.kegiatan.kegiatanTerlaksana} telah terlaksana
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/pengumuman" className="block">
+          <Card className="hover:border-amber-500/40 transition-colors h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3.5 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
+                Pengumuman
+              </CardTitle>
+              <Megaphone className="h-4 w-4 text-amber-600 shrink-0" />
+            </CardHeader>
+            <CardContent className="p-3.5 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{announcements.length} Info</div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 truncate">
+                {announcements.length > 0 ? "Lihat broadcast terbaru" : "Belum ada pengumuman"}
               </p>
             </CardContent>
           </Card>
@@ -150,21 +176,21 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="grid gap-3">
             {[
-              { name: "Bendahara", slug: "bendahara", desc: "Catatan keuangan kas masuk & keluar", count: "34 Transaksi" },
-              { name: "Sekretaris", slug: "sekretaris", desc: "Notula rapat & arsip persuratan", count: "18 Catatan" },
-              { name: "Acara & Kegiatan", slug: "acara", desc: "Perencanaan & rundown kegiatan", count: "12 Catatan" },
-              { name: "Humas & Kominfo", slug: "kominfo", desc: "Publikasi media sosial & broadcast", count: "9 Catatan" },
+              { name: "Bendahara", slug: "bendahara", desc: "Catatan keuangan kas masuk & keluar" },
+              { name: "Sekretaris", slug: "sekretaris", desc: "Notula rapat & arsip persuratan" },
+              { name: "Acara & Kegiatan", slug: "acara", desc: "Perencanaan & rundown kegiatan" },
+              { name: "Humas & Kominfo", slug: "kominfo", desc: "Publikasi media sosial & broadcast" },
             ].map((dept) => (
               <Link
                 key={dept.slug}
                 href={dept.slug === "bendahara" ? "/bagian/bendahara" : `/bagian/${dept.slug}`}
-                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent transition-colors"
+                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/40 transition-colors"
               >
                 <div>
                   <h4 className="font-semibold text-sm">{dept.name}</h4>
                   <p className="text-xs text-muted-foreground">{dept.desc}</p>
                 </div>
-                <Badge variant="secondary">{dept.count}</Badge>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </Link>
             ))}
           </CardContent>

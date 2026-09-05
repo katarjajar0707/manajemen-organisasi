@@ -20,11 +20,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User } from "lucide-react";
+import { Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User, Search } from "lucide-react";
 import { useSidebarStore } from "@/store/sidebar-store";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { logout } from "@/actions/auth";
+import { GlobalSearchDialog } from "@/components/common/global-search-dialog";
 
 // Map segment URL → label yang terbaca
 const SEGMENT_LABELS: Record<string, string> = {
@@ -78,6 +79,7 @@ export function AppHeader({
   const router = useRouter();
   const { setTheme, theme, systemTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isLoggingOut, startLogoutTransition] = React.useTransition();
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
@@ -169,8 +171,23 @@ export function AppHeader({
         </div>
       </div>
 
-      {/* ── Sisi Kanan: Role Badge & Profile Dropdown ── */}
+      {/* ── Sisi Kanan: Search, Role Badge & Profile Dropdown ── */}
       <div className="flex items-center gap-2 shrink-0">
+        {/* Global Search Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsSearchOpen(true)}
+          className="h-8 gap-2 text-xs text-muted-foreground hover:text-foreground px-2.5 sm:px-3 bg-muted/40 border-border/70"
+          title="Cari Modul & Navigasi Cepat (Ctrl+K)"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Cari modul...</span>
+          <kbd className="hidden md:inline-flex text-[10px] bg-background border border-border px-1.5 py-0.5 rounded font-mono text-muted-foreground">
+            ⌘K
+          </kbd>
+        </Button>
+
         <span className={cn(
           "hidden sm:inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md",
           "bg-primary/10 text-primary border border-primary/20"
@@ -254,6 +271,9 @@ export function AppHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Global Search Dialog Modal */}
+      <GlobalSearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </header>
   );
 }

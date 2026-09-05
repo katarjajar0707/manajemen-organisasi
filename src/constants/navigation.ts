@@ -54,7 +54,6 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     title: "Kegiatan",
     href: "/kegiatan",
     icon: Calendar,
-    roles: ["admin", "ketua"],
   },
   {
     title: "Pengumuman",

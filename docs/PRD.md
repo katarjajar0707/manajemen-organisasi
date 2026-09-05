@@ -370,8 +370,8 @@ ketika admin menambahkan departement atau jabatan maka otomatis terhubung ke inv
 7. **Fase 7 – Backend Kegiatan:** `kalender_kegiatan`, `dokumentasi_kegiatan` (galeri foto memakai komponen preview yang sama). ✅
 8. **Fase 8 – Backend Komunikasi:** `pengumuman` (broadcast satu arah), `diskusi`/`catatan_umum` + `diskusi_balasan` + fitur mention `@bagian` (`diskusi_mention`). ✅
 9. **Fase 9 – Backend Inventaris & Administrasi:** `inventaris` + `peminjaman_inventaris`, `template_surat`, `arsip_dokumen`. ✅
-10. **Fase 10 – Backend Transparansi:** Sambungkan dashboard publik ke data ringkasan kas, anggota, dan kegiatan asli (menggantikan dummy).
-11. **Fase 11 – Polish:** Filter/search lintas modul, review responsive di berbagai device dengan data asli, penghalusan UX mobile.
+10. **Fase 10 – Backend Transparansi:** Sambungkan dashboard publik ke data ringkasan kas, anggota, dan kegiatan asli (menggantikan dummy). ✅
+11. **Fase 11 – Polish:** Filter/search lintas modul, review responsive di berbagai device dengan data asli, penghalusan UX mobile. ✅
 12. **Fase 12 – QA & Release:** Testing fungsional per role (admin/ketua/anggota), uji RLS (pastikan bagian & data privat tidak bocor, tapi data lintas bagian tetap terbuka sesuai desain), uji fitur mention & dashboard publik, bug fixing, deploy ke production.
 
 ---
