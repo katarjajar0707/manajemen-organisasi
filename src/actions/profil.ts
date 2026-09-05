@@ -23,7 +23,10 @@ export async function getMyProfile() {
 
   // Gabungkan email dari auth.users ke respons
   if (profile) {
-    return { ...profile, email: user.email };
+    // Supabase bisa mengembalikan bagian sebagai array — normalisasi ke objek tunggal
+    const bagianRaw = profile.bagian;
+    const bagian = Array.isArray(bagianRaw) ? bagianRaw[0] ?? null : bagianRaw ?? null;
+    return { ...profile, bagian, email: user.email };
   }
   return null;
 }
