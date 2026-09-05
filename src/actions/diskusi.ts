@@ -16,12 +16,12 @@ export interface DiskusiItem {
   judul: string;
   isi: string | null;
   bagianPembuatId: string | null;
-  bagianPembuatNama?: string;
-  bagianPembuatSlug?: string;
+  bagianPembuatNama: string;
+  bagianPembuatSlug: string;
   dibuatOleh: string;
   authorName: string;
-  authorAvatar?: string | null;
-  authorRole?: string;
+  authorAvatar: string | null;
+  authorRole: string;
   isPinned: boolean;
   createdAt: string;
   balasanCount: number;
@@ -34,18 +34,19 @@ export interface DiskusiBalasanItem {
   isi: string;
   dibuatOleh: string;
   authorName: string;
-  authorAvatar?: string | null;
-  authorRole?: string;
+  authorAvatar: string | null;
+  authorRole: string;
   authorBagian?: string;
   createdAt: string;
 }
 
 /**
- * Mengambil daftar seluruh topik diskusi dan catatan umum dari database.
+ * Mengambil seluruh topik diskusi / catatan umum dengan filter opsional.
+ * Sesuai PRD 4.7: Terbuka untuk semua role & semua bagian.
  */
 export async function getDiskusis(filters?: {
-  search?: string;
   tipe?: "diskusi" | "catatan_umum" | "semua";
+  search?: string;
   bagianId?: string;
 }): Promise<DiskusiItem[]> {
   const supabase = await createClient();
@@ -54,15 +55,15 @@ export async function getDiskusis(filters?: {
     .from("diskusi")
     .select(`
       *,
-      bagian_pembuat:bagian_pembuat_id (
+      bagian_pembuat:bagian!bagian_pembuat_id (
         id,
         nama,
         slug
       ),
-      author:dibuat_oleh (
+      author:profiles!dibuat_oleh (
         id,
-        full_name,
-        avatar_url,
+        nama,
+        foto_url,
         role
       ),
       diskusi_balasan (
@@ -70,7 +71,7 @@ export async function getDiskusis(filters?: {
       ),
       diskusi_mention (
         id,
-        bagian:bagian_ditag_id (
+        bagian:bagian!bagian_ditag_id (
           id,
           nama,
           slug
@@ -95,7 +96,7 @@ export async function getDiskusis(filters?: {
   const { data, error } = await query;
 
   if (error) {
-    console.error("Error fetching diskusis:", error);
+    console.error("Error fetching diskusis:", JSON.stringify(error, null, 2));
     return [];
   }
 
@@ -104,8 +105,8 @@ export async function getDiskusis(filters?: {
   return data.map((item) => {
     const rawMentions = Array.isArray(item.diskusi_mention) ? item.diskusi_mention : [];
     const mentions: DiskusiMentionItem[] = rawMentions
-      .filter((m: { bagian?: { id: string; nama: string; slug: string } }) => Boolean(m?.bagian))
-      .map((m: { id: string; bagian: { id: string; nama: string; slug: string } }) => ({
+      .filter((m: any) => Boolean(m?.bagian))
+      .map((m: any) => ({
         id: m.id,
         bagianId: m.bagian.id,
         bagianNama: m.bagian.nama,
@@ -121,8 +122,8 @@ export async function getDiskusis(filters?: {
       bagianPembuatNama: item.bagian_pembuat?.nama || "Umum",
       bagianPembuatSlug: item.bagian_pembuat?.slug || "",
       dibuatOleh: item.dibuat_oleh,
-      authorName: item.author?.full_name || "Anggota",
-      authorAvatar: item.author?.avatar_url || null,
+      authorName: item.author?.nama || "Anggota",
+      authorAvatar: item.author?.foto_url || null,
       authorRole: item.author?.role || "anggota",
       isPinned: Boolean(item.is_pinned),
       createdAt: item.created_at,
@@ -142,15 +143,15 @@ export async function getDiskusiById(id: string): Promise<DiskusiItem | null> {
     .from("diskusi")
     .select(`
       *,
-      bagian_pembuat:bagian_pembuat_id (
+      bagian_pembuat:bagian!bagian_pembuat_id (
         id,
         nama,
         slug
       ),
-      author:dibuat_oleh (
+      author:profiles!dibuat_oleh (
         id,
-        full_name,
-        avatar_url,
+        nama,
+        foto_url,
         role
       ),
       diskusi_balasan (
@@ -158,7 +159,7 @@ export async function getDiskusiById(id: string): Promise<DiskusiItem | null> {
       ),
       diskusi_mention (
         id,
-        bagian:bagian_ditag_id (
+        bagian:bagian!bagian_ditag_id (
           id,
           nama,
           slug
@@ -169,14 +170,14 @@ export async function getDiskusiById(id: string): Promise<DiskusiItem | null> {
     .single();
 
   if (error || !data) {
-    console.error("Error fetching diskusi by ID:", error);
+    console.error("Error fetching diskusi by ID:", JSON.stringify(error, null, 2));
     return null;
   }
 
   const rawMentions = Array.isArray(data.diskusi_mention) ? data.diskusi_mention : [];
   const mentions: DiskusiMentionItem[] = rawMentions
-    .filter((m: { bagian?: { id: string; nama: string; slug: string } }) => Boolean(m?.bagian))
-    .map((m: { id: string; bagian: { id: string; nama: string; slug: string } }) => ({
+    .filter((m: any) => Boolean(m?.bagian))
+    .map((m: any) => ({
       id: m.id,
       bagianId: m.bagian.id,
       bagianNama: m.bagian.nama,
@@ -192,8 +193,8 @@ export async function getDiskusiById(id: string): Promise<DiskusiItem | null> {
     bagianPembuatNama: data.bagian_pembuat?.nama || "Umum",
     bagianPembuatSlug: data.bagian_pembuat?.slug || "",
     dibuatOleh: data.dibuat_oleh,
-    authorName: data.author?.full_name || "Anggota",
-    authorAvatar: data.author?.avatar_url || null,
+    authorName: data.author?.nama || "Anggota",
+    authorAvatar: data.author?.foto_url || null,
     authorRole: data.author?.role || "anggota",
     isPinned: Boolean(data.is_pinned),
     createdAt: data.created_at,
@@ -240,7 +241,7 @@ export async function createDiskusi(payload: {
       .single();
 
     if (insertError || !insertedDiskusi) {
-      console.error("Error creating diskusi:", insertError);
+      console.error("Error creating diskusi:", JSON.stringify(insertError, null, 2));
       return { success: false, error: insertError?.message || "Gagal membuat topik diskusi." };
     }
 
@@ -305,7 +306,6 @@ export async function updateDiskusi(
 
     // Update mentions jika diberikan
     if (payload.mentionBagianIds !== undefined) {
-      // Hapus mention lama
       await supabase.from("diskusi_mention").delete().eq("diskusi_id", id);
 
       if (payload.mentionBagianIds.length > 0) {
@@ -329,7 +329,7 @@ export async function updateDiskusi(
 }
 
 /**
- * Menghapus topik diskusi beserta balasan & mentionnya (cascade).
+ * Menghapus topik diskusi.
  */
 export async function deleteDiskusi(id: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -349,6 +349,7 @@ export async function deleteDiskusi(id: string): Promise<{ success: boolean; err
 
     revalidatePath("/diskusi");
     revalidatePath("/dashboard");
+
     return { success: true };
   } catch (err: any) {
     console.error("Unexpected error deleting diskusi:", err);
@@ -357,7 +358,7 @@ export async function deleteDiskusi(id: string): Promise<{ success: boolean; err
 }
 
 /**
- * Mengatur sematan (pin/unpin) topik diskusi di daftar teratas.
+ * Toggle status PIN diskusi (hanya Admin/Ketua).
  */
 export async function togglePinDiskusi(
   id: string,
@@ -367,12 +368,8 @@ export async function togglePinDiskusi(
     const supabase = await createClient();
     const profile = await getProfile();
 
-    if (!profile) {
-      return { success: false, error: "Silakan login terlebih dahulu." };
-    }
-
-    if (profile.role !== "admin" && profile.role !== "ketua") {
-      return { success: false, error: "Hanya Admin dan Ketua yang dapat menyematkan topik." };
+    if (!profile || (profile.role !== "admin" && profile.role !== "ketua")) {
+      return { success: false, error: "Hanya Admin atau Ketua yang dapat menyematkan topik." };
     }
 
     const { error } = await supabase
@@ -381,12 +378,11 @@ export async function togglePinDiskusi(
       .eq("id", id);
 
     if (error) {
-      console.error("Error toggling pin diskusi:", error);
+      console.error("Error pinning diskusi:", error);
       return { success: false, error: error.message };
     }
 
     revalidatePath("/diskusi");
-    revalidatePath(`/diskusi/${id}`);
     return { success: true };
   } catch (err: any) {
     console.error("Unexpected error toggling pin:", err);
@@ -404,12 +400,12 @@ export async function getDiskusiBalasans(diskusiId: string): Promise<DiskusiBala
     .from("diskusi_balasan")
     .select(`
       *,
-      author:dibuat_oleh (
+      author:profiles!dibuat_oleh (
         id,
-        full_name,
-        avatar_url,
+        nama,
+        foto_url,
         role,
-        bagian:bagian_id (
+        bagian:bagian!bagian_id (
           id,
           nama
         )
@@ -419,7 +415,7 @@ export async function getDiskusiBalasans(diskusiId: string): Promise<DiskusiBala
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("Error fetching diskusi balasans:", error);
+    console.error("Error fetching diskusi balasans:", JSON.stringify(error, null, 2));
     return [];
   }
 
@@ -430,8 +426,8 @@ export async function getDiskusiBalasans(diskusiId: string): Promise<DiskusiBala
     diskusiId: item.diskusi_id,
     isi: item.isi,
     dibuatOleh: item.dibuat_oleh,
-    authorName: item.author?.full_name || "Anggota",
-    authorAvatar: item.author?.avatar_url || null,
+    authorName: item.author?.nama || "Anggota",
+    authorAvatar: item.author?.foto_url || null,
     authorRole: item.author?.role || "anggota",
     authorBagian: item.author?.bagian?.nama || "Pengurus",
     createdAt: item.created_at,
@@ -466,12 +462,12 @@ export async function createDiskusiBalasan(
       })
       .select(`
         *,
-        author:dibuat_oleh (
+        author:profiles!dibuat_oleh (
           id,
-          full_name,
-          avatar_url,
+          nama,
+          foto_url,
           role,
-          bagian:bagian_id (
+          bagian:bagian!bagian_id (
             id,
             nama
           )
@@ -480,7 +476,7 @@ export async function createDiskusiBalasan(
       .single();
 
     if (error || !insertedBalasan) {
-      console.error("Error creating diskusi balasan:", error);
+      console.error("Error creating diskusi balasan:", JSON.stringify(error, null, 2));
       return { success: false, error: error?.message || "Gagal mengirim balasan." };
     }
 
@@ -494,8 +490,8 @@ export async function createDiskusiBalasan(
         diskusiId: insertedBalasan.diskusi_id,
         isi: insertedBalasan.isi,
         dibuatOleh: insertedBalasan.dibuat_oleh,
-        authorName: insertedBalasan.author?.full_name || profile.full_name || "Anggota",
-        authorAvatar: insertedBalasan.author?.avatar_url || profile.avatar_url || null,
+        authorName: insertedBalasan.author?.nama || profile.nama || "Anggota",
+        authorAvatar: insertedBalasan.author?.foto_url || profile.foto_url || null,
         authorRole: insertedBalasan.author?.role || profile.role || "anggota",
         authorBagian: insertedBalasan.author?.bagian?.nama || "Pengurus",
         createdAt: insertedBalasan.created_at,
@@ -525,12 +521,13 @@ export async function deleteDiskusiBalasan(
     const { error } = await supabase.from("diskusi_balasan").delete().eq("id", id);
 
     if (error) {
-      console.error("Error deleting diskusi balasan:", error);
+      console.error("Error deleting balasan:", error);
       return { success: false, error: error.message };
     }
 
     revalidatePath(`/diskusi/${diskusiId}`);
     revalidatePath("/diskusi");
+
     return { success: true };
   } catch (err: any) {
     console.error("Unexpected error deleting balasan:", err);

@@ -39,18 +39,18 @@ export async function getAnggotaList(filters?: {
     .from("anggota")
     .select(`
       *,
-      bagian:bagian_id (
+      bagian:bagian!bagian_id (
         id,
         nama,
         slug
       ),
-      periode:periode_id (
+      periode:periode_kepengurusan!periode_id (
         id,
         nama_periode,
-        agenda:agenda_organisasi_id (
+        agenda:agenda_organisasi!agenda_organisasi_id (
           id,
           nama_agenda,
-          bagian:bagian_id (
+          bagian:bagian!bagian_id (
             id,
             nama,
             slug
@@ -129,10 +129,10 @@ export async function getAnggotaFormMeta() {
         id,
         nama_periode,
         is_aktif,
-        agenda:agenda_organisasi_id (
+        agenda:agenda_organisasi!agenda_organisasi_id (
           id,
           nama_agenda,
-          bagian:bagian_id (
+          bagian:bagian!bagian_id (
             id,
             nama
           )

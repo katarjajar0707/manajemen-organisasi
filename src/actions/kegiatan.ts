@@ -52,12 +52,12 @@ export async function getKegiatanList(filters?: {
     .from("kalender_kegiatan")
     .select(`
       *,
-      bagian:bagian_id (
+      bagian:bagian!bagian_id (
         id,
         nama,
         slug
       ),
-      author:dibuat_oleh (
+      author:profiles!dibuat_oleh (
         id,
         nama,
         role
@@ -141,12 +141,12 @@ export async function getKegiatanById(id: string) {
     .from("kalender_kegiatan")
     .select(`
       *,
-      bagian:bagian_id (
+      bagian:bagian!bagian_id (
         id,
         nama,
         slug
       ),
-      author:dibuat_oleh (
+      author:profiles!dibuat_oleh (
         id,
         nama,
         role

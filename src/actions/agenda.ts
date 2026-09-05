@@ -29,12 +29,12 @@ export async function getAgendas(bagianSlug?: string): Promise<AgendaData[]> {
     .from("agenda_organisasi")
     .select(`
       *,
-      bagian:bagian_id (
+      bagian:bagian!bagian_id (
         id,
         nama,
         slug
       ),
-      author:dibuat_oleh (
+      author:profiles!dibuat_oleh (
         nama,
         role
       ),
@@ -113,12 +113,12 @@ export async function getAgendaById(id: string) {
     .from("agenda_organisasi")
     .select(`
       *,
-      bagian:bagian_id (
+      bagian:bagian!bagian_id (
         id,
         nama,
         slug
       ),
-      author:dibuat_oleh (
+      author:profiles!dibuat_oleh (
         nama,
         role
       ),

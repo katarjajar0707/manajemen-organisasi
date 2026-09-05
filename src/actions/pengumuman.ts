@@ -29,16 +29,16 @@ export async function getPengumumanList(): Promise<PengumumanItem[]> {
     .from("pengumuman")
     .select(`
       *,
-      bagian:bagian_id (
+      bagian:bagian!bagian_id (
         id,
         nama,
         slug
       ),
-      author:dibuat_oleh (
+      author:profiles!dibuat_oleh (
         id,
-        full_name,
+        nama,
         role,
-        avatar_url
+        foto_url
       )
     `)
     .order("created_at", { ascending: false });
@@ -55,7 +55,7 @@ export async function getPengumumanList(): Promise<PengumumanItem[]> {
   const { data, error } = await query;
 
   if (error) {
-    console.error("Error fetching pengumuman list:", error);
+    console.error("Error fetching pengumuman list:", JSON.stringify(error, null, 2));
     return [];
   }
 
@@ -70,9 +70,9 @@ export async function getPengumumanList(): Promise<PengumumanItem[]> {
     bagianNama: item.bagian?.nama || (item.target === "semua" ? "Semua Anggota" : "Umum"),
     bagianSlug: item.bagian?.slug || "",
     dibuatOleh: item.dibuat_oleh,
-    authorName: item.author?.full_name || "Pengurus",
+    authorName: item.author?.nama || "Pengurus",
     authorRole: item.author?.role || "anggota",
-    authorAvatar: item.author?.avatar_url || null,
+    authorAvatar: item.author?.foto_url || null,
     createdAt: item.created_at,
   }));
 }
@@ -120,22 +120,22 @@ export async function createPengumuman(payload: {
       })
       .select(`
         *,
-        bagian:bagian_id (
+        bagian:bagian!bagian_id (
           id,
           nama,
           slug
         ),
-        author:dibuat_oleh (
+        author:profiles!dibuat_oleh (
           id,
-          full_name,
+          nama,
           role,
-          avatar_url
+          foto_url
         )
       `)
       .single();
 
     if (error || !data) {
-      console.error("Error creating pengumuman:", error);
+      console.error("Error creating pengumuman:", JSON.stringify(error, null, 2));
       return { success: false, error: error?.message || "Gagal membuat pengumuman." };
     }
 
@@ -153,9 +153,9 @@ export async function createPengumuman(payload: {
         bagianNama: data.bagian?.nama || (data.target === "semua" ? "Semua Anggota" : "Umum"),
         bagianSlug: data.bagian?.slug || "",
         dibuatOleh: data.dibuat_oleh,
-        authorName: data.author?.full_name || profile.full_name || "Pengurus",
+        authorName: data.author?.nama || profile.nama || "Pengurus",
         authorRole: data.author?.role || profile.role || "anggota",
-        authorAvatar: data.author?.avatar_url || profile.avatar_url || null,
+        authorAvatar: data.author?.foto_url || profile.foto_url || null,
         createdAt: data.created_at,
       },
     };
@@ -188,11 +188,9 @@ export async function updatePengumuman(
     const updateData: Record<string, any> = {};
     if (payload.judul !== undefined) updateData.judul = payload.judul.trim();
     if (payload.isi !== undefined) updateData.isi = payload.isi.trim();
-    if (payload.target !== undefined) {
+    if (payload.target) {
       updateData.target = payload.target;
       updateData.bagian_id = payload.target === "bagian_tertentu" ? (payload.bagianId || null) : null;
-    } else if (payload.bagianId !== undefined) {
-      updateData.bagian_id = payload.bagianId;
     }
 
     const { error } = await supabase
@@ -207,6 +205,7 @@ export async function updatePengumuman(
 
     revalidatePath("/pengumuman");
     revalidatePath("/dashboard");
+
     return { success: true };
   } catch (err: any) {
     console.error("Unexpected error updating pengumuman:", err);
@@ -235,6 +234,7 @@ export async function deletePengumuman(id: string): Promise<{ success: boolean; 
 
     revalidatePath("/pengumuman");
     revalidatePath("/dashboard");
+
     return { success: true };
   } catch (err: any) {
     console.error("Unexpected error deleting pengumuman:", err);

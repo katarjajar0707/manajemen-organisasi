@@ -23,10 +23,10 @@ export async function getDokumentasiByKegiatanId(kegiatanId: string): Promise<Do
     .from("dokumentasi_kegiatan")
     .select(`
       *,
-      kalender:kalender_id (
+      kalender:kalender_kegiatan!kalender_id (
         id,
         judul,
-        author:dibuat_oleh (
+        author:profiles!dibuat_oleh (
           nama,
           role
         )

@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useState, useTransition, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -46,206 +53,252 @@ import {
   HardDrive,
   File,
   CheckCircle2,
+  Check,
+  AlertTriangle,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
+import {
+  ArsipItem,
+  KategoriArsip,
+  createArsip,
+  updateArsip,
+  deleteArsip,
+} from "@/actions/arsip";
+import { uploadLampiran } from "@/actions/storage";
 
-export interface ArsipItem {
-  id: string;
-  judul: string;
-  nomorSurat: string;
-  kategori: "sk" | "proposal" | "lpj" | "notulensi" | "lainnya";
-  fileType: "PDF" | "DOCX" | "XLSX";
-  size: string;
-  tanggal: string;
-  agendaTerkait: string;
-  uploader: string;
-  deskripsi: string;
+interface ArsipManagerProps {
+  initialArchives?: ArsipItem[];
+  agendaList?: { id: string; nama: string }[];
+  userRole?: string;
+  currentUserId?: string;
 }
 
-const INITIAL_ARCHIVES: ArsipItem[] = [
-  {
-    id: "1",
-    judul: "Surat Keputusan (SK) Pengurus Karang Taruna RW 05 Periode 2025–2027",
-    nomorSurat: "001/SK-KT/I/2025",
-    kategori: "sk",
-    fileType: "PDF",
-    size: "2.4 MB",
-    tanggal: "15 Jan 2025",
-    agendaTerkait: "Kepengurusan Inti Karang Taruna RW 05",
-    uploader: "Dewi (Sekretariat)",
-    deskripsi: "SK resmi pengukuhan kepengurusan karang taruna ditandatangani oleh Ketua RW 05 dan Lurah.",
-  },
-  {
-    id: "2",
-    judul: "Laporan Pertanggungjawaban (LPJ) Keuangan Panitia HUT RI ke-80",
-    nomorSurat: "014/LPJ-PAN/VIII/2025",
-    kategori: "lpj",
-    fileType: "PDF",
-    size: "4.1 MB",
-    tanggal: "30 Agu 2025",
-    agendaTerkait: "Kepanitiaan Peringatan HUT RI ke-80",
-    uploader: "Rian (Acara)",
-    deskripsi: "Rekapitulasi anggaran, bukti nota pengeluaran, dan dokumentasi hasil lomba 17 Agustus.",
-  },
-  {
-    id: "3",
-    judul: "Proposal Kegiatan Bakti Sosial & Safari Tarawih Ramadan 1447H",
-    nomorSurat: "005/PROP-KT/III/2026",
-    kategori: "proposal",
-    fileType: "DOCX",
-    size: "1.2 MB",
-    tanggal: "10 Mar 2026",
-    agendaTerkait: "Panitia Ramadhan & Bakti Sosial Berkah",
-    uploader: "Ahmad Zaki",
-    deskripsi: "Rancangan anggaran dan permohonan donasi paket sembako untuk santunan 50 anak yatim & dhuafa.",
-  },
-  {
-    id: "4",
-    judul: "Notulensi Rapat Kerja Pleno Awal Tahun 2026",
-    nomorSurat: "002/NOT-PLENO/I/2026",
-    kategori: "notulensi",
-    fileType: "PDF",
-    size: "850 KB",
-    tanggal: "08 Jan 2026",
-    agendaTerkait: "Kepengurusan Inti Karang Taruna RW 05",
-    uploader: "Dewi (Sekretariat)",
-    deskripsi: "Notulen lengkap pembahasan program kerja seksi olahraga, lingkungan, dan kesepakatan kas bulanan.",
-  },
-  {
-    id: "5",
-    judul: "Rekap Inventarisasi Sarana Olahraga & Lapangan Pemuda",
-    nomorSurat: "003/INV-OR/II/2026",
-    kategori: "lainnya",
-    fileType: "XLSX",
-    size: "620 KB",
-    tanggal: "14 Feb 2026",
-    agendaTerkait: "Panitia Turnamen Futsal Pemuda Antar RT",
-    uploader: "Fajar Nugraha",
-    deskripsi: "Tabel kondisi bola, jaring gawang, rompi, dan peralatan lapangan bulutangkis balai warga.",
-  },
-];
-
-const AGENDA_OPTIONS = [
-  "Umum / Organisasi",
-  "Kepengurusan Inti Karang Taruna RW 05",
-  "Kepanitiaan Peringatan HUT RI ke-81",
-  "Panitia Ramadhan & Bakti Sosial Berkah",
-  "Panitia Turnamen Futsal Pemuda Antar RT",
-];
-
-export function ArsipManager() {
-  const [archives, setArchives] = useState<ArsipItem[]>(INITIAL_ARCHIVES);
+export function ArsipManager({
+  initialArchives = [],
+  agendaList = [],
+  userRole = "anggota",
+  currentUserId,
+}: ArsipManagerProps) {
+  const [archives, setArchives] = useState<ArsipItem[]>(initialArchives);
   const [activeCategory, setActiveCategory] = useState<string>("semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterAgenda, setFilterAgenda] = useState("all");
+  const [isPending, startTransition] = useTransition();
+
+  // Toast Notification
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "info" | "warning";
+  }>({ show: false, message: "", type: "success" });
+
+  const triggerNotification = (
+    message: string,
+    type: "success" | "info" | "warning" = "success"
+  ) => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification((prev) => ({ ...prev, show: false }));
+    }, 3500);
+  };
 
   // Dialog State
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [editingArsip, setEditingArsip] = useState<ArsipItem | null>(null);
   const [previewArsip, setPreviewArsip] = useState<ArsipItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Form Fields
   const [judul, setJudul] = useState("");
   const [nomorSurat, setNomorSurat] = useState("");
-  const [kategori, setKategori] = useState<"sk" | "proposal" | "lpj" | "notulensi" | "lainnya">("proposal");
-  const [fileType, setFileType] = useState<"PDF" | "DOCX" | "XLSX">("PDF");
-  const [agendaTerkait, setAgendaTerkait] = useState(AGENDA_OPTIONS[0]);
+  const [kategori, setKategori] = useState<KategoriArsip>("proposal");
+  const [fileUrl, setFileUrl] = useState("");
+  const [fileType, setFileType] = useState("PDF");
+  const [fileSize, setFileSize] = useState("1 MB");
+  const [agendaId, setAgendaId] = useState<string>("none");
   const [deskripsi, setDeskripsi] = useState("");
-  const [fileName, setFileName] = useState("dokumen-arsip.pdf");
+  const [selectedFileName, setSelectedFileName] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setSelectedFileName(file.name);
+
+      // Extract size
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      const sizeStr = `${sizeMb} MB`;
+      setFileSize(sizeStr);
+
+      // Extract type
+      let ext = file.name.split(".").pop()?.toUpperCase() || "PDF";
+      if (ext === "DOC" || ext === "DOCX") ext = "DOCX";
+      else if (ext === "XLS" || ext === "XLSX" || ext === "CSV") ext = "XLSX";
+      setFileType(ext);
+
+      const res = await uploadLampiran(file, "arsip");
+      if (res.error || !res.url) {
+        triggerNotification(res.error || "Gagal mengunggah berkas.", "warning");
+      } else {
+        setFileUrl(res.url);
+        triggerNotification("Berkas berhasil diunggah ke storage!", "success");
+      }
+    } catch (err: any) {
+      triggerNotification(err.message || "Gagal mengunggah berkas.", "warning");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleOpenUpload = () => {
     setEditingArsip(null);
     setJudul("");
     setNomorSurat("");
     setKategori("proposal");
+    setFileUrl("");
     setFileType("PDF");
-    setAgendaTerkait(AGENDA_OPTIONS[0]);
+    setFileSize("1 MB");
+    setAgendaId("none");
     setDeskripsi("");
-    setFileName("dokumen-arsip.pdf");
+    setSelectedFileName("");
     setIsUploadOpen(true);
   };
 
   const handleOpenEdit = (item: ArsipItem) => {
     setEditingArsip(item);
     setJudul(item.judul);
-    setNomorSurat(item.nomorSurat);
+    setNomorSurat(item.nomorSurat === "-" ? "" : item.nomorSurat);
     setKategori(item.kategori);
+    setFileUrl(item.fileUrl);
     setFileType(item.fileType);
-    setAgendaTerkait(item.agendaTerkait);
+    setFileSize(item.size);
+    setAgendaId(item.agendaOrganisasiId || "none");
     setDeskripsi(item.deskripsi);
-    setFileName(`${item.judul.slice(0, 20)}.${item.fileType.toLowerCase()}`);
+    setSelectedFileName("Berkas Terlampir");
     setIsUploadOpen(true);
   };
 
   const handleSave = () => {
-    if (!judul.trim()) return;
-
-    if (editingArsip) {
-      setArchives((prev) =>
-        prev.map((a) =>
-          a.id === editingArsip.id
-            ? {
-                ...a,
-                judul,
-                nomorSurat: nomorSurat || "N/A",
-                kategori,
-                fileType,
-                agendaTerkait,
-                deskripsi,
-              }
-            : a
-        )
-      );
-    } else {
-      const newArsip: ArsipItem = {
-        id: Date.now().toString(),
-        judul,
-        nomorSurat: nomorSurat || "N/A",
-        kategori,
-        fileType,
-        size: "1.5 MB",
-        tanggal: "Hari ini",
-        agendaTerkait,
-        uploader: "Azzam Azhari (Ketua)",
-        deskripsi,
-      };
-      setArchives([newArsip, ...archives]);
+    if (!judul.trim()) {
+      triggerNotification("Judul arsip dokumen wajib diisi.", "warning");
+      return;
     }
 
-    setIsUploadOpen(false);
+    if (!fileUrl.trim()) {
+      triggerNotification("File dokumen wajib diunggah terlebih dahulu.", "warning");
+      return;
+    }
+
+    startTransition(async () => {
+      const selectedAgendaId = agendaId === "none" ? null : agendaId;
+
+      if (editingArsip) {
+        const res = await updateArsip(editingArsip.id, {
+          judul,
+          nomorSurat,
+          kategori,
+          fileUrl,
+          fileType,
+          fileSize,
+          agendaOrganisasiId: selectedAgendaId,
+          deskripsi,
+        });
+
+        if (res.success) {
+          const agendaObj = agendaList.find((a) => a.id === selectedAgendaId);
+          setArchives((prev) =>
+            prev.map((a) =>
+              a.id === editingArsip.id
+                ? {
+                    ...a,
+                    judul,
+                    nomorSurat: nomorSurat || "-",
+                    kategori,
+                    fileUrl,
+                    fileType,
+                    size: fileSize,
+                    agendaOrganisasiId: selectedAgendaId,
+                    agendaTerkait: agendaObj?.nama || "Umum / Organisasi",
+                    deskripsi,
+                  }
+                : a
+            )
+          );
+          setIsUploadOpen(false);
+          triggerNotification("Data arsip dokumen berhasil diperbarui!", "success");
+        } else {
+          triggerNotification(res.error || "Gagal memperbarui arsip.", "warning");
+        }
+      } else {
+        const res = await createArsip({
+          judul,
+          nomorSurat,
+          kategori,
+          fileUrl,
+          fileType,
+          fileSize,
+          agendaOrganisasiId: selectedAgendaId,
+          deskripsi,
+        });
+
+        if (res.success && res.data) {
+          setArchives([res.data, ...archives]);
+          setIsUploadOpen(false);
+          triggerNotification("Dokumen berhasil diarsipkan ke sistem!", "success");
+        } else {
+          triggerNotification(res.error || "Gagal mengarsipkan dokumen.", "warning");
+        }
+      }
+    });
   };
 
   const handleDelete = () => {
-    if (deleteId) {
-      setArchives((prev) => prev.filter((a) => a.id !== deleteId));
-      setDeleteId(null);
-    }
+    if (!deleteId) return;
+
+    startTransition(async () => {
+      const res = await deleteArsip(deleteId);
+      if (res.success) {
+        setArchives((prev) => prev.filter((a) => a.id !== deleteId));
+        setDeleteId(null);
+        triggerNotification("Arsip dokumen berhasil dihapus.", "info");
+      } else {
+        triggerNotification(res.error || "Gagal menghapus arsip.", "warning");
+      }
+    });
   };
 
   const handleDownload = (item: ArsipItem) => {
-    // Mock download action
-    alert(`Mengunduh file: ${item.judul} (${item.fileType})`);
+    if (item.fileUrl) {
+      window.open(item.fileUrl, "_blank");
+    }
   };
 
   const filteredArchives = archives.filter((item) => {
     if (activeCategory !== "semua" && item.kategori !== activeCategory) return false;
-    if (filterAgenda !== "all" && item.agendaTerkait !== filterAgenda) return false;
+    if (filterAgenda !== "all" && item.agendaOrganisasiId !== filterAgenda) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchJudul = item.judul.toLowerCase().includes(q);
       const matchNo = item.nomorSurat.toLowerCase().includes(q);
       const matchDesc = item.deskripsi.toLowerCase().includes(q);
-      const matchAgenda = item.agendaTerkait.toLowerCase().includes(q);
+      const matchAgenda = item.agendaTerkait?.toLowerCase().includes(q);
       if (!matchJudul && !matchNo && !matchDesc && !matchAgenda) return false;
     }
     return true;
   });
 
-  const getFileIcon = (type: "PDF" | "DOCX" | "XLSX") => {
+  const getFileIcon = (type: string) => {
     if (type === "PDF") return <FileCheck className="h-5 w-5 text-rose-500" />;
-    if (type === "DOCX") return <FileText className="h-5 w-5 text-blue-500" />;
-    return <FileSpreadsheet className="h-5 w-5 text-emerald-500" />;
+    if (type === "DOCX" || type === "DOC") return <FileText className="h-5 w-5 text-blue-500" />;
+    if (type === "XLSX" || type === "XLS" || type === "CSV") return <FileSpreadsheet className="h-5 w-5 text-emerald-500" />;
+    return <File className="h-5 w-5 text-purple-500" />;
   };
 
   const getKategoriBadge = (kat: string) => {
@@ -265,6 +318,31 @@ export function ArsipManager() {
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {notification.show && (
+        <div
+          className={`flex items-center justify-between p-3.5 px-4 rounded-lg border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${
+            notification.type === "success"
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+              : notification.type === "warning"
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+              : "bg-sky-500/10 border-sky-500/30 text-sky-300"
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {notification.type === "success" && <Check className="h-4 w-4 text-emerald-400" />}
+            {notification.type === "warning" && <AlertTriangle className="h-4 w-4 text-amber-400" />}
+            <span className="font-medium">{notification.message}</span>
+          </div>
+          <button
+            onClick={() => setNotification((prev) => ({ ...prev, show: false }))}
+            className="text-muted-foreground hover:text-foreground text-xs"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -303,12 +381,11 @@ export function ArsipManager() {
         <Card className="bg-card/70 border shadow-xs">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Ruang Penyimpanan Terpakai</p>
-              <h3 className="text-2xl font-bold mt-0.5">9.17 MB</h3>
-              <p className="text-[11px] text-emerald-500 flex items-center gap-1 mt-0.5">
-                <CheckCircle2 className="h-3 w-3" />
-                Kuota Aman (1 GB Tersedia)
-              </p>
+              <p className="text-xs text-muted-foreground font-medium">Kategori SK & LPJ</p>
+              <h3 className="text-2xl font-bold mt-0.5">
+                {archives.filter((a) => a.kategori === "sk" || a.kategori === "lpj").length} Dokumen
+              </h3>
+              <p className="text-[11px] text-emerald-500 font-medium mt-0.5">Legalitas & Akuntabilitas</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <HardDrive className="h-5 w-5" />
@@ -319,367 +396,386 @@ export function ArsipManager() {
         <Card className="bg-card/70 border shadow-xs">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground font-medium">Kategori Terbanyak</p>
-              <h3 className="text-2xl font-bold mt-0.5">Surat Keputusan (SK)</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Dokumen legalitas organisasi</p>
+              <p className="text-xs text-muted-foreground font-medium">Proposal & Kegiatan</p>
+              <h3 className="text-2xl font-bold mt-0.5">
+                {archives.filter((a) => a.kategori === "proposal" || a.kategori === "notulensi").length} Dokumen
+              </h3>
+              <p className="text-[11px] text-blue-500 font-medium mt-0.5">Perencanaan & Risalah</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
-              <FileCheck className="h-5 w-5" />
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+              <Archive className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-card border rounded-xl p-3 shadow-xs">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-muted/30 p-2.5 rounded-xl border">
+        {/* Kategori Tabs */}
+        <div className="flex flex-wrap items-center gap-1">
           {[
             { id: "semua", label: "Semua" },
-            { id: "sk", label: "SK Resmi" },
+            { id: "sk", label: "SK Kepengurusan" },
             { id: "proposal", label: "Proposal" },
-            { id: "lpj", label: "LPJ" },
+            { id: "lpj", label: "LPJ Keuangan" },
             { id: "notulensi", label: "Notulensi" },
             { id: "lainnya", label: "Lainnya" },
-          ].map((cat) => (
-            <Button
-              key={cat.id}
-              size="sm"
-              variant={activeCategory === cat.id ? "default" : "ghost"}
-              className="text-xs h-8 px-3 rounded-lg capitalize"
-              onClick={() => setActiveCategory(cat.id)}
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveCategory(tab.id)}
+              className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all ${
+                activeCategory === tab.id
+                  ? "bg-background text-foreground shadow-xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
             >
-              {cat.id === "semua"
-                ? `Semua (${archives.length})`
-                : `${cat.label} (${archives.filter((a) => a.kategori === cat.id).length})`}
-            </Button>
+              {tab.label}
+            </button>
           ))}
         </div>
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
-          <div className="relative flex-1 md:w-56">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+
+        {/* Filter Agenda & Search */}
+        <div className="flex items-center gap-2">
+          {agendaList.length > 0 && (
+            <Select value={filterAgenda} onValueChange={setFilterAgenda}>
+              <SelectTrigger className="w-44 h-8 text-xs bg-background">
+                <SelectValue placeholder="Filter Agenda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Agenda</SelectItem>
+                {agendaList.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.nama}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Cari judul dokumen..."
+              placeholder="Cari judul / no. surat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-xs bg-muted/30 w-full"
+              className="pl-8 h-8 text-xs bg-background"
             />
           </div>
-          <Select value={filterAgenda} onValueChange={setFilterAgenda}>
-            <SelectTrigger className="h-8 text-xs w-[130px] shrink-0">
-              <SelectValue placeholder="Semua Agenda" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Agenda</SelectItem>
-              {AGENDA_OPTIONS.map((ag) => (
-                <SelectItem key={ag} value={ag}>
-                  {ag}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
-      {/* Archives List */}
-      <div className="space-y-3">
-        {filteredArchives.length === 0 ? (
-          <Card className="border-dashed py-12 text-center">
-            <CardContent className="space-y-3">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
-                <Archive className="h-6 w-6" />
-              </div>
-              <p className="text-base font-semibold">Tidak Ada Berkas Ditemukan</p>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Silakan ubah kata kunci pencarian atau unggah dokumen pertama Anda.
-              </p>
-              <Button size="sm" onClick={handleOpenUpload} className="mt-2">
-                Upload Arsip Sekarang
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredArchives.map((item) => (
-            <Card key={item.id} className="hover:shadow-sm hover:border-primary/30 transition-all">
-              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start gap-3.5">
-                  <div className="p-2.5 rounded-xl bg-muted/50 border shrink-0 mt-0.5">
+      {/* Grid Arsip Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        {filteredArchives.map((item) => (
+          <Card key={item.id} className="flex flex-col justify-between hover:border-primary/40 transition-all group">
+            <CardHeader className="p-4 pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-muted/60 border group-hover:bg-primary/5 transition-colors">
                     {getFileIcon(item.fileType)}
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-semibold text-sm sm:text-base leading-snug hover:text-primary transition-colors cursor-pointer" onClick={() => setPreviewArsip(item)}>
-                        {item.judul}
-                      </h4>
-                      {getKategoriBadge(item.kategori)}
-                    </div>
-
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {item.deskripsi}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground pt-0.5">
-                      <span>No: <strong className="text-foreground font-mono">{item.nomorSurat}</strong></span>
-                      <span>• Format: <strong className="text-foreground">{item.fileType}</strong></span>
-                      <span>• Ukuran: <strong className="text-foreground">{item.size}</strong></span>
-                      <span>• Diunggah: <strong className="text-foreground">{item.tanggal}</strong></span>
-                      <span>• Agenda: <strong className="text-primary">{item.agendaTerkait}</strong></span>
-                    </div>
+                  <div>
+                    {getKategoriBadge(item.kategori)}
+                    <span className="text-[11px] font-mono text-muted-foreground block mt-0.5">
+                      No: {item.nomorSurat}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 w-full sm:w-auto justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs h-8"
-                    onClick={() => setPreviewArsip(item)}
-                  >
-                    <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>Detail</span>
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs h-8 text-primary hover:text-primary"
-                    onClick={() => handleDownload(item)}
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>Unduh</span>
-                  </Button>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleOpenEdit(item)}>
-                        <Edit className="h-3.5 w-3.5 mr-2" />
-                        <span>Edit Informasi</span>
-                      </DropdownMenuItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="text-xs">
+                    <DropdownMenuItem onClick={() => setPreviewArsip(item)} className="gap-2 cursor-pointer">
+                      <Eye className="h-3.5 w-3.5" />
+                      Lihat Rincian
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDownload(item)} className="gap-2 cursor-pointer">
+                      <Download className="h-3.5 w-3.5" />
+                      Buka Dokumen
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleOpenEdit(item)} className="gap-2 cursor-pointer">
+                      <Edit className="h-3.5 w-3.5" />
+                      Edit Info
+                    </DropdownMenuItem>
+                    {(userRole === "admin" || userRole === "ketua") && (
                       <DropdownMenuItem
                         onClick={() => setDeleteId(item.id)}
-                        className="text-destructive focus:text-destructive"
+                        className="gap-2 text-destructive cursor-pointer"
                       >
-                        <Trash2 className="h-3.5 w-3.5 mr-2" />
-                        <span>Hapus Arsip</span>
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Hapus Arsip
                       </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <CardTitle className="text-sm font-semibold leading-snug mt-2 line-clamp-2">
+                {item.judul}
+              </CardTitle>
+              <CardDescription className="text-xs line-clamp-2 mt-1">
+                {item.deskripsi || "Dokumen resmi tersimpan dalam repositori arsip Karang Taruna."}
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="p-4 pt-1">
+              <div className="bg-muted/30 p-2 rounded-lg border border-border/50 text-[11px] space-y-1 mt-1">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Layers className="h-3 w-3" />
+                    Agenda:
+                  </span>
+                  <span className="font-medium text-foreground truncate max-w-[140px]" title={item.agendaTerkait}>
+                    {item.agendaTerkait}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Tanggal:
+                  </span>
+                  <span>{item.tanggal}</span>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter className="p-4 pt-0 flex items-center justify-between border-t border-border/40 text-[11px] text-muted-foreground mt-2">
+              <span>Oleh: <strong className="text-foreground">{item.uploader}</strong></span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDownload(item)}
+                className="h-7 text-xs gap-1 hover:text-primary px-2"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Buka
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
       </div>
 
-      {/* Upload / Edit Dialog */}
+      {filteredArchives.length === 0 && (
+        <div className="text-center py-12 border border-dashed rounded-xl bg-card/30">
+          <FolderArchive className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          <h3 className="text-sm font-semibold">Tidak ada arsip dokumen ditemukan</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Silakan unggah dokumen atau sesuaikan filter pencarian.
+          </p>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 1. DIALOG UPLOAD / EDIT ARSIP                             */}
+      {/* ========================================================= */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base flex items-center gap-2">
-              <Upload className="h-5 w-5 text-primary" />
-              <span>{editingArsip ? "Edit Berkas Arsip" : "Unggah Dokumen Organisasi Baru"}</span>
+            <DialogTitle>
+              {editingArsip ? "Edit Rincian Arsip Dokumen" : "Unggah Dokumen Arsip Baru"}
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              Pastikan berkas telah disetujui atau ditandatangani oleh pihak berwenang sebelum diarsipkan.
+            <DialogDescription>
+              Dokumen yang diunggah akan tersimpan di cloud storage dan dapat diakses oleh pengurus.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3.5 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Judul Lengkap Dokumen</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Judul Dokumen <span className="text-destructive">*</span></Label>
               <Input
+                placeholder="Contoh: Surat Keputusan Pengurus 2026-2028"
                 value={judul}
                 onChange={(e) => setJudul(e.target.value)}
-                placeholder="Contoh: Surat Keputusan Pembentukan Panitia 17 Agustus 2026"
-                className="text-xs"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nomor Surat / Arsip</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Nomor Surat / Dokumen</Label>
                 <Input
+                  placeholder="001/SK-KT/I/2026"
                   value={nomorSurat}
                   onChange={(e) => setNomorSurat(e.target.value)}
-                  placeholder="Contoh: 004/SK-KT/VII/2026"
-                  className="text-xs"
                 />
               </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Kategori Dokumen</Label>
-                <Select
-                  value={kategori}
-                  onValueChange={(val: "sk" | "proposal" | "lpj" | "notulensi" | "lainnya") => setKategori(val)}
-                >
-                  <SelectTrigger className="text-xs">
-                    <SelectValue />
+              <div className="space-y-1">
+                <Label className="text-xs">Kategori Arsip</Label>
+                <Select value={kategori} onValueChange={(val: any) => setKategori(val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Kategori" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sk">Surat Keputusan (SK)</SelectItem>
-                    <SelectItem value="proposal">Proposal Kegiatan</SelectItem>
-                    <SelectItem value="lpj">Laporan Pertanggungjawaban (LPJ)</SelectItem>
+                    <SelectItem value="sk">SK Resmi</SelectItem>
+                    <SelectItem value="proposal">Proposal</SelectItem>
+                    <SelectItem value="lpj">LPJ Keuangan</SelectItem>
                     <SelectItem value="notulensi">Notulensi Rapat</SelectItem>
-                    <SelectItem value="lainnya">Dokumen Lainnya</SelectItem>
+                    <SelectItem value="lainnya">Lainnya</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Terkait Agenda Organisasi</Label>
-                <Select value={agendaTerkait} onValueChange={setAgendaTerkait}>
-                  <SelectTrigger className="text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AGENDA_OPTIONS.map((a) => (
-                      <SelectItem key={a} value={a}>
-                        {a}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Format Berkas</Label>
-                <Select
-                  value={fileType}
-                  onValueChange={(val: "PDF" | "DOCX" | "XLSX") => setFileType(val)}
-                >
-                  <SelectTrigger className="text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PDF">PDF (.pdf)</SelectItem>
-                    <SelectItem value="DOCX">Microsoft Word (.docx)</SelectItem>
-                    <SelectItem value="XLSX">Microsoft Excel (.xlsx)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Agenda Terkait */}
+            <div className="space-y-1">
+              <Label className="text-xs">Terkait Agenda Organisasi (Opsional)</Label>
+              <Select value={agendaId} onValueChange={setAgendaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Agenda Organisasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Umum / Tanpa Agenda Tertentu</SelectItem>
+                  {agendaList.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* File Upload Component */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Pilih File Berkas</Label>
-              <div className="border-2 border-dashed rounded-xl p-4 text-center hover:bg-muted/30 transition-colors cursor-pointer">
-                <File className="h-6 w-6 text-muted-foreground mx-auto mb-1.5" />
-                <p className="text-xs font-medium text-foreground">{fileName}</p>
-                <p className="text-[11px] text-muted-foreground">Klik untuk ganti file (Maksimal 25MB)</p>
-                <input
-                  type="file"
-                  className="hidden"
-                  id="archive-file-input"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) setFileName(f.name);
-                  }}
-                />
-                <label
-                  htmlFor="archive-file-input"
-                  className="inline-block mt-2 px-3 py-1 bg-muted hover:bg-muted/80 rounded-md text-[11px] font-medium cursor-pointer"
-                >
-                  Pilih dari Komputer
-                </label>
+              <Label className="text-xs">Berkas Lampiran Dokumen <span className="text-destructive">*</span></Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-4 text-center cursor-pointer transition-colors bg-muted/20"
+              >
+                {isUploading ? (
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span>Sedang mengunggah berkas ke Supabase storage...</span>
+                  </div>
+                ) : fileUrl ? (
+                  <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 font-medium">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>{selectedFileName || "Berkas terpilih"} ({fileSize})</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+                    <p className="text-xs font-medium">Klik untuk memilih file dokumen</p>
+                    <p className="text-[11px] text-muted-foreground">Mendukung PDF, Word (DOCX), Excel (XLSX), Gambar</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Catatan Ringkas / Keterangan</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Keterangan / Ringkasan Isi</Label>
               <Textarea
+                rows={2}
+                placeholder="Rincian singkat isi dan tujuan arsip dokumen..."
                 value={deskripsi}
                 onChange={(e) => setDeskripsi(e.target.value)}
-                placeholder="Rincian catatan tentang isi berkas ini..."
-                rows={2}
-                className="text-xs leading-relaxed"
               />
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" size="sm" onClick={() => setIsUploadOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsUploadOpen(false)} disabled={isPending}>
               Batal
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={!judul.trim()}>
-              {editingArsip ? "Simpan Perubahan" : "Unggah Berkas"}
+            <Button onClick={handleSave} disabled={isPending || isUploading}>
+              {isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}
+              {editingArsip ? "Simpan Perubahan" : "Unggah & Arsipkan"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Preview Detail Modal */}
+      {/* ========================================================= */}
+      {/* 2. DIALOG PREVIEW ARSIP                                   */}
+      {/* ========================================================= */}
       <Dialog open={!!previewArsip} onOpenChange={(open) => !open && setPreviewArsip(null)}>
-        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderArchive className="h-5 w-5 text-primary" />
+              Detail Berkas Arsip
+            </DialogTitle>
+          </DialogHeader>
+
           {previewArsip && (
-            <>
-              <DialogHeader>
+            <div className="space-y-3.5 py-2 text-xs">
+              <div className="p-3 bg-muted/40 rounded-lg border space-y-1.5">
+                <h4 className="font-bold text-sm text-foreground">{previewArsip.judul}</h4>
                 <div className="flex items-center gap-2">
-                  {getFileIcon(previewArsip.fileType)}
                   {getKategoriBadge(previewArsip.kategori)}
-                </div>
-                <DialogTitle className="text-base mt-2 leading-snug">
-                  {previewArsip.judul}
-                </DialogTitle>
-                <DialogDescription className="text-xs">
-                  Nomor Arsip: <strong className="font-mono text-foreground">{previewArsip.nomorSurat}</strong>
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-3 py-2 text-xs">
-                <div className="p-3 bg-muted/40 rounded-xl space-y-1.5">
-                  <p className="text-muted-foreground">Deskripsi / Ringkasan Dokumen:</p>
-                  <p className="text-foreground leading-relaxed">{previewArsip.deskripsi || "Tidak ada catatan tambahan."}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-                  <p>Ukuran: <strong className="text-foreground">{previewArsip.size}</strong></p>
-                  <p>Format: <strong className="text-foreground">{previewArsip.fileType}</strong></p>
-                  <p>Tanggal Upload: <strong className="text-foreground">{previewArsip.tanggal}</strong></p>
-                  <p>Diunggah Oleh: <strong className="text-foreground">{previewArsip.uploader}</strong></p>
-                </div>
-
-                <div className="p-2 border rounded-lg text-[11px] flex items-center justify-between">
-                  <span className="text-muted-foreground">Terkait Agenda:</span>
-                  <Badge variant="outline" className="text-[10px] text-primary">{previewArsip.agendaTerkait}</Badge>
+                  <span className="font-mono text-muted-foreground">No: {previewArsip.nomorSurat}</span>
                 </div>
               </div>
 
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button variant="outline" size="sm" onClick={() => setPreviewArsip(null)}>
-                  Tutup
-                </Button>
-                <Button size="sm" className="gap-1.5" onClick={() => handleDownload(previewArsip)}>
-                  <Download className="h-3.5 w-3.5" />
-                  <span>Unduh Dokumen</span>
-                </Button>
-              </DialogFooter>
-            </>
+              <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                <div className="p-2 rounded bg-muted/20 border">
+                  <span>Tipe File:</span>
+                  <strong className="block text-foreground mt-0.5">{previewArsip.fileType} ({previewArsip.size})</strong>
+                </div>
+                <div className="p-2 rounded bg-muted/20 border">
+                  <span>Tanggal Input:</span>
+                  <strong className="block text-foreground mt-0.5">{previewArsip.tanggal}</strong>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded bg-muted/20 border text-muted-foreground space-y-1">
+                <span>Agenda Organisasi:</span>
+                <strong className="block text-foreground">{previewArsip.agendaTerkait}</strong>
+              </div>
+
+              {previewArsip.deskripsi && (
+                <div className="p-2.5 rounded bg-muted/20 border text-muted-foreground space-y-1">
+                  <span>Keterangan:</span>
+                  <p className="text-foreground">{previewArsip.deskripsi}</p>
+                </div>
+              )}
+            </div>
           )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPreviewArsip(null)}>
+              Tutup
+            </Button>
+            {previewArsip?.fileUrl && (
+              <Button onClick={() => handleDownload(previewArsip)} className="gap-1.5">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Buka / Download File
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* ========================================================= */}
+      {/* 3. DIALOG DELETE CONFIRMATION                             */}
+      {/* ========================================================= */}
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base text-destructive flex items-center gap-2">
-              <Trash2 className="h-4 w-4" />
-              <span>Hapus Berkas Arsip</span>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Hapus Berkas Arsip?
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              Apakah Anda yakin ingin menghapus berkas arsip ini? Tindakan ini tidak dapat dibatalkan.
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus arsip dokumen ini dari repositori?
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" size="sm" onClick={() => setDeleteId(null)}>
+          <DialogFooter className="gap-2 pt-3">
+            <Button variant="outline" onClick={() => setDeleteId(null)} disabled={isPending}>
               Batal
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
+              {isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}
               Hapus Berkas
             </Button>
           </DialogFooter>
