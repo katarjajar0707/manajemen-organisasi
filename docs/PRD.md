@@ -364,8 +364,8 @@ ketika admin menambahkan departement atau jabatan maka otomatis terhubung ke inv
 1. **Fase 1 – Setup Proyek:** Init Next.js (App Router), install & konfigurasi Shadcn + Tailwind, buat project Supabase (belum diintegrasikan penuh), struktur folder, routing dasar sesuai sitemap (6).✅
 2. **Fase 2 – UI Frontend (Data Dummy):** Bangun seluruh tampilan & komponen untuk semua modul terlebih dahulu memakai data dummy/mock — catatan, keuangan, profil, struktur organisasi multi-agenda, kegiatan, komunikasi (diskusi/catatan umum/mention), inventaris, surat, arsip, dan dashboard publik. Fokus di layout, komponen Shadcn, dan responsive (mobile-first) sebelum ada data asli. ✅
 3. **Fase 3 – Backend Fondasi:** Integrasi Supabase Auth, skema DB inti (`bagian`, `profiles`), RLS dasar (anggota vs ketua/admin), menu manajemen user (admin).
-4. **Fase 4 – Backend Catatan & Keuangan:** Sambungkan UI ke `catatan` (tanggal otomatis, lampiran opsional) dan `catatan_keuangan` (masuk/keluar, lampiran wajib untuk keluar), ringkasan saldo, komponen preview thumbnail + modal jadi fungsional.
-5. **Fase 5 – Backend Profil:** Sambungkan halaman profil ke `profiles` — upload foto + preview, edit username & bio, role read-only.
+4. **Fase 4 – Backend Catatan & Keuangan:** Sambungkan UI ke `catatan` (tanggal otomatis, lampiran opsional) dan `catatan_keuangan` (masuk/keluar, lampiran wajib untuk keluar), ringkasan saldo, komponen preview thumbnail + modal jadi fungsional.✅
+5. **Fase 5 – Backend Profil:** Sambungkan halaman profil ke `profiles` — upload foto + preview, edit username & bio, role read-only.✅
 6. **Fase 6 – Backend Struktur Organisasi Multi-Agenda:** CRUD `anggota`, `agenda_organisasi` (khusus ketua/admin), `periode_kepengurusan`, halaman struktur keseluruhan yang terbuka untuk semua role.
 7. **Fase 7 – Backend Kegiatan:** `kalender_kegiatan`, `dokumentasi_kegiatan` (galeri foto memakai komponen preview yang sama).
 8. **Fase 8 – Backend Komunikasi:** `pengumuman` (broadcast satu arah), `diskusi`/`catatan_umum` + `diskusi_balasan` + fitur mention `@bagian` (`diskusi_mention`).

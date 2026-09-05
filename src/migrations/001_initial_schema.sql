@@ -2,14 +2,34 @@
 -- Inisialisasi skema dasar Sistem Kelola & Catatan Organisasi Karang Taruna
 
 -- Enums
-CREATE TYPE user_role AS ENUM ('admin', 'ketua', 'anggota');
-CREATE TYPE jenis_keuangan AS ENUM ('masuk', 'keluar');
-CREATE TYPE target_pengumuman AS ENUM ('semua', 'bagian_tertentu');
-CREATE TYPE tipe_diskusi AS ENUM ('diskusi', 'catatan_umum');
-CREATE TYPE kondisi_inventaris AS ENUM ('baik', 'rusak_ringan', 'rusak_berat');
-CREATE TYPE status_peminjaman AS ENUM ('dipinjam', 'dikembalikan');
-CREATE TYPE jenis_surat AS ENUM ('keluar', 'masuk', 'proposal', 'undangan');
-CREATE TYPE kategori_arsip AS ENUM ('sk', 'proposal', 'lpj', 'lainnya');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM ('admin', 'ketua', 'anggota');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'jenis_keuangan') THEN
+        CREATE TYPE jenis_keuangan AS ENUM ('masuk', 'keluar');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'target_pengumuman') THEN
+        CREATE TYPE target_pengumuman AS ENUM ('semua', 'bagian_tertentu');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tipe_diskusi') THEN
+        CREATE TYPE tipe_diskusi AS ENUM ('diskusi', 'catatan_umum');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'kondisi_inventaris') THEN
+        CREATE TYPE kondisi_inventaris AS ENUM ('baik', 'rusak_ringan', 'rusak_berat');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_peminjaman') THEN
+        CREATE TYPE status_peminjaman AS ENUM ('dipinjam', 'dikembalikan');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'jenis_surat') THEN
+        CREATE TYPE jenis_surat AS ENUM ('keluar', 'masuk', 'proposal', 'undangan');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'kategori_arsip') THEN
+        CREATE TYPE kategori_arsip AS ENUM ('sk', 'proposal', 'lpj', 'lainnya');
+    END IF;
+END
+$$;
 
 -- 3.1 bagian
 CREATE TABLE IF NOT EXISTS public.bagian (

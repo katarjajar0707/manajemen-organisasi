@@ -1,12 +1,29 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/common/theme-toggle";
-import { ArrowLeft, Lock, Mail, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Lock, Mail, ShieldCheck, AlertCircle } from "lucide-react";
+import { login } from "@/actions/auth";
 
 export default function LoginPage() {
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  async function handleLogin(formData: FormData) {
+    setError(null);
+    startTransition(async () => {
+      const res = await login(formData);
+      if (res?.error) {
+        setError(res.error);
+      }
+    });
+  }
+
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-muted/30 relative">
       <div className="absolute top-4 right-4 flex items-center gap-2">
@@ -33,51 +50,63 @@ export default function LoginPage() {
         </div>
 
         <Card className="shadow-lg border-border/80">
-          <CardHeader>
-            <CardTitle className="text-lg">Masuk ke Akun</CardTitle>
-            <CardDescription>
-              Gunakan email & password pengurus yang telah terdaftar
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="pengurus@karangtaruna.id"
-                  className="pl-9"
-                />
-                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <form action={handleLogin}>
+            <CardHeader>
+              <CardTitle className="text-lg">Masuk ke Akun</CardTitle>
+              <CardDescription>
+                Gunakan email & password pengurus yang telah terdaftar
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="pengurus@karangtaruna.id"
+                    className="pl-9"
+                    required
+                  />
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="pl-9"
+                    required
+                  />
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="pl-9"
-                />
-                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
 
-            <Link href="/dashboard" className="block pt-2">
-              <Button className="w-full gap-2" size="lg">
-                <ShieldCheck className="h-4 w-4" />
-                <span>Masuk Sekarang</span>
-              </Button>
-            </Link>
-          </CardContent>
-          <CardFooter className="text-xs text-center text-muted-foreground justify-center border-t py-4">
-            Akses dibatasi hanya untuk pengurus & anggota terdaftar.
-          </CardFooter>
+              <div className="pt-2">
+                <Button className="w-full gap-2" size="lg" type="submit" disabled={isPending}>
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>{isPending ? "Masuk..." : "Masuk Sekarang"}</span>
+                </Button>
+              </div>
+            </CardContent>
+            <CardFooter className="text-xs text-center text-muted-foreground justify-center border-t py-4">
+              Akses dibatasi hanya untuk pengurus & anggota terdaftar.
+            </CardFooter>
+          </form>
         </Card>
       </div>
     </div>

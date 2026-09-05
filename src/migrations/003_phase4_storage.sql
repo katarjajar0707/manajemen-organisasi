@@ -1,0 +1,32 @@
+-- 003_phase4_storage.sql
+-- =============================================
+-- PENTING: File ini TIDAK dijalankan di SQL Editor.
+-- Konfigurasi Storage harus dilakukan via Supabase Dashboard.
+-- =============================================
+--
+-- LANGKAH MANUAL DI SUPABASE DASHBOARD:
+--
+-- 1. Buka menu "Storage" di sidebar kiri Supabase Dashboard.
+-- 2. Klik "New Bucket".
+-- 3. Isi nama bucket: lampiran
+-- 4. Centang "Public bucket" → Klik "Create bucket".
+-- 5. Setelah bucket terbuat, klik bucket "lampiran".
+-- 6. Klik tab "Policies" (atau ikon gembok di samping nama bucket).
+-- 7. Buat 3 policy berikut:
+--
+--    === POLICY 1: Public Read ===
+--    - Allowed operation: SELECT
+--    - Target roles: (kosongkan / default = semua)
+--    - USING expression:  bucket_id = 'lampiran'
+--
+--    === POLICY 2: Authenticated Upload ===
+--    - Allowed operation: INSERT
+--    - Target roles: authenticated
+--    - WITH CHECK expression:  bucket_id = 'lampiran'
+--
+--    === POLICY 3: Owner Delete ===
+--    - Allowed operation: DELETE
+--    - Target roles: authenticated
+--    - USING expression:  bucket_id = 'lampiran' AND auth.uid() = owner
+--
+-- Selesai! Tidak perlu menjalankan SQL apapun.

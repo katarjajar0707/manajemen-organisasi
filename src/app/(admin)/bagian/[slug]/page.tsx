@@ -1,4 +1,5 @@
 import { BagianCatatanManager } from "@/components/bagian/bagian-catatan-manager";
+import { getCatatanList } from "@/actions/catatan";
 
 interface PageProps {
   params: Promise<{
@@ -8,5 +9,7 @@ interface PageProps {
 
 export default async function BagianDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  return <BagianCatatanManager slug={slug} />;
+  const catatanList = await getCatatanList(slug);
+  
+  return <BagianCatatanManager slug={slug} initialCatatan={catatanList} />;
 }

@@ -24,3 +24,47 @@ export async function createClient() {
     },
   });
 }
+
+export async function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-supabase.supabase.co";
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseServiceKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is missing in environment variables.");
+  }
+
+  // Admin client doesn't need to manage cookies since it operates globally
+  return createServerClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    cookies: {
+      getAll() {
+        return [];
+      },
+      setAll() {},
+    },
+  });
+}
+
+export async function getProfile() {
+  const supabase = await createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return null;
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("*, bagian:bagian_id(id, nama, slug)")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    return null;
+  }
+
+  return profile;
+}
