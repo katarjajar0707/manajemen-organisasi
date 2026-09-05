@@ -31,7 +31,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {/* RIGHT COLUMN — takes remaining width, scrolls independently */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* APP HEADER — spans only the right column */}
-        <AppHeader userName={profile?.nama} userRole={profile?.role} userAvatarUrl={profile?.foto_url} />
+        <AppHeader
+          userName={profile?.nama}
+          userRole={profile?.role}
+          userAvatarUrl={profile?.foto_url}
+          userDepartemen={profile?.bagian?.nama}
+        />
 
         {/* MAIN CONTENT — scrollable, mobile-optimized padding */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 min-w-0 max-w-full">

@@ -34,6 +34,8 @@ import {
   ExternalLink,
   FileText,
   FileDown,
+  Eye,
+  ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -446,8 +448,8 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button 
-            variant="outline"
-            className="flex-1 sm:flex-none gap-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+            variant="outline" 
+            className="flex-1 sm:flex-none gap-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60"
             size="sm"
             onClick={() => handleOpenCreate("masuk")}
           >
@@ -467,37 +469,60 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
 
       {/* Saldo Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100 shadow-sm">
+        <Card className="bg-blue-50/70 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/20 dark:border-blue-900/40 dark:bg-card shadow-xs">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
-              <Wallet className="h-4 w-4" /> Total Saldo Aktif
+            <CardTitle className="text-sm font-bold text-slate-900 dark:text-blue-300 flex items-center gap-2">
+              <span className="p-1 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                <Wallet className="h-4 w-4" />
+              </span>
+              <span>Total Saldo Aktif</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div suppressHydrationWarning className="text-2xl font-bold text-blue-900">{formatRupiah(initialSaldo.sisa)}</div>
-            <p className="text-xs text-blue-600/80 mt-1">Kas Umum Keseluruhan</p>
+            <div suppressHydrationWarning className="text-2xl font-extrabold text-slate-950 dark:text-blue-100">
+              {formatRupiah(initialSaldo.sisa)}
+            </div>
+            <p className="text-xs text-slate-700 dark:text-blue-400/80 font-medium mt-1">
+              Kas Umum Keseluruhan
+            </p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-100 shadow-sm">
+
+        <Card className="bg-emerald-50/70 border-emerald-200 dark:from-emerald-950/40 dark:to-green-950/20 dark:border-emerald-900/40 dark:bg-card shadow-xs">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> Total Pemasukan
+            <CardTitle className="text-sm font-bold text-slate-900 dark:text-emerald-300 flex items-center gap-2">
+              <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                <TrendingUp className="h-4 w-4" />
+              </span>
+              <span>Total Pemasukan</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div suppressHydrationWarning className="text-2xl font-bold text-emerald-900">{formatRupiah(initialSaldo.masuk)}</div>
-            <p className="text-xs text-emerald-600/80 mt-1">Akumulasi Dana Masuk</p>
+            <div suppressHydrationWarning className="text-2xl font-extrabold text-emerald-800 dark:text-emerald-100">
+              {formatRupiah(initialSaldo.masuk)}
+            </div>
+            <p className="text-xs text-slate-700 dark:text-emerald-400/80 font-medium mt-1">
+              Akumulasi Dana Masuk
+            </p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-rose-50 to-red-50 border-rose-100 shadow-sm">
+
+        <Card className="bg-rose-50/70 border-rose-200 dark:from-rose-950/40 dark:to-red-950/20 dark:border-rose-900/40 dark:bg-card shadow-xs">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-rose-800 flex items-center gap-2">
-              <TrendingDown className="h-4 w-4" /> Total Pengeluaran
+            <CardTitle className="text-sm font-bold text-slate-900 dark:text-rose-300 flex items-center gap-2">
+              <span className="p-1 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400">
+                <TrendingDown className="h-4 w-4" />
+              </span>
+              <span>Total Pengeluaran</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div suppressHydrationWarning className="text-2xl font-bold text-rose-900">{formatRupiah(initialSaldo.keluar)}</div>
-            <p className="text-xs text-rose-600/80 mt-1">Akumulasi Dana Keluar</p>
+            <div suppressHydrationWarning className="text-2xl font-extrabold text-rose-800 dark:text-rose-100">
+              {formatRupiah(initialSaldo.keluar)}
+            </div>
+            <p className="text-xs text-slate-700 dark:text-rose-400/80 font-medium mt-1">
+              Akumulasi Dana Keluar
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -637,14 +662,29 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
                       </td>
                       <td className="px-6 py-4 text-center">
                         {trx.lampiran_url ? (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-primary"
+                          <button
+                            type="button"
                             onClick={() => setPreviewUrl(trx.lampiran_url)}
+                            className="group relative inline-flex items-center justify-center h-12 w-12 rounded-lg overflow-hidden border border-border/80 hover:border-primary/60 cursor-pointer shadow-xs bg-muted/40 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            title="Klik untuk melihat bukti transaksi"
                           >
-                            <Paperclip className="h-4 w-4" />
-                          </Button>
+                            {trx.lampiran_url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) || !trx.lampiran_url.toLowerCase().includes(".pdf") ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={trx.lampiran_url}
+                                alt={trx.judul || "Bukti Lampiran"}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-[9px] font-mono text-primary font-bold">
+                                <FileText className="h-4 w-4 mb-0.5" />
+                                <span>PDF</span>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                              <Eye className="h-3.5 w-3.5" />
+                            </div>
+                          </button>
                         ) : (
                           <span className="text-xs text-muted-foreground">-</span>
                         )}
@@ -753,6 +793,18 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
                   accept="image/*,.pdf"
                   required={jenis === "keluar"}
                 />
+                {file && file.type.startsWith("image/") && (
+                  <div className="flex items-center gap-2.5 mt-2 p-2 bg-muted/40 border rounded-lg">
+                    <div className="h-12 w-12 rounded-md overflow-hidden border bg-background shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={URL.createObjectURL(file)} alt="Preview Bukti" className="h-full w-full object-cover" />
+                    </div>
+                    <div className="min-w-0 flex-1 text-xs">
+                      <p className="font-medium truncate text-foreground">{file.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(1)} KB (Siap diunggah)</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -798,9 +850,9 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
             <DialogTitle>Bukti Transaksi</DialogTitle>
           </DialogHeader>
           <div className="p-4 flex items-center justify-center min-h-[40vh] bg-muted/20 rounded-md">
-            {previewUrl?.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+            {previewUrl?.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) || !previewUrl?.toLowerCase().includes(".pdf") ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={previewUrl} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain rounded" />
+              <img src={previewUrl || ""} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain rounded" />
             ) : (
               <div className="text-center space-y-4">
                 <FileText className="h-16 w-16 mx-auto text-muted-foreground" />

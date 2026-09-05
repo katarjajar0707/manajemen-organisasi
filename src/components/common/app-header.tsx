@@ -64,6 +64,7 @@ interface AppHeaderProps {
   userRole?: string;
   userName?: string;
   userAvatarUrl?: string | null;
+  userDepartemen?: string | null;
 }
 
 import { useAuthStore } from "@/store/auth-store";
@@ -72,6 +73,7 @@ export function AppHeader({
   userRole: propUserRole,
   userName: propUserName,
   userAvatarUrl,
+  userDepartemen: propUserDepartemen,
 }: AppHeaderProps) {
   const storeRole = useAuthStore((s) => s.userRole);
   const storeName = useAuthStore((s) => s.userName);
@@ -81,6 +83,17 @@ export function AppHeader({
   const userName = propUserName || storeName || "Azzam Azhari";
   // The effective avatar: store takes priority (realtime updates), fallback to server prop
   const avatarUrl = storeAvatarUrl || userAvatarUrl || null;
+  const departemen =
+    propUserDepartemen ||
+    (userRole === "admin"
+      ? "Administrator"
+      : userRole === "ketua"
+      ? "Pimpinan"
+      : userRole === "sekretaris"
+      ? "Sekretariat"
+      : userRole === "bendahara"
+      ? "Keuangan"
+      : userRole);
   const pathname = usePathname();
   const router = useRouter();
   const { setTheme, theme, systemTheme } = useTheme();
@@ -201,12 +214,15 @@ export function AppHeader({
           </kbd>
         </Button>
 
-        <span className={cn(
-          "hidden sm:inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md",
-          "bg-primary/10 text-primary border border-primary/20"
-        )}>
+        <span
+          title={`Departemen: ${departemen}`}
+          className={cn(
+            "hidden sm:inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md",
+            "bg-primary/10 text-primary border border-primary/20"
+          )}
+        >
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-          {userRole}
+          <span>Departemen: {departemen}</span>
         </span>
 
         <DropdownMenu>
@@ -234,11 +250,13 @@ export function AppHeader({
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-52 mt-1">
+          <DropdownMenuContent align="end" className="w-56 mt-1">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-0.5">
                 <span className="text-sm font-semibold">{userName}</span>
-                <span className="text-xs text-muted-foreground capitalize">{userRole}</span>
+                <span className="text-xs text-muted-foreground">
+                  Departemen: <span className="font-medium text-foreground capitalize">{departemen}</span>
+                </span>
               </div>
             </DropdownMenuLabel>
 
