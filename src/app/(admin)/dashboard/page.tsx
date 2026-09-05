@@ -11,9 +11,39 @@ import {
   ArrowRight,
   TrendingUp,
   PlusCircle,
+  MessageCircle,
 } from "lucide-react";
+import { LogoutButton } from "@/components/common/logout-button";
+import { getDiskusis } from "@/actions/diskusi";
+import { getPengumumanList } from "@/actions/pengumuman";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const [diskusis, announcements] = await Promise.all([
+    getDiskusis(),
+    getPengumumanList(),
+  ]);
+
+  const latestDiskusis = diskusis.slice(0, 4);
+
+  const formatRelativeTime = (dateIso: string) => {
+    try {
+      const date = new Date(dateIso);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffMinutes < 1) return "Baru saja";
+      if (diffMinutes < 60) return `${diffMinutes} jam lalu`;
+      if (diffHours < 24) return `${diffHours} jam lalu`;
+      if (diffDays < 7) return `${diffDays} hari lalu`;
+      return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+    } catch {
+      return "Baru saja";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -37,6 +67,7 @@ export default function DashboardPage() {
               <span>Tambah Kegiatan</span>
             </Button>
           </Link>
+          <LogoutButton variant="outline" size="sm" className="flex-1 sm:flex-initial" />
         </div>
       </div>
 
@@ -84,18 +115,22 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pengumuman Baru
-            </CardTitle>
-            <Megaphone className="h-4 w-4 text-amber-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2 Info</div>
-            <p className="text-xs text-muted-foreground mt-1">Ditujukan ke semua bagian</p>
-          </CardContent>
-        </Card>
+        <Link href="/pengumuman">
+          <Card className="hover:border-amber-500/40 transition-colors cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Pengumuman Baru
+              </CardTitle>
+              <Megaphone className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{announcements.length} Info</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {announcements.length > 0 ? "Lihat broadcast terbaru" : "Belum ada pengumuman baru"}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Grid Content */}
@@ -149,36 +184,38 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
-            {[
-              {
-                title: "Koordinasi Persiapan Peringatan HUT RI",
-                author: "Rian (Acara)",
-                tag: "@Bendahara",
-                time: "2 jam lalu",
-              },
-              {
-                title: "Update Ketersediaan Sound System Inventaris",
-                author: "Diki (Inventaris)",
-                tag: "@Semua",
-                time: "1 hari lalu",
-              },
-              {
-                title: "Pemberitahuan Iuran Kas Bulanan Anggota",
-                author: "Siti (Bendahara)",
-                tag: "@Semua",
-                time: "3 hari lalu",
-              },
-            ].map((disc, idx) => (
-              <div key={idx} className="p-3 rounded-lg border bg-card space-y-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">{disc.title}</h4>
-                  <Badge variant="outline" className="text-primary text-[10px]">{disc.tag}</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Oleh {disc.author} • {disc.time}
-                </p>
+            {latestDiskusis.length === 0 ? (
+              <div className="text-center py-6 text-xs text-muted-foreground">
+                <MessagesSquare className="h-6 w-6 mx-auto mb-1.5 opacity-40" />
+                <span>Belum ada diskusi atau catatan umum.</span>
               </div>
-            ))}
+            ) : (
+              latestDiskusis.map((disc) => (
+                <Link key={disc.id} href={`/diskusi/${disc.id}`} className="block">
+                  <div className="p-3 rounded-lg border bg-card hover:bg-muted/40 transition-colors space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-medium text-sm line-clamp-1 hover:text-primary transition-colors">
+                        {disc.judul}
+                      </h4>
+                      {disc.mentions && disc.mentions.length > 0 && (
+                        <Badge variant="outline" className="text-primary text-[10px] shrink-0">
+                          @{disc.mentions[0].bagianNama}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        Oleh {disc.authorName} • {formatRelativeTime(disc.createdAt)}
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px]">
+                        <MessageCircle className="h-3 w-3" />
+                        {disc.balasanCount}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 import { X, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LogoutButton } from "@/components/common/logout-button";
 
 export function AppMobileNav() {
   const pathname = usePathname();
@@ -184,8 +185,9 @@ export function AppMobileNav() {
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-border/70 text-center shrink-0">
-          <p className="text-[10px] text-muted-foreground/60 font-mono">
+        <div className="p-3 border-t border-border/70 shrink-0 space-y-2">
+          <LogoutButton variant="outline" size="sm" className="w-full justify-center" />
+          <p className="text-[10px] text-muted-foreground/60 font-mono text-center">
             Karang Taruna App · Responsive v1.1
           </p>
         </div>

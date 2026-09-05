@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { useAuthStore } from "@/store/auth-store";
+import { LogoutButton } from "@/components/common/logout-button";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -144,17 +145,29 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {/* ── BOTTOM: Version tag ── */}
+        {/* ── BOTTOM: Logout button & Version tag ── */}
         <div className={cn(
-          "border-t border-border/60 shrink-0 py-2.5",
-          isCollapsed ? "px-0 text-center" : "px-4"
+          "border-t border-border/60 shrink-0 p-2",
+          isCollapsed ? "flex justify-center" : "px-3 py-2"
         )}>
           {isCollapsed ? (
-            <div className="h-2 w-2 rounded-full bg-primary/30 mx-auto" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <LogoutButton showText={false} size="icon" className="h-8 w-8 rounded-lg" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="font-medium text-destructive">
+                Keluar
+              </TooltipContent>
+            </Tooltip>
           ) : (
-            <p className="text-[10px] font-mono text-muted-foreground/40 text-center">
-              Fase 1 Setup · Ready
-            </p>
+            <div className="space-y-1 w-full">
+              <LogoutButton variant="ghost" size="sm" className="w-full justify-start text-xs h-8 px-2" />
+              <p className="text-[10px] font-mono text-muted-foreground/40 text-center">
+                Portal Pengurus Karang Taruna
+              </p>
+            </div>
           )}
         </div>
       </aside>

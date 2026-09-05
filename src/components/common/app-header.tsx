@@ -20,10 +20,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Moon, PanelLeft, Settings, Sun, User } from "lucide-react";
+import { Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User } from "lucide-react";
 import { useSidebarStore } from "@/store/sidebar-store";
 import { cn } from "@/lib/utils";
 import React from "react";
+import { logout } from "@/actions/auth";
 
 // Map segment URL → label yang terbaca
 const SEGMENT_LABELS: Record<string, string> = {
@@ -77,8 +78,15 @@ export function AppHeader({
   const router = useRouter();
   const { setTheme, theme, systemTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const [isLoggingOut, startLogoutTransition] = React.useTransition();
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
+
+  const handleLogout = () => {
+    startLogoutTransition(async () => {
+      await logout();
+    });
+  };
 
   React.useEffect(() => {
     setMounted(true);
@@ -232,11 +240,16 @@ export function AppHeader({
 
             {/* Logout */}
             <DropdownMenuItem
-              onClick={() => router.push("/login")}
+              onClick={handleLogout}
+              disabled={isLoggingOut}
               className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
             >
-              <LogOut className="h-4 w-4" />
-              <span>Keluar</span>
+              {isLoggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+              <span>{isLoggingOut ? "Keluar..." : "Keluar"}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
