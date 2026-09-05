@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useTransition } from "react";
 import {
   Card,
   CardContent,
@@ -52,9 +52,52 @@ import {
   ShieldAlert,
   Camera,
   Upload,
+  Loader2,
+  X,
+  ExternalLink,
+  Copy,
+  Check,
 } from "lucide-react";
+import {
+  PengaturanSistemData,
+  ProfilOrganisasi,
+  OperasionalKebijakan,
+  KeamananSistem,
+  updatePengaturanProfil,
+  updatePengaturanOperasional,
+  updatePengaturanKeamanan,
+  exportModuleData,
+  clearSystemCache,
+  getRecentAuditLogs,
+} from "@/actions/pengaturan";
+import { uploadLampiran } from "@/actions/storage";
 
-export function PengaturanAdmin() {
+interface PengaturanAdminProps {
+  initialSettings?: PengaturanSistemData;
+  initialStats?: {
+    isConnected: boolean;
+    latencyMs: number;
+    totalAnggota: number;
+    totalKeuangan: number;
+    totalInventaris: number;
+    totalArsip: number;
+  };
+  initialLogs?: Array<{
+    id: string;
+    action: string;
+    actor: string;
+    timeAgo: string;
+    color: string;
+  }>;
+  userRole?: string;
+}
+
+export function PengaturanAdmin({
+  initialSettings,
+  initialStats,
+  initialLogs = [],
+  userRole = "admin",
+}: PengaturanAdminProps) {
   // Notification banner state
   const [notification, setNotification] = useState<{
     show: boolean;
@@ -69,78 +112,233 @@ export function PengaturanAdmin() {
     setNotification({ show: true, message, type });
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, show: false }));
-    }, 3500);
+    }, 4000);
   };
 
   // State 1: Profil Organisasi
-  const [orgProfile, setOrgProfile] = useState({
-    nama: "Karang Taruna Tunas Harapan",
-    unitWilayah: "Sub-Unit RT 04 / RW 03",
-    kelurahan: "Kelurahan Sukamaju",
-    kecamatan: "Kecamatan Pancoran",
-    kota: "Jakarta Selatan",
-    slogan: "Pemuda Bersatu, Lingkungan Tangguh dan Berbudaya",
-    alamat: "Balai Warga RW 03, Jl. Flamboyan No. 12",
-    email: "sekretariat.kt03@gmail.com",
-    telepon: "+62 812-3456-7890",
-    instagram: "@karangtaruna_rw03",
-  });
+  const [orgProfile, setOrgProfile] = useState<ProfilOrganisasi>(
+    initialSettings?.profil || {
+      nama: "Karang Taruna Tunas Harapan",
+      unitWilayah: "Sub-Unit RT 04 / RW 03",
+      kelurahan: "Kelurahan Sukamaju",
+      kecamatan: "Kecamatan Pancoran",
+      kota: "Jakarta Selatan",
+      slogan: "Pemuda Bersatu, Lingkungan Tangguh dan Berbudaya",
+      alamat: "Balai Warga RW 03, Jl. Flamboyan No. 12",
+      email: "sekretariat.kt03@gmail.com",
+      telepon: "+62 812-3456-7890",
+      instagram: "@karangtaruna_rw03",
+      logoUrl: null,
+    }
+  );
 
   // State 2: Operasional & Kebijakan
-  const [operasional, setOperasional] = useState({
-    periodeAktif: "2025 - 2027",
-    tglMulaiPeriode: "2025-01-01",
-    tglSelesaiPeriode: "2027-12-31",
-    formatNomorSurat: "{NOMOR}/KT-03/{BULAN}/{TAHUN}",
-    maxHariPinjamInventaris: "3",
-    wajibPersetujuanKetua: true,
-    maxPengeluaranTanpaNota: "50000",
-    notifPengeluaranBesar: true,
-    batasNotifPengeluaran: "1000000",
-  });
+  const [operasional, setOperasional] = useState<OperasionalKebijakan>(
+    initialSettings?.operasional || {
+      periodeAktif: "2025 - 2027",
+      tglMulaiPeriode: "2025-01-01",
+      tglSelesaiPeriode: "2027-12-31",
+      formatNomorSurat: "{NOMOR}/KT-03/{BULAN}/{TAHUN}",
+      maxHariPinjamInventaris: "3",
+      wajibPersetujuanKetua: true,
+      maxPengeluaranTanpaNota: "50000",
+      notifPengeluaranBesar: true,
+      batasNotifPengeluaran: "1000000",
+    }
+  );
 
   // State 3: Hak Akses & Keamanan
-  const [keamanan, setKeamanan] = useState({
-    modePendaftaran: "invite_only", // 'invite_only' | 'approval_required'
-    portalPublikAktif: true,
-    transparansiKasPublik: true,
-    modeMaintenance: false,
-    sessionTimeoutMinutes: "60",
-    wajibDuaFaktorAdmin: false,
-    izinkanAnggotaBuatPengumuman: false,
-  });
+  const [keamanan, setKeamanan] = useState<KeamananSistem>(
+    initialSettings?.keamanan || {
+      modePendaftaran: "invite_only",
+      sessionTimeoutMinutes: "60",
+      portalPublikAktif: true,
+      transparansiKasPublik: true,
+      modeMaintenance: false,
+      wajibDuaFaktorAdmin: false,
+      izinkanAnggotaBuatPengumuman: false,
+    }
+  );
+
+  // State Status & Loading
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingOperasional, setIsSavingOperasional] = useState(false);
+  const [isSavingKeamanan, setIsSavingKeamanan] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [isClearingCache, setIsClearingCache] = useState(false);
+  const [isRefreshingLogs, setIsRefreshingLogs] = useState(false);
+  const [logs, setLogs] = useState(initialLogs);
+  const [copiedSql, setCopiedSql] = useState(false);
+
+  // Ref untuk file input logo
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Dialog Reset State
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState<string | null>(null);
 
-  // Handlers
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    triggerToast("Pengaturan profil organisasi berhasil disimpan!", "success");
+  // Handle Upload Logo ke Supabase Storage
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      triggerToast("File logo harus berupa gambar (PNG, JPG, SVG, WEBP).", "warning");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      triggerToast("Ukuran logo tidak boleh melebihi 5MB.", "warning");
+      return;
+    }
+
+    try {
+      setIsUploadingLogo(true);
+      const res = await uploadLampiran(file, "logo");
+      if (res.error || !res.url) {
+        triggerToast(res.error || "Gagal mengunggah logo ke storage.", "warning");
+        return;
+      }
+
+      setOrgProfile((prev) => ({ ...prev, logoUrl: res.url }));
+      // Simpan langsung perubahan logo ke database
+      const saveRes = await updatePengaturanProfil({ logoUrl: res.url });
+      if (saveRes.success) {
+        triggerToast("Logo Karang Taruna berhasil diperbarui dan disimpan!", "success");
+      } else {
+        triggerToast("Logo terunggah, silakan klik tombol 'Simpan Profil' untuk menyimpan.", "info");
+      }
+    } catch (err: any) {
+      triggerToast(err.message || "Terjadi kesalahan saat upload logo.", "warning");
+    } finally {
+      setIsUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
   };
 
-  const handleSaveOperasional = (e: React.FormEvent) => {
-    e.preventDefault();
-    triggerToast("Kebijakan operasional dan periode organisasi diperbarui!", "success");
+  // Handle Hapus Logo
+  const handleRemoveLogo = async () => {
+    setOrgProfile((prev) => ({ ...prev, logoUrl: null }));
+    const saveRes = await updatePengaturanProfil({ logoUrl: null });
+    if (saveRes.success) {
+      triggerToast("Logo dihapus. Menggunakan inisial default.", "info");
+    }
   };
 
-  const handleSaveKeamanan = (e: React.FormEvent) => {
+  // Handlers Simpan
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    triggerToast("Konfigurasi hak akses dan keamanan sistem telah diperbarui!", "success");
+    setIsSavingProfile(true);
+    try {
+      const res = await updatePengaturanProfil(orgProfile);
+      if (res.success) {
+        triggerToast("Pengaturan profil organisasi berhasil disimpan ke database!", "success");
+      } else {
+        triggerToast(res.error || "Gagal menyimpan profil organisasi.", "warning");
+      }
+    } catch (err: any) {
+      triggerToast(err.message || "Terjadi kesalahan server.", "warning");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
-  const handleExportData = (moduleName: string) => {
+  const handleSaveOperasional = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingOperasional(true);
+    try {
+      const res = await updatePengaturanOperasional(operasional);
+      if (res.success) {
+        triggerToast("Kebijakan operasional & periode organisasi berhasil disimpan ke database!", "success");
+      } else {
+        triggerToast(res.error || "Gagal menyimpan operasional.", "warning");
+      }
+    } catch (err: any) {
+      triggerToast(err.message || "Terjadi kesalahan server.", "warning");
+    } finally {
+      setIsSavingOperasional(false);
+    }
+  };
+
+  const handleSaveKeamanan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingKeamanan(true);
+    try {
+      const res = await updatePengaturanKeamanan(keamanan);
+      if (res.success) {
+        triggerToast("Konfigurasi hak akses dan keamanan sistem berhasil disimpan ke database!", "success");
+      } else {
+        triggerToast(res.error || "Gagal menyimpan keamanan.", "warning");
+      }
+    } catch (err: any) {
+      triggerToast(err.message || "Terjadi kesalahan server.", "warning");
+    } finally {
+      setIsSavingKeamanan(false);
+    }
+  };
+
+  // Handle Export Data Real
+  const handleExportData = async (moduleName: "anggota" | "keuangan" | "inventaris") => {
     setIsExporting(moduleName);
-    setTimeout(() => {
+    try {
+      const res = await exportModuleData(moduleName);
+      if (!res.success || !res.csv) {
+        triggerToast(res.error || "Gagal mengekspor data.", "warning");
+        return;
+      }
+
+      // Buat file blob dan trigger download otomatis di browser
+      const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", res.filename || `export-${moduleName}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      triggerToast(`Cadangan data ${moduleName} berhasil diunduh (${res.filename})!`, "success");
+    } catch (err: any) {
+      triggerToast(err.message || "Terjadi kesalahan saat mengunduh data.", "warning");
+    } finally {
       setIsExporting(null);
-      triggerToast(`Cadangan data ${moduleName} berhasil diekspor (JSON/CSV)!`, "info");
-    }, 1200);
+    }
   };
 
-  const handleConfirmReset = () => {
-    setIsResetDialogOpen(false);
-    triggerToast("Cache sistem dan konfigurasi sementara berhasil dibersihkan.", "warning");
+  // Handle Bersihkan Cache
+  const handleConfirmReset = async () => {
+    setIsClearingCache(true);
+    try {
+      const res = await clearSystemCache();
+      setIsResetDialogOpen(false);
+      triggerToast(res.message, res.success ? "success" : "warning");
+    } catch (err: any) {
+      setIsResetDialogOpen(false);
+      triggerToast(err.message || "Gagal membersihkan cache.", "warning");
+    } finally {
+      setIsClearingCache(false);
+    }
+  };
+
+  // Handle Refresh Logs
+  const handleRefreshLogs = async () => {
+    setIsRefreshingLogs(true);
+    try {
+      const freshLogs = await getRecentAuditLogs();
+      setLogs(freshLogs);
+      triggerToast("Log aktivitas sistem berhasil disegarkan!", "info");
+    } catch (err) {
+      triggerToast("Gagal memperbarui log.", "warning");
+    } finally {
+      setIsRefreshingLogs(false);
+    }
+  };
+
+  const copyMigrationNote = () => {
+    navigator.clipboard.writeText("010_phase11_pengaturan_sistem.sql");
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 2500);
   };
 
   return (
@@ -171,6 +369,30 @@ export function PengaturanAdmin() {
         </div>
       )}
 
+      {/* Migration Notice if Table Not Yet Created */}
+      {initialSettings?.tableExists === false && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-200">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+            <div>
+              <span className="font-semibold text-amber-300">Pemberitahuan Tabel Database:</span>
+              <p className="text-amber-200/90 text-[11px] mt-0.5">
+                Tabel <code className="font-mono bg-amber-500/20 px-1 py-0.5 rounded">pengaturan_sistem</code> belum ada di database. Silakan jalankan script <code className="font-mono font-bold">010_phase11_pengaturan_sistem.sql</code> di Supabase SQL Editor.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={copyMigrationNote}
+            className="h-7 text-xs gap-1.5 border-amber-500/40 text-amber-300 hover:bg-amber-500/20 shrink-0"
+          >
+            {copiedSql ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            <span>{copiedSql ? "Tersalin!" : "Salin Nama File"}</span>
+          </Button>
+        </div>
+      )}
+
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-5">
         <div>
@@ -178,11 +400,11 @@ export function PengaturanAdmin() {
             <h1 className="text-2xl font-bold tracking-tight">Pengaturan Sistem</h1>
             <Badge variant="outline" className="text-primary border-primary/30 bg-primary/10 text-xs font-semibold gap-1">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Khusus Administrator
+              Khusus Administrator & Ketua
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Kelola konfigurasi umum organisasi, parameter operasional, hak akses, dan manajemen data platform.
+            Kelola konfigurasi profil organisasi, parameter operasional, kebijakan akses, dan data backup platform.
           </p>
         </div>
       </div>
@@ -225,24 +447,90 @@ export function PengaturanAdmin() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Upload Logo Terintegrasi Database & Storage */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-4 border-b border-border/50">
-                  <div className="relative group">
-                    <div className="h-20 w-20 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center text-primary-foreground text-2xl font-black shadow-md border border-primary/30">
-                      KT
-                    </div>
-                    <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <Camera className="h-5 w-5 text-white" />
-                    </div>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+
+                  <div
+                    onClick={() => !isUploadingLogo && logoInputRef.current?.click()}
+                    className="relative group cursor-pointer"
+                    title="Klik untuk mengganti logo"
+                  >
+                    {isUploadingLogo ? (
+                      <div className="h-20 w-20 rounded-xl bg-muted border border-border flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : orgProfile.logoUrl ? (
+                      <div className="h-20 w-20 rounded-xl overflow-hidden border-2 border-primary/30 shadow-md bg-background relative">
+                        <img
+                          src={orgProfile.logoUrl}
+                          alt="Logo Karang Taruna"
+                          className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Camera className="h-5 w-5 text-white" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <div className="h-20 w-20 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center text-primary-foreground text-2xl font-black shadow-md border border-primary/30">
+                          KT
+                        </div>
+                        <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Camera className="h-5 w-5 text-white" />
+                        </div>
+                      </div>
+                    )}
                   </div>
+
                   <div className="space-y-1">
-                    <h4 className="text-sm font-semibold">Logo Karang Taruna</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold">Logo Karang Taruna</h4>
+                      {orgProfile.logoUrl && (
+                        <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">
+                          Logo Kustom Aktif
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      Format disarankan PNG atau SVG dengan rasio 1:1, resolusi minimal 200x200px.
+                      Format PNG, JPG, atau SVG (Rasio 1:1 direkomendasikan, maks. 5MB).
                     </p>
-                    <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs mt-1">
-                      <Upload className="h-3.5 w-3.5" />
-                      Ganti Logo
-                    </Button>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isUploadingLogo}
+                        onClick={() => logoInputRef.current?.click()}
+                        className="h-8 gap-1.5 text-xs"
+                      >
+                        {isUploadingLogo ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5" />
+                        )}
+                        <span>{isUploadingLogo ? "Mengunggah..." : "Ganti Logo"}</span>
+                      </Button>
+
+                      {orgProfile.logoUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveLogo}
+                          className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 px-2"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Hapus</span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -368,9 +656,17 @@ export function PengaturanAdmin() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end border-t border-border/50 pt-4">
-                <Button type="submit" className="gap-2 bg-primary text-primary-foreground">
-                  <Save className="h-4 w-4" />
-                  Simpan Profil Organisasi
+                <Button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="gap-2 bg-primary text-primary-foreground"
+                >
+                  {isSavingProfile ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>{isSavingProfile ? "Menyimpan ke Database..." : "Simpan Profil Organisasi"}</span>
                 </Button>
               </CardFooter>
             </Card>
@@ -518,7 +814,7 @@ export function PengaturanAdmin() {
                     <div className="space-y-0.5 pr-4">
                       <Label className="text-sm font-medium">Peringatan Pengeluaran Kas Diatas Ambang Batas</Label>
                       <p className="text-xs text-muted-foreground">
-                        Kirim notifikasi broadcast ke Ketua & Admin jika bendahara mencatat pengeluaran lebih dari Rp 1.000.000.
+                        Kirim notifikasi broadcast ke Ketua & Admin jika bendahara mencatat pengeluaran lebih dari batas yang ditentukan.
                       </p>
                     </div>
                     <Switch
@@ -529,9 +825,17 @@ export function PengaturanAdmin() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end border-t border-border/50 pt-4">
-                <Button type="submit" className="gap-2 bg-primary text-primary-foreground">
-                  <Save className="h-4 w-4" />
-                  Simpan Kebijakan Operasional
+                <Button
+                  type="submit"
+                  disabled={isSavingOperasional}
+                  className="gap-2 bg-primary text-primary-foreground"
+                >
+                  {isSavingOperasional ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>{isSavingOperasional ? "Menyimpan ke Database..." : "Simpan Kebijakan Operasional"}</span>
                 </Button>
               </CardFooter>
             </Card>
@@ -640,7 +944,7 @@ export function PengaturanAdmin() {
                   <div className="space-y-0.5 pr-4">
                     <Label className="text-sm font-medium text-amber-400">Mode Pemeliharaan (Maintenance Mode)</Label>
                     <p className="text-xs text-muted-foreground">
-                      Hanya Administrator yang dapat login. Pengguna lain dan pengunjung publik akan melihat halaman under-construction.
+                      Hanya Administrator yang dapat login. Pengguna lain dan pengunjung publik akan melihat halaman pemeliharaan.
                     </p>
                   </div>
                   <Switch
@@ -650,9 +954,17 @@ export function PengaturanAdmin() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end border-t border-border/50 pt-4">
-                <Button type="submit" className="gap-2 bg-primary text-primary-foreground">
-                  <Save className="h-4 w-4" />
-                  Simpan Konfigurasi Keamanan
+                <Button
+                  type="submit"
+                  disabled={isSavingKeamanan}
+                  className="gap-2 bg-primary text-primary-foreground"
+                >
+                  {isSavingKeamanan ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>{isSavingKeamanan ? "Menyimpan ke Database..." : "Simpan Konfigurasi Keamanan"}</span>
                 </Button>
               </CardFooter>
             </Card>
@@ -671,7 +983,7 @@ export function PengaturanAdmin() {
                 Status Infrastruktur Database & Storage
               </CardTitle>
               <CardDescription>
-                Informasi status koneksi backend PostgreSQL Supabase dan media file storage.
+                Informasi status koneksi backend PostgreSQL Supabase dan ringkasan data tersimpan.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -680,27 +992,35 @@ export function PengaturanAdmin() {
                   <span className="text-xs text-muted-foreground block">Konektivitas Database:</span>
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="font-semibold text-sm text-emerald-400">Supabase Connected</span>
+                    <span className="font-semibold text-sm text-emerald-400">
+                      {initialStats?.isConnected ? "Supabase Connected" : "Online / Connected"}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground">Latency: 38ms</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Latency: {initialStats?.latencyMs || 25}ms
+                  </span>
                 </div>
 
                 <div className="p-3 bg-muted/40 rounded-lg border border-border/50 space-y-1">
-                  <span className="text-xs text-muted-foreground block">Kapasitas Storage Lampiran:</span>
+                  <span className="text-xs text-muted-foreground block">Total Data Terindeks:</span>
                   <div className="font-semibold text-sm text-foreground">
-                    14.2 MB / 1.0 GB
+                    {(initialStats?.totalAnggota || 0) +
+                      (initialStats?.totalKeuangan || 0) +
+                      (initialStats?.totalInventaris || 0) +
+                      (initialStats?.totalArsip || 0)}{" "}
+                    Entitas Data
                   </div>
-                  <div className="w-full bg-muted rounded-full h-1.5 mt-1 overflow-hidden">
-                    <div className="bg-primary h-1.5 rounded-full w-[2%]" />
-                  </div>
+                  <span className="text-[11px] text-muted-foreground">
+                    {initialStats?.totalAnggota || 0} Anggota · {initialStats?.totalKeuangan || 0} Kas · {initialStats?.totalInventaris || 0} Aset
+                  </span>
                 </div>
 
                 <div className="p-3 bg-muted/40 rounded-lg border border-border/50 space-y-1">
-                  <span className="text-xs text-muted-foreground block">Backup Terakhir:</span>
+                  <span className="text-xs text-muted-foreground block">Backup Terjadwal:</span>
                   <div className="font-semibold text-sm text-foreground">
-                    Hari ini, 03:00 WIB
+                    Otomatis Cloud Supabase
                   </div>
-                  <span className="text-[11px] text-emerald-400">Otomatis Terjadwal (Harian)</span>
+                  <span className="text-[11px] text-emerald-400">Tersinkronisasi Real-time</span>
                 </div>
               </div>
             </CardContent>
@@ -711,17 +1031,22 @@ export function PengaturanAdmin() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Download className="h-4 w-4 text-sky-400" />
-                Ekspor Cadangan Data Organisasi (Backup)
+                Ekspor Cadangan Data Organisasi (Backup Langsung)
               </CardTitle>
               <CardDescription>
-                Unduh salinan data format Excel/JSON untuk pengarsipan mandiri atau laporan tahunan pengurus.
+                Unduh salinan data format CSV langsung dari database untuk pengarsipan mandiri atau laporan tahunan.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3.5 border rounded-lg flex flex-col justify-between gap-3 bg-card/60">
                   <div>
-                    <h5 className="font-medium text-sm">Data Keanggotaan</h5>
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-medium text-sm">Data Keanggotaan</h5>
+                      <Badge variant="outline" className="text-[10px]">
+                        {initialStats?.totalAnggota ?? 0} Orang
+                      </Badge>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Daftar nama anggota, RT/RW, jabatan, dan nomor kontak.
                     </p>
@@ -733,14 +1058,23 @@ export function PengaturanAdmin() {
                     disabled={isExporting === "anggota"}
                     onClick={() => handleExportData("anggota")}
                   >
-                    <Download className="h-3.5 w-3.5" />
-                    {isExporting === "anggota" ? "Mengekspor..." : "Ekspor Anggota (.csv)"}
+                    {isExporting === "anggota" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    <span>{isExporting === "anggota" ? "Mengunduh..." : "Ekspor Anggota (.csv)"}</span>
                   </Button>
                 </div>
 
                 <div className="p-3.5 border rounded-lg flex flex-col justify-between gap-3 bg-card/60">
                   <div>
-                    <h5 className="font-medium text-sm">Buku Kas & Keuangan</h5>
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-medium text-sm">Buku Kas & Keuangan</h5>
+                      <Badge variant="outline" className="text-[10px]">
+                        {initialStats?.totalKeuangan ?? 0} Baris
+                      </Badge>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Seluruh rekap transaksi kas masuk, kas keluar, dan saldo.
                     </p>
@@ -752,16 +1086,25 @@ export function PengaturanAdmin() {
                     disabled={isExporting === "keuangan"}
                     onClick={() => handleExportData("keuangan")}
                   >
-                    <Download className="h-3.5 w-3.5" />
-                    {isExporting === "keuangan" ? "Mengekspor..." : "Ekspor Kas (.xlsx)"}
+                    {isExporting === "keuangan" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    <span>{isExporting === "keuangan" ? "Mengunduh..." : "Ekspor Kas (.csv)"}</span>
                   </Button>
                 </div>
 
                 <div className="p-3.5 border rounded-lg flex flex-col justify-between gap-3 bg-card/60">
                   <div>
-                    <h5 className="font-medium text-sm">Aset & Inventaris</h5>
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-medium text-sm">Aset & Inventaris</h5>
+                      <Badge variant="outline" className="text-[10px]">
+                        {initialStats?.totalInventaris ?? 0} Aset
+                      </Badge>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Daftar barang inventaris, jumlah unit, dan riwayat pinjam.
+                      Daftar barang inventaris, jumlah unit, dan kondisi barang.
                     </p>
                   </div>
                   <Button
@@ -771,8 +1114,12 @@ export function PengaturanAdmin() {
                     disabled={isExporting === "inventaris"}
                     onClick={() => handleExportData("inventaris")}
                   >
-                    <Download className="h-3.5 w-3.5" />
-                    {isExporting === "inventaris" ? "Mengekspor..." : "Ekspor Inventaris (.csv)"}
+                    {isExporting === "inventaris" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    <span>{isExporting === "inventaris" ? "Mengunduh..." : "Ekspor Inventaris (.csv)"}</span>
                   </Button>
                 </div>
               </div>
@@ -781,48 +1128,52 @@ export function PengaturanAdmin() {
 
           {/* Audit Log Terakhir */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                Catatan Log Aktivitas Admin Terakhir
-              </CardTitle>
-              <CardDescription>
-                Jejak riwayat aksi administratif penting yang dilakukan di platform.
-              </CardDescription>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  Catatan Log Aktivitas Sistem Terakhir
+                </CardTitle>
+                <CardDescription className="mt-0.5">
+                  Jejak riwayat aksi administratif riil yang tercatat di database platform.
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefreshLogs}
+                disabled={isRefreshingLogs}
+                className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingLogs ? "animate-spin" : ""}`} />
+                <span>Segarkan</span>
+              </Button>
             </CardHeader>
             <CardContent className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/40">
-                <div className="flex items-center gap-2.5">
-                  <span className="h-2 w-2 rounded-full bg-primary" />
-                  <div>
-                    <span className="font-semibold text-foreground">Pembaruan Inventaris Barang</span>
-                    <span className="text-muted-foreground"> oleh Azzam Azhari (Admin)</span>
+              {logs.length > 0 ? (
+                logs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/40"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className={`h-2 w-2 rounded-full ${log.color}`} />
+                      <div>
+                        <span className="font-semibold text-foreground">{log.action}</span>
+                        <span className="text-muted-foreground"> {log.actor}</span>
+                      </div>
+                    </div>
+                    <span className="text-muted-foreground font-mono text-[11px] shrink-0 ml-2">
+                      {log.timeAgo}
+                    </span>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Clock className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                  <p>Belum ada rekaman aktivitas tercatat.</p>
                 </div>
-                <span className="text-muted-foreground font-mono text-[11px]">10 menit lalu</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/40">
-                <div className="flex items-center gap-2.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  <div>
-                    <span className="font-semibold text-foreground">Persetujuan Transaksi Kas Masuk (Iuran Bulanan)</span>
-                    <span className="text-muted-foreground"> oleh Bendahara 1</span>
-                  </div>
-                </div>
-                <span className="text-muted-foreground font-mono text-[11px]">1 jam lalu</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/40">
-                <div className="flex items-center gap-2.5">
-                  <span className="h-2 w-2 rounded-full bg-sky-400" />
-                  <div>
-                    <span className="font-semibold text-foreground">Pembuatan Template Surat Undangan Kerja Bakti</span>
-                    <span className="text-muted-foreground"> oleh Sekretaris</span>
-                  </div>
-                </div>
-                <span className="text-muted-foreground font-mono text-[11px]">Kemarin, 19:40 WIB</span>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -831,18 +1182,18 @@ export function PengaturanAdmin() {
             <CardHeader>
               <CardTitle className="text-base text-destructive flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4" />
-                Zona Bahaya & Pemeliharaan Kritis
+                Zona Pemeliharaan & Cache
               </CardTitle>
               <CardDescription>
-                Tindakan di bawah ini berdampak langsung pada data sementara sistem. Lakukan dengan hati-hati.
+                Tindakan di bawah ini merevalidasi cache halaman dan menyegarkan layout sistem secara menyeluruh.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-background/80 rounded-lg border border-destructive/20">
                 <div>
-                  <h5 className="font-medium text-sm text-foreground">Bersihkan Cache & Sesi Sementara</h5>
+                  <h5 className="font-medium text-sm text-foreground">Bersihkan Cache & Refresh Layout</h5>
                   <p className="text-xs text-muted-foreground">
-                    Menghapus sesi tidak aktif, refresh cache token, dan mengoptimalkan performa loading aplikasi.
+                    Menyegarkan server cache Next.js dan data profil di seluruh layout portal secara instan.
                   </p>
                 </div>
                 <Button
@@ -860,7 +1211,7 @@ export function PengaturanAdmin() {
         </TabsContent>
       </Tabs>
 
-      {/* Confirmation Dialog for Danger Action */}
+      {/* Confirmation Dialog for Cache Clear */}
       <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
         <DialogContent className="sm:max-w-[420px] w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -869,22 +1220,25 @@ export function PengaturanAdmin() {
             </div>
             <DialogTitle>Bersihkan Cache Sistem?</DialogTitle>
             <DialogDescription>
-              Tindakan ini akan mengosongkan cache aplikasi sementara di browser dan server. Sesi login pengguna lain mungkin perlu dimuat ulang.
+              Tindakan ini akan merevalidasi cache server dan menyegarkan tampilan data organisasi untuk seluruh pengurus.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="pt-2 gap-2">
             <Button
               variant="outline"
               onClick={() => setIsResetDialogOpen(false)}
+              disabled={isClearingCache}
             >
               Batal
             </Button>
             <Button
               variant="default"
               onClick={handleConfirmReset}
+              disabled={isClearingCache}
               className="bg-amber-600 hover:bg-amber-500 text-white gap-1.5"
             >
-              Ya, Bersihkan Cache
+              {isClearingCache && <Loader2 className="h-4 w-4 animate-spin" />}
+              <span>{isClearingCache ? "Membersihkan..." : "Ya, Bersihkan Cache"}</span>
             </Button>
           </DialogFooter>
         </DialogContent>

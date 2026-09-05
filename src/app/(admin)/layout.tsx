@@ -3,18 +3,30 @@ import { AppSidebar } from '@/components/common/app-sidebar';
 import { AppBottomNav } from '@/components/common/app-bottom-nav';
 import { AppMobileNav } from '@/components/common/app-mobile-nav';
 import { getProfile } from '@/lib/supabase/server';
+import { getPengaturanSistem } from '@/actions/pengaturan';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const profile = await getProfile();
+  const [profile, settings] = await Promise.all([
+    getProfile(),
+    getPengaturanSistem(),
+  ]);
 
   return (
     // Fullscreen container — no overflow at root level
     <div className="h-screen flex overflow-hidden bg-background">
       {/* SIDEBAR — sticky full height, split into header + scrollable menu (Desktop) */}
-      <AppSidebar userRole={profile?.role} />
+      <AppSidebar
+        userRole={profile?.role}
+        orgLogoUrl={settings.profil.logoUrl}
+        orgName={settings.profil.nama}
+      />
 
       {/* MOBILE DRAWER — slide-in overlay menu for mobile & tablet */}
-      <AppMobileNav userRole={profile?.role} />
+      <AppMobileNav
+        userRole={profile?.role}
+        orgLogoUrl={settings.profil.logoUrl}
+        orgName={settings.profil.nama}
+      />
 
       {/* RIGHT COLUMN — takes remaining width, scrolls independently */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

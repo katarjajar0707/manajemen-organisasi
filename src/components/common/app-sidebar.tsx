@@ -11,9 +11,15 @@ import { useAuthStore } from '@/store/auth-store';
 
 interface AppSidebarProps {
   userRole?: string;
+  orgLogoUrl?: string | null;
+  orgName?: string;
 }
 
-export function AppSidebar({ userRole: propUserRole }: AppSidebarProps) {
+export function AppSidebar({
+  userRole: propUserRole,
+  orgLogoUrl,
+  orgName,
+}: AppSidebarProps) {
   const pathname = usePathname();
   const isCollapsed = useSidebarStore((s) => s.isCollapsed);
   const storeRole = useAuthStore((s) => s.userRole);
@@ -36,20 +42,26 @@ export function AppSidebar({ userRole: propUserRole }: AppSidebarProps) {
       <aside className={cn('hidden lg:flex flex-col h-screen border-r border-border/60 bg-sidebar shrink-0', 'transition-[width] duration-200 ease-in-out', isCollapsed ? 'w-[60px]' : 'w-60')}>
         {/* ── PART 1: SIDEBAR HEADER (h-14, sejajar AppHeader) ── */}
         <div className={cn('flex h-14 items-center border-b border-border/60 shrink-0', isCollapsed ? 'justify-center px-0' : 'gap-3 px-4')}>
-          <div
-            className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-lg shrink-0',
-              'bg-gradient-to-br from-primary to-emerald-400',
-              'text-primary-foreground font-extrabold text-sm tracking-tight',
-              'shadow-[0_0_16px_rgba(16,185,129,0.3)]',
-            )}
-          >
-            KT
-          </div>
+          {orgLogoUrl ? (
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 overflow-hidden border border-border/80 shadow-xs bg-background">
+              <img src={orgLogoUrl} alt={orgName || "Logo"} className="w-full h-full object-contain p-0.5" />
+            </div>
+          ) : (
+            <div
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-lg shrink-0',
+                'bg-gradient-to-br from-primary to-emerald-400',
+                'text-primary-foreground font-extrabold text-sm tracking-tight',
+                'shadow-[0_0_16px_rgba(16,185,129,0.3)]',
+              )}
+            >
+              KT
+            </div>
+          )}
           {/* Label brand — disembunyikan saat collapsed */}
           {!isCollapsed && (
             <div className="min-w-0">
-              <div className="text-sm font-bold text-foreground truncate">Manajemen Organisasi</div>
+              <div className="text-sm font-bold text-foreground truncate">{orgName || "Manajemen Organisasi"}</div>
               <div className="text-[10px] text-muted-foreground font-mono">v1.0 · Portal Pengurus</div>
             </div>
           )}

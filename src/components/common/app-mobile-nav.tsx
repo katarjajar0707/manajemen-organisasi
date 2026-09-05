@@ -12,9 +12,15 @@ import { Button } from '@/components/ui/button';
 
 interface AppMobileNavProps {
   userRole?: string;
+  orgLogoUrl?: string | null;
+  orgName?: string;
 }
 
-export function AppMobileNav({ userRole: propUserRole }: AppMobileNavProps) {
+export function AppMobileNav({
+  userRole: propUserRole,
+  orgLogoUrl,
+  orgName,
+}: AppMobileNavProps) {
   const pathname = usePathname();
   const isMobileOpen = useSidebarStore((s) => s.isMobileOpen);
   const setMobileOpen = useSidebarStore((s) => s.setMobileOpen);
@@ -72,9 +78,15 @@ export function AppMobileNav({ userRole: propUserRole }: AppMobileNavProps) {
         {/* Drawer Header */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-border/70 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground font-extrabold text-sm shadow-[0_0_16px_rgba(16,185,129,0.3)]">KT</div>
+            {orgLogoUrl ? (
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs bg-background">
+                <img src={orgLogoUrl} alt={orgName || "Logo"} className="w-full h-full object-contain p-0.5" />
+              </div>
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground font-extrabold text-sm shadow-[0_0_16px_rgba(16,185,129,0.3)]">KT</div>
+            )}
             <div>
-              <div className="text-sm font-bold text-foreground">Manajemen Organisasi</div>
+              <div className="text-sm font-bold text-foreground truncate max-w-[170px]">{orgName || "Manajemen Organisasi"}</div>
               <div className="text-[11px] text-muted-foreground">Portal Pengurus Karang Taruna</div>
             </div>
           </div>
