@@ -1,8 +1,32 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 
-export async function uploadLampiran(file: File, folder: string = "umum"): Promise<{ url?: string; error?: string }> {
+/**
+ * Memastikan bucket 'lampiran' sudah dibuat di Supabase Storage.
+ * Jika belum ada, fungsi ini akan membuatnya secara otomatis menggunakan Service Role (Admin).
+ */
+async function ensureLampiranBucket(supabaseAdmin: Awaited<ReturnType<typeof createAdminClient>>) {
+  try {
+    const { data: bucket, error } = await supabaseAdmin.storage.getBucket("lampiran");
+    if (error || !bucket) {
+      const { error: createError } = await supabaseAdmin.storage.createBucket("lampiran", {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB limit
+      });
+      if (createError && !createError.message?.toLowerCase().includes("already exists")) {
+        console.warn("Peringatan saat membuat bucket 'lampiran':", createError.message);
+      }
+    }
+  } catch (err) {
+    console.warn("Gagal memeriksa atau membuat bucket 'lampiran':", err);
+  }
+}
+
+export async function uploadLampiran(
+  file: File,
+  folder: string = "umum"
+): Promise<{ url?: string; error?: string }> {
   try {
     if (!file) {
       return { error: "File tidak ditemukan." };
@@ -11,38 +35,53 @@ export async function uploadLampiran(file: File, folder: string = "umum"): Promi
     const supabase = await createClient();
 
     // Pastikan user sudah login
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       return { error: "Anda harus login untuk mengunggah file." };
     }
 
+    const adminSupabase = await createAdminClient();
+
+    // Pastikan bucket sudah tersedia
+    await ensureLampiranBucket(adminSupabase);
+
     // Generate unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const fileExt = file.name.split(".").pop();
+    const cleanFileName = file.name
+      .replace(/\.[^/.]+$/, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "-")
+      .slice(0, 30);
+    const uniqueId = `${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+    const fileName = `${cleanFileName}_${uniqueId}.${fileExt}`;
     const filePath = `${folder}/${fileName}`;
 
-    const { data, error } = await supabase
-      .storage
-      .from('lampiran')
+    // Upload menggunakan admin client agar terhindar dari kendala RLS storage
+    const { error } = await adminSupabase.storage
+      .from("lampiran")
       .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
+        cacheControl: "3600",
+        upsert: false,
       });
 
     if (error) {
       console.error("Supabase storage error:", error);
-      return { error: error.message };
+      return { error: `Gagal upload lampiran: ${error.message}` };
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('lampiran')
-      .getPublicUrl(filePath);
+    // Dapatkan URL publik
+    const {
+      data: { publicUrl },
+    } = adminSupabase.storage.from("lampiran").getPublicUrl(filePath);
 
     return { url: publicUrl };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Upload error:", err);
-    return { error: err.message || "Terjadi kesalahan internal saat mengunggah file." };
+    const message =
+      err instanceof Error ? err.message : "Terjadi kesalahan internal saat mengunggah file.";
+    return { error: message };
   }
 }

@@ -32,8 +32,11 @@ import {
   AlertCircle,
   Paperclip,
   ExternalLink,
-  FileText
+  FileText,
+  FileDown,
 } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { createTransaksi, deleteTransaksi } from "@/actions/keuangan";
 
 interface Transaksi {
@@ -57,6 +60,7 @@ interface BendaharaManagerProps {
 
 export function BendaharaManager({ initialList, initialSaldo }: BendaharaManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterJenis, setFilterJenis] = useState<"semua" | "masuk" | "keluar">("semua");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -71,12 +75,9 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const formatRupiah = (angka: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(angka);
+  const formatRupiah = (angka: number | string) => {
+    const num = Math.round(Number(angka) || 0);
+    return `Rp ${num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
   };
 
   const handleOpenCreate = (tJenis: "masuk" | "keluar") => {
@@ -98,13 +99,20 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
       return;
     }
 
+    if (file && file.size > 10 * 1024 * 1024) {
+      setError("Ukuran berkas lampiran tidak boleh melebihi 10 MB.");
+      toast.error("Ukuran berkas terlalu besar (maksimal 10 MB).");
+      return;
+    }
+
     setError(null);
     startTransition(async () => {
+      const cleanNominal = jumlah.replace(/[^0-9]/g, "");
       const formData = new FormData();
       formData.append("jenis", jenis);
       formData.append("judul", judul);
       formData.append("keterangan", keterangan);
-      formData.append("jumlah", jumlah);
+      formData.append("jumlah", cleanNominal);
       if (file) {
         formData.append("lampiran", file);
       }
@@ -113,7 +121,9 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
 
       if (res?.error) {
         setError(res.error);
+        toast.error(res.error);
       } else {
+        toast.success(`Transaksi kas ${jenis === "masuk" ? "pemasukan" : "pengeluaran"} berhasil disimpan.`);
         setIsDialogOpen(false);
       }
     });
@@ -124,7 +134,9 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
       startTransition(async () => {
         const res = await deleteTransaksi(deleteId, "bendahara");
         if (res?.error) {
-          alert("Gagal menghapus: " + res.error);
+          toast.error("Gagal menghapus: " + res.error);
+        } else {
+          toast.success("Transaksi berhasil dihapus.");
         }
         setDeleteId(null);
       });
@@ -132,6 +144,10 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
   };
 
   const filteredList = initialList.filter((item: any) => {
+    if (filterJenis !== "semua" && item.jenis !== filterJenis) {
+      return false;
+    }
+
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -140,6 +156,283 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
       (item.author?.nama || "").toLowerCase().includes(q)
     );
   });
+
+  const handleExportPDF = () => {
+    if (filteredList.length === 0) {
+      toast.error("Tidak ada data transaksi untuk diekspor.");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Gagal membuka jendela cetak. Pastikan pop-up diizinkan pada browser.");
+      return;
+    }
+
+    const filterText =
+      filterJenis === "masuk"
+        ? "Kas Masuk (Pemasukan)"
+        : filterJenis === "keluar"
+        ? "Kas Keluar (Pengeluaran)"
+        : "Semua Transaksi (Pemasukan & Pengeluaran)";
+
+    const totalMasukFiltered = filteredList
+      .filter((t: any) => t.jenis === "masuk")
+      .reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
+
+    const totalKeluarFiltered = filteredList
+      .filter((t: any) => t.jenis === "keluar")
+      .reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
+
+    const saldoFiltered = totalMasukFiltered - totalKeluarFiltered;
+
+    const rowsHtml = filteredList
+      .map((trx: any, idx: number) => {
+        const tgl = new Date(trx.created_at).toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        });
+        const jenisLabel = trx.jenis === "masuk" ? "Pemasukan" : "Pengeluaran";
+        const nominalColor = trx.jenis === "masuk" ? "#047857" : "#b91c1c";
+
+        return `
+          <tr>
+            <td style="text-align: center;">${idx + 1}</td>
+            <td style="white-space: nowrap;">${tgl}</td>
+            <td>
+              <div style="font-weight: 600; color: #0f172a;">${trx.judul}</div>
+              ${trx.keterangan ? `<div style="color: #64748b; font-size: 11px; margin-top: 2px;">${trx.keterangan}</div>` : ""}
+            </td>
+            <td style="text-align: center;">
+              <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background-color: ${trx.jenis === "masuk" ? "#d1fae5" : "#fee2e2"}; color: ${trx.jenis === "masuk" ? "#065f46" : "#991b1b"};">
+                ${jenisLabel}
+              </span>
+            </td>
+            <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${nominalColor};">
+              ${formatRupiah(trx.jumlah)}
+            </td>
+            <td style="font-size: 11px; color: #475569;">${trx.author?.nama || "Admin"}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    const nowIndo = new Date().toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Laporan Keuangan Karang Taruna - ${nowIndo}</title>
+          <style>
+            @page {
+              size: A4;
+              margin: 12mm 15mm;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              color: #1e293b;
+              margin: 0;
+              padding: 10px;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            .kop {
+              text-align: center;
+              border-bottom: 2px solid #0f172a;
+              padding-bottom: 12px;
+              margin-bottom: 18px;
+            }
+            .kop h2 {
+              margin: 0;
+              font-size: 15px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              color: #475569;
+            }
+            .kop h1 {
+              margin: 4px 0;
+              font-size: 20px;
+              color: #0f172a;
+              letter-spacing: 0.5px;
+            }
+            .kop p {
+              margin: 0;
+              font-size: 11px;
+              color: #64748b;
+            }
+            .meta-box {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 16px;
+              font-size: 12px;
+              padding: 8px 12px;
+              background-color: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+            }
+            .summary-cards {
+              display: flex;
+              gap: 12px;
+              margin-bottom: 18px;
+            }
+            .card {
+              flex: 1;
+              padding: 10px 14px;
+              border-radius: 6px;
+              border: 1px solid #cbd5e1;
+              background-color: #ffffff;
+            }
+            .card-title {
+              font-size: 10px;
+              text-transform: uppercase;
+              color: #64748b;
+              font-weight: bold;
+              margin-bottom: 4px;
+            }
+            .card-value {
+              font-size: 16px;
+              font-weight: bold;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 25px;
+            }
+            th {
+              background-color: #f1f5f9;
+              border: 1px solid #cbd5e1;
+              padding: 8px;
+              font-size: 11px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              color: #334155;
+            }
+            td {
+              border: 1px solid #cbd5e1;
+              padding: 8px;
+              font-size: 12px;
+            }
+            .tanda-tangan {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 40px;
+              page-break-inside: avoid;
+            }
+            .ttd-box {
+              width: 220px;
+              text-align: center;
+              font-size: 12px;
+            }
+            .ttd-space {
+              height: 60px;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+              .no-print {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+            <button onclick="window.print()" style="padding: 8px 18px; background-color: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
+              🖨️ Cetak / Simpan sebagai PDF
+            </button>
+          </div>
+
+          <div class="kop">
+            <h2>PENGURUS KARANG TARUNA</h2>
+            <h1>LAPORAN REKAPITULASI ARUS KAS KEUANGAN</h1>
+            <p>Sistem Informasi Manajemen Organisasi & Transparansi Keuangan</p>
+          </div>
+
+          <div class="meta-box">
+            <div>
+              <div><strong>Kategori Filter:</strong> ${filterText}</div>
+              <div><strong>Total Transaksi:</strong> ${filteredList.length} catatan</div>
+            </div>
+            <div style="text-align: right;">
+              <div><strong>Tanggal Cetak:</strong> ${nowIndo}</div>
+              <div><strong>Status:</strong> Sah / Terverifikasi Sistem</div>
+            </div>
+          </div>
+
+          <div class="summary-cards">
+            <div class="card" style="border-left: 4px solid #059669;">
+              <div class="card-title">Total Pemasukan</div>
+              <div class="card-value" style="color: #059669;">${formatRupiah(totalMasukFiltered)}</div>
+            </div>
+            <div class="card" style="border-left: 4px solid #dc2626;">
+              <div class="card-title">Total Pengeluaran</div>
+              <div class="card-value" style="color: #dc2626;">${formatRupiah(totalKeluarFiltered)}</div>
+            </div>
+            <div class="card" style="border-left: 4px solid #0284c7;">
+              <div class="card-title">Sisa Saldo Kas Organisasi</div>
+              <div class="card-value" style="color: #0284c7;">${formatRupiah(initialSaldo.sisa)}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 35px;">No</th>
+                <th style="width: 100px;">Tanggal</th>
+                <th>Uraian / Judul Transaksi</th>
+                <th style="width: 95px; text-align: center;">Jenis</th>
+                <th style="width: 130px; text-align: right;">Nominal</th>
+                <th style="width: 110px;">Pencatat</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+            <tfoot>
+              <tr style="background-color: #f8fafc; font-weight: bold;">
+                <td colspan="4" style="text-align: right; padding: 10px;">Total Mutasi (Data Sesuai Filter):</td>
+                <td style="text-align: right; font-family: monospace; color: ${saldoFiltered >= 0 ? "#047857" : "#b91c1c"};">
+                  ${formatRupiah(saldoFiltered)}
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="tanda-tangan">
+            <div class="ttd-box">
+              <p>Mengetahui,<br><strong>Ketua Karang Taruna</strong></p>
+              <div class="ttd-space"></div>
+              <p><strong>( ........................................ )</strong></p>
+            </div>
+            <div class="ttd-box">
+              <p>Tertanda,<br><strong>Bendahara Umum</strong></p>
+              <div class="ttd-space"></div>
+              <p><strong>( ........................................ )</strong></p>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   return (
     <div className="space-y-6">
@@ -181,7 +474,7 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-900">{formatRupiah(initialSaldo.sisa)}</div>
+            <div suppressHydrationWarning className="text-2xl font-bold text-blue-900">{formatRupiah(initialSaldo.sisa)}</div>
             <p className="text-xs text-blue-600/80 mt-1">Kas Umum Keseluruhan</p>
           </CardContent>
         </Card>
@@ -192,7 +485,7 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-900">{formatRupiah(initialSaldo.masuk)}</div>
+            <div suppressHydrationWarning className="text-2xl font-bold text-emerald-900">{formatRupiah(initialSaldo.masuk)}</div>
             <p className="text-xs text-emerald-600/80 mt-1">Akumulasi Dana Masuk</p>
           </CardContent>
         </Card>
@@ -203,7 +496,7 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-rose-900">{formatRupiah(initialSaldo.keluar)}</div>
+            <div suppressHydrationWarning className="text-2xl font-bold text-rose-900">{formatRupiah(initialSaldo.keluar)}</div>
             <p className="text-xs text-rose-600/80 mt-1">Akumulasi Dana Keluar</p>
           </CardContent>
         </Card>
@@ -211,19 +504,84 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
 
       <Card>
         <CardHeader className="pb-4 border-b">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <div>
-              <CardTitle className="text-lg">Riwayat Transaksi</CardTitle>
-              <CardDescription>Semua mutasi kas umum organisasi</CardDescription>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg">Riwayat Transaksi</CardTitle>
+                <Badge variant="outline" className="text-xs font-mono">
+                  {filteredList.length} data
+                </Badge>
+              </div>
+              <CardDescription className="text-xs mt-0.5">
+                Semua mutasi kas umum organisasi
+              </CardDescription>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Input
-                placeholder="Cari transaksi..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-xs"
-              />
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+
+            <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+              {/* Filter Semua, Kas Masuk, Kas Keluar */}
+              <div className="inline-flex items-center p-1 rounded-lg bg-muted/60 border border-border/70 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFilterJenis("semua")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md font-medium transition-all text-xs cursor-pointer",
+                    filterJenis === "semua"
+                      ? "bg-background text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Semua ({initialList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterJenis("masuk")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer",
+                    filterJenis === "masuk"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "text-muted-foreground hover:text-emerald-600"
+                  )}
+                >
+                  <TrendingUp className="h-3 w-3" />
+                  Kas Masuk ({initialList.filter((i: any) => i.jenis === "masuk").length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterJenis("keluar")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer",
+                    filterJenis === "keluar"
+                      ? "bg-rose-600 text-white shadow-xs"
+                      : "text-muted-foreground hover:text-rose-600"
+                  )}
+                >
+                  <TrendingDown className="h-3 w-3" />
+                  Kas Keluar ({initialList.filter((i: any) => i.jenis === "keluar").length})
+                </button>
+              </div>
+
+              {/* Input Pencarian */}
+              <div className="relative flex-1 sm:w-56 min-w-[160px]">
+                <Input
+                  placeholder="Cari transaksi..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 h-8 text-xs"
+                />
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+
+              {/* Tombol Export PDF */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs border-primary/40 hover:bg-primary/10 hover:text-primary hover:border-primary shrink-0"
+                onClick={handleExportPDF}
+              >
+                <FileDown className="h-3.5 w-3.5 text-primary" />
+                <span>Export .PDF</span>
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -250,7 +608,7 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
                 ) : (
                   filteredList.map((trx: any) => (
                     <tr key={trx.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-xs">
+                      <td suppressHydrationWarning className="px-6 py-4 whitespace-nowrap text-xs">
                         {new Date(trx.created_at).toLocaleDateString("id-ID", {
                           day: "2-digit",
                           month: "short",
@@ -266,8 +624,8 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
                           Oleh: {trx.author?.nama || "Unknown"}
                         </div>
                       </td>
-                      <td className={`px-6 py-4 text-right font-semibold ${trx.jenis === "masuk" ? "text-emerald-600" : "text-rose-600"}`}>
-                        {trx.jenis === "masuk" ? "+" : "-"}{formatRupiah(trx.jumlah)}
+                      <td suppressHydrationWarning className={`px-6 py-4 text-right font-semibold whitespace-nowrap ${trx.jenis === "masuk" ? "text-emerald-600" : "text-rose-600"}`}>
+                        {formatRupiah(trx.jumlah)}
                       </td>
                       <td className="px-6 py-4 text-center whitespace-nowrap">
                         <Badge 

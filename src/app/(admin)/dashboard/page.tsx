@@ -19,11 +19,8 @@ import { getPengumumanList } from "@/actions/pengumuman";
 import { getPublicTransparencyData } from "@/actions/transparansi";
 
 function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(amount);
+  const rounded = Math.round(Number(amount) || 0);
+  return `Rp ${rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
 }
 
 export default async function DashboardPage() {
