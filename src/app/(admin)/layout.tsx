@@ -3,12 +3,12 @@ import { AppSidebar } from '@/components/common/app-sidebar';
 import { AppBottomNav } from '@/components/common/app-bottom-nav';
 import { AppMobileNav } from '@/components/common/app-mobile-nav';
 import { getProfile } from '@/lib/supabase/server';
-import { getPengaturanSistem } from '@/actions/pengaturan';
+import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const [profile, settings] = await Promise.all([
     getProfile(),
-    getPengaturanSistem(),
+    getCachedPengaturanSistem(),
   ]);
 
   return (

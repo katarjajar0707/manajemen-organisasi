@@ -13,16 +13,15 @@ export default async function KelolaAgendaBagianPage({ params }: PageProps) {
   const { bagian: slug } = await params;
   const supabase = await createClient();
 
-  const [{ data: bagianData }, profile] = await Promise.all([
+  const [{ data: bagianData }, profile, agendas] = await Promise.all([
     supabase.from("bagian").select("id, nama, slug").eq("slug", slug).single(),
     getProfile(),
+    getAgendas(slug),
   ]);
 
   if (!bagianData) {
     notFound();
   }
-
-  const agendas = await getAgendas(slug);
 
   return (
     <BagianAgendaManager

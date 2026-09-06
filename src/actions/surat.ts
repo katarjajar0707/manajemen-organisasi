@@ -29,7 +29,14 @@ export async function getTemplateSuratList(filters?: {
   let query = supabase
     .from("template_surat")
     .select(`
-      *,
+      id,
+      nama_template,
+      jenis,
+      ringkasan,
+      kode_format,
+      isi_template,
+      created_at,
+      updated_at,
       author:profiles!dibuat_oleh (
         nama
       )

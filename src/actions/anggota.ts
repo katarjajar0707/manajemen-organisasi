@@ -211,6 +211,8 @@ export async function createAnggota(formData: FormData) {
 
     revalidatePath("/anggota");
     revalidatePath("/struktur");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true, anggota: data };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };
@@ -274,6 +276,8 @@ export async function updateAnggota(id: string, formData: FormData) {
 
     revalidatePath("/anggota");
     revalidatePath("/struktur");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };
@@ -303,6 +307,8 @@ export async function deleteAnggota(id: string) {
 
     revalidatePath("/anggota");
     revalidatePath("/struktur");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };

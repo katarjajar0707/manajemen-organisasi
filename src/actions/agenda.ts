@@ -28,7 +28,12 @@ export async function getAgendas(bagianSlug?: string): Promise<AgendaData[]> {
   let query = supabase
     .from("agenda_organisasi")
     .select(`
-      *,
+      id,
+      nama_agenda,
+      bagian_id,
+      status,
+      deskripsi,
+      created_at,
       bagian:bagian!bagian_id (
         id,
         nama,

@@ -1,9 +1,9 @@
 import { PengaturanAdmin } from "@/components/pengaturan/pengaturan-admin";
 import {
-  getPengaturanSistem,
   getDatabaseStats,
   getRecentAuditLogs,
 } from "@/actions/pengaturan";
+import { getCachedPengaturanSistem } from "@/lib/cache/pengaturan";
 import { getProfile } from "@/lib/supabase/server";
 
 export const metadata = {
@@ -13,7 +13,7 @@ export const metadata = {
 
 export default async function PengaturanPage() {
   const [settings, stats, logs, profile] = await Promise.all([
-    getPengaturanSistem(),
+    getCachedPengaturanSistem(),
     getDatabaseStats(),
     getRecentAuditLogs(),
     getProfile(),

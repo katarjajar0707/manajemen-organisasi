@@ -7,7 +7,7 @@ export async function getUsers() {
   const supabase = await createAdminClient();
   const { data: profiles, error } = await supabase
     .from("profiles")
-    .select("*, bagian:bagian_id(id, nama)")
+    .select("id, nama, username, role, bagian_id, bagian:bagian_id(id, nama)")
     .order("created_at", { ascending: false });
 
   if (error) {

@@ -231,6 +231,8 @@ export async function createKegiatan(formData: FormData) {
     }
 
     revalidatePath("/kegiatan");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true, kegiatan: data };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };
@@ -280,6 +282,8 @@ export async function updateKegiatan(id: string, formData: FormData) {
 
     revalidatePath("/kegiatan");
     revalidatePath(`/kegiatan/${id}/dokumentasi`);
+    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };
@@ -305,6 +309,8 @@ export async function deleteKegiatan(id: string) {
     }
 
     revalidatePath("/kegiatan");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };

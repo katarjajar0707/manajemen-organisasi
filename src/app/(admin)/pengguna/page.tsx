@@ -9,7 +9,13 @@ import { getProfile } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function UserManagementPage() {
-  const currentProfile = await getProfile();
+  const supabase = await createClient();
+
+  const [currentProfile, users, { data: bagianList }] = await Promise.all([
+    getProfile(),
+    getUsers(),
+    supabase.from("bagian").select("id, nama").order("nama"),
+  ]);
   
   if (!currentProfile || currentProfile.role !== "admin") {
     return (
@@ -19,10 +25,6 @@ export default async function UserManagementPage() {
       </div>
     );
   }
-
-  const supabase = await createClient();
-  const { data: bagianList } = await supabase.from("bagian").select("id, nama").order("nama");
-  const users = await getUsers();
 
   return (
     <div className="space-y-6">
