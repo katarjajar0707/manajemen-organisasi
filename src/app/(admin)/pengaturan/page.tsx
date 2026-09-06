@@ -5,6 +5,7 @@ import {
 } from "@/actions/pengaturan";
 import { getCachedPengaturanSistem } from "@/lib/cache/pengaturan";
 import { getProfile } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Pengaturan Sistem | Manajemen Organisasi",
@@ -18,6 +19,10 @@ export default async function PengaturanPage() {
     getRecentAuditLogs(),
     getProfile(),
   ]);
+
+  if (!profile || profile.role !== "admin") {
+    redirect("/dashboard");
+  }
 
   return (
     <PengaturanAdmin

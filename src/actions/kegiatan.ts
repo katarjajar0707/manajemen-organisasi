@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, getProfile } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getProfile } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export interface KegiatanData {
@@ -195,6 +195,10 @@ export async function createKegiatan(formData: FormData) {
     const profile = await getProfile();
     if (!profile) return { error: "Silakan login terlebih dahulu." };
 
+    if (profile.role !== "admin" && profile.role !== "ketua") {
+      return { error: "Hanya role Ketua atau Admin yang berhak membuat agenda/acara kegiatan baru." };
+    }
+
     const judul = formData.get("judul") as string;
     const deskripsi = formData.get("deskripsi") as string;
     const tanggalMulai = formData.get("tanggal_mulai") as string;
@@ -233,6 +237,7 @@ export async function createKegiatan(formData: FormData) {
     revalidatePath("/kegiatan");
     revalidatePath("/dashboard");
     revalidatePath("/");
+    revalidatePath("/bagian/bendahara");
     return { success: true, kegiatan: data };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };
@@ -246,6 +251,10 @@ export async function updateKegiatan(id: string, formData: FormData) {
   try {
     const profile = await getProfile();
     if (!profile) return { error: "Silakan login terlebih dahulu." };
+
+    if (profile.role !== "admin" && profile.role !== "ketua") {
+      return { error: "Hanya role Ketua atau Admin yang berhak mengubah agenda/acara kegiatan." };
+    }
 
     const judul = formData.get("judul") as string;
     const deskripsi = formData.get("deskripsi") as string;
@@ -264,10 +273,21 @@ export async function updateKegiatan(id: string, formData: FormData) {
     const endIso = new Date(`${tanggalSelesai}T${waktuSelesai}:59`).toISOString();
 
     const supabase = await createClient();
+
+    // Dapatkan data kegiatan sebelumnya untuk sinkronisasi nama kategori di catatan_keuangan
+    const { data: existingKegiatan } = await supabase
+      .from("kalender_kegiatan")
+      .select("judul")
+      .eq("id", id)
+      .single();
+
+    const oldJudul = existingKegiatan?.judul?.trim();
+    const newJudul = judul.trim();
+
     const { error } = await supabase
       .from("kalender_kegiatan")
       .update({
-        judul: judul.trim(),
+        judul: newJudul,
         deskripsi: deskripsi.trim(),
         tanggal_mulai: startIso,
         tanggal_selesai: endIso,
@@ -280,10 +300,39 @@ export async function updateKegiatan(id: string, formData: FormData) {
       return { error: error.message };
     }
 
+    // Jika judul kegiatan berubah, perbarui tag [Kategori: ...] pada catatan keuangan yang relevan
+    if (oldJudul && oldJudul !== newJudul) {
+      try {
+        const adminSupabase = await createAdminClient();
+        const oldTag = `[Kategori: ${oldJudul}]`;
+        const newTag = `[Kategori: ${newJudul}]`;
+
+        const { data: relatedTrx } = await adminSupabase
+          .from("catatan_keuangan")
+          .select("id, keterangan")
+          .ilike("keterangan", `%${oldTag}%`);
+
+        if (relatedTrx && relatedTrx.length > 0) {
+          for (const trx of relatedTrx) {
+            if (trx.keterangan && trx.keterangan.includes(oldTag)) {
+              const updated = trx.keterangan.replaceAll(oldTag, newTag);
+              await adminSupabase
+                .from("catatan_keuangan")
+                .update({ keterangan: updated })
+                .eq("id", trx.id);
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn("Sinkronisasi nama kategori keuangan peringatan:", syncErr);
+      }
+    }
+
     revalidatePath("/kegiatan");
     revalidatePath(`/kegiatan/${id}/dokumentasi`);
     revalidatePath("/dashboard");
     revalidatePath("/");
+    revalidatePath("/bagian/bendahara");
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };
@@ -298,6 +347,10 @@ export async function deleteKegiatan(id: string) {
     const profile = await getProfile();
     if (!profile) return { error: "Silakan login terlebih dahulu." };
 
+    if (profile.role !== "admin" && profile.role !== "ketua") {
+      return { error: "Hanya role Ketua atau Admin yang berhak menghapus agenda/acara kegiatan." };
+    }
+
     const supabase = await createClient();
     const { error } = await supabase
       .from("kalender_kegiatan")
@@ -311,6 +364,7 @@ export async function deleteKegiatan(id: string) {
     revalidatePath("/kegiatan");
     revalidatePath("/dashboard");
     revalidatePath("/");
+    revalidatePath("/bagian/bendahara");
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };

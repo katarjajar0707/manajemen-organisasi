@@ -123,6 +123,22 @@ export function UserFormModal({
               </Select>
               <p className="text-xs text-muted-foreground">Anggota wajib memilih bagian. Admin/Ketua bisa dikosongkan.</p>
             </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border/40">
+              <div className="grid gap-1.5">
+                <Label htmlFor="kontak" className="text-xs">No. WhatsApp / HP</Label>
+                <Input id="kontak" name="kontak" placeholder="0812xxxx (opsional)" className="h-8 text-xs" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="rt_rw" className="text-xs">Wilayah (RT / RW)</Label>
+                <Input id="rt_rw" name="rt_rw" placeholder="RT 03 / RW 05" defaultValue="RT 01 / RW 05" className="h-8 text-xs" />
+              </div>
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="jabatan" className="text-xs">Spesifikasi Jabatan (Opsional)</Label>
+              <Input id="jabatan" name="jabatan" placeholder="Contoh: Koordinator Lapangan, Anggota" className="h-8 text-xs" />
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Batal</Button>

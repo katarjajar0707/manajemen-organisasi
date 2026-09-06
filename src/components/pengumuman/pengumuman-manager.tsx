@@ -233,12 +233,12 @@ export function PengumumanManager({
       </div>
 
       {/* Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border rounded-xl p-3 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border rounded-xl p-3 shadow-xs">
         <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           <Button
             size="sm"
             variant={filterTarget === "all" ? "default" : "ghost"}
-            className="text-xs h-8 px-3 rounded-lg"
+            className="text-xs h-8 px-3 rounded-lg whitespace-nowrap shrink-0"
             onClick={() => setFilterTarget("all")}
           >
             Semua ({announcements.length})
@@ -246,7 +246,7 @@ export function PengumumanManager({
           <Button
             size="sm"
             variant={filterTarget === "semua" ? "default" : "ghost"}
-            className="text-xs h-8 px-3 rounded-lg gap-1.5"
+            className="text-xs h-8 px-3 rounded-lg gap-1.5 whitespace-nowrap shrink-0"
             onClick={() => setFilterTarget("semua")}
           >
             <Users className="h-3.5 w-3.5" />
@@ -255,7 +255,7 @@ export function PengumumanManager({
           <Button
             size="sm"
             variant={filterTarget === "bagian_tertentu" ? "default" : "ghost"}
-            className="text-xs h-8 px-3 rounded-lg gap-1.5"
+            className="text-xs h-8 px-3 rounded-lg gap-1.5 whitespace-nowrap shrink-0"
             onClick={() => setFilterTarget("bagian_tertentu")}
           >
             <Building2 className="h-3.5 w-3.5" />
@@ -263,7 +263,7 @@ export function PengumumanManager({
           </Button>
         </div>
 
-        <div className="relative w-full sm:w-64">
+        <div className="relative w-full sm:w-64 flex-1">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Cari judul atau isi pengumuman..."

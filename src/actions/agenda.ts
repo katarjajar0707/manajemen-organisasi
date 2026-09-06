@@ -228,6 +228,7 @@ export async function createAgenda(formData: FormData) {
 
     revalidatePath("/struktur");
     revalidatePath(`/struktur/${bagian_id}/agenda`);
+    revalidatePath("/bagian/bendahara");
     return { success: true, agendaId: agenda.id };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };
@@ -275,6 +276,7 @@ export async function updateAgenda(id: string, formData: FormData) {
     }
 
     revalidatePath("/struktur");
+    revalidatePath("/bagian/bendahara");
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };
@@ -303,6 +305,7 @@ export async function deleteAgenda(id: string) {
     }
 
     revalidatePath("/struktur");
+    revalidatePath("/bagian/bendahara");
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan sistem." };

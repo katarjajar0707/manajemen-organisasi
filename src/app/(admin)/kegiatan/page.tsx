@@ -2,6 +2,8 @@ import { getKegiatanList } from "@/actions/kegiatan";
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { KegiatanManager } from "@/components/kegiatan/kegiatan-manager";
 
+export const dynamic = "force-dynamic";
+
 export default async function KegiatanPage() {
   const supabase = await createClient();
 

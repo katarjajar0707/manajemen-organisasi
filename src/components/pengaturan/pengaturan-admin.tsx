@@ -68,6 +68,7 @@ import {
   updatePengaturanKeamanan,
   exportModuleData,
   clearSystemCache,
+  clearAllDummyData,
   getRecentAuditLogs,
 } from "@/actions/pengaturan";
 import { uploadLampiran } from "@/actions/storage";
@@ -176,6 +177,8 @@ export function PengaturanAdmin({
 
   // Dialog Reset State
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isClearDummyDialogOpen, setIsClearDummyDialogOpen] = useState(false);
+  const [isClearingDummy, setIsClearingDummy] = useState(false);
 
   // Handle Upload Logo ke Supabase Storage
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -318,6 +321,26 @@ export function PengaturanAdmin({
       triggerToast(err.message || "Gagal membersihkan cache.", "warning");
     } finally {
       setIsClearingCache(false);
+    }
+  };
+
+  // Handle Hapus Semua Data Dummy
+  const handleConfirmClearDummy = async () => {
+    setIsClearingDummy(true);
+    try {
+      const res = await clearAllDummyData();
+      setIsClearDummyDialogOpen(false);
+      triggerToast(res.message, res.success ? "success" : "warning");
+      if (res.success) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
+    } catch (err: any) {
+      setIsClearDummyDialogOpen(false);
+      triggerToast(err.message || "Gagal membersihkan data dummy.", "warning");
+    } finally {
+      setIsClearingDummy(false);
     }
   };
 
@@ -1182,10 +1205,10 @@ export function PengaturanAdmin({
             <CardHeader>
               <CardTitle className="text-base text-destructive flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4" />
-                Zona Pemeliharaan & Cache
+                Zona Pemeliharaan & Data (Zona Bahaya)
               </CardTitle>
               <CardDescription>
-                Tindakan di bawah ini merevalidasi cache halaman dan menyegarkan layout sistem secara menyeluruh.
+                Tindakan administratif tingkat tinggi untuk pemeliharaan server, revalidasi cache, dan pembersihan data awal.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1204,6 +1227,27 @@ export function PengaturanAdmin({
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   Bersihkan Cache
+                </Button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-destructive/10 rounded-lg border border-destructive/30">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h5 className="font-medium text-sm text-destructive">Hapus Semua Data Dummy</h5>
+                    <Badge variant="destructive" className="text-[10px] uppercase font-bold">Permanen</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Menghapus seluruh rekaman percobaan awal (kegiatan, kas keuangan, inventaris, pengumuman, diskusi, dan anggota dummy seed). Akun login resmi dan struktur organisasi tetap aman.
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsClearDummyDialogOpen(true)}
+                  className="shrink-0 gap-1.5 text-xs bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Hapus Data Dummy
                 </Button>
               </div>
             </CardContent>
@@ -1239,6 +1283,51 @@ export function PengaturanAdmin({
             >
               {isClearingCache && <Loader2 className="h-4 w-4 animate-spin" />}
               <span>{isClearingCache ? "Membersihkan..." : "Ya, Bersihkan Cache"}</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog for Clear Dummy Data */}
+      <Dialog open={isClearDummyDialogOpen} onOpenChange={setIsClearDummyDialogOpen}>
+        <DialogContent className="sm:max-w-[440px] w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="h-10 w-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-2">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-destructive">Hapus Seluruh Data Dummy?</DialogTitle>
+            <DialogDescription className="space-y-2 text-xs leading-relaxed">
+              <span className="block text-foreground font-normal">
+                Tindakan ini akan menghapus seluruh data contoh/percobaan sistem:
+              </span>
+              <ul className="list-disc pl-4 space-y-1 text-muted-foreground mt-1">
+                <li>Seluruh kalender & dokumentasi kegiatan</li>
+                <li>Seluruh catatan transaksi kas masuk & keluar</li>
+                <li>Seluruh daftar inventaris & peminjaman aset</li>
+                <li>Seluruh pengumuman, arsip surat, dan diskusi</li>
+                <li>Daftar anggota dummy bawaan sistem</li>
+              </ul>
+              <span className="block font-medium text-foreground pt-1">
+                Akun pengguna resmi Anda di Manajemen Pengguna dan struktur organisasi tetap aman dan dipertahankan.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-3 gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsClearDummyDialogOpen(false)}
+              disabled={isClearingDummy}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmClearDummy}
+              disabled={isClearingDummy}
+              className="bg-red-600 hover:bg-red-700 text-white gap-1.5 font-medium"
+            >
+              {isClearingDummy && <Loader2 className="h-4 w-4 animate-spin" />}
+              <span>{isClearingDummy ? "Membersihkan..." : "Ya, Hapus Semua Data Dummy"}</span>
             </Button>
           </DialogFooter>
         </DialogContent>

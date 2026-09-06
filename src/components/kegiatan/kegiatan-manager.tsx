@@ -220,10 +220,10 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className={`rounded-xl border p-4 ${color}`}>
-      <p className="text-xs font-medium opacity-75">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
-      <p className="text-xs opacity-60 mt-0.5">{sub}</p>
+    <div className={`rounded-xl border p-3 sm:p-4 ${color}`}>
+      <p className="text-xs font-medium opacity-75 truncate">{label}</p>
+      <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1 truncate">{value}</p>
+      <p className="text-[11px] sm:text-xs opacity-60 mt-0.5 truncate">{sub}</p>
     </div>
   );
 }
@@ -568,14 +568,21 @@ export function KegiatanManager({
             Informasi seluruh agenda, kalender bulanan, dan dokumentasi foto kegiatan Karang Taruna RW 05.
           </p>
         </div>
-        <Button
-          size="sm"
-          className="gap-2 bg-primary hover:bg-primary/90 text-xs h-8"
-          onClick={handleOpenCreate}
-        >
-          <Plus className="h-4 w-4" />
-          <span>Tambah Kegiatan</span>
-        </Button>
+        {isAdminOrKetua ? (
+          <Button
+            size="sm"
+            className="gap-2 bg-primary hover:bg-primary/90 text-xs h-8"
+            onClick={handleOpenCreate}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Tambah Kegiatan</span>
+          </Button>
+        ) : (
+          <Badge variant="outline" className="text-xs py-1 px-2.5 gap-1.5 text-muted-foreground">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>Pembuatan agenda/kegiatan khusus Ketua & Admin</span>
+          </Badge>
+        )}
       </div>
 
       {/* Stat Cards */}
@@ -611,19 +618,18 @@ export function KegiatanManager({
         {/* Left 2 Cols: Tabs & Event List */}
         <div className="lg:col-span-2 space-y-4">
           {/* Controls */}
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-card border rounded-xl p-3 shadow-xs">
-            <div className="relative w-full sm:w-64">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card border rounded-xl p-3 shadow-xs">
+            <div className="relative w-full sm:w-64 flex-1">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="Cari judul atau lokasi kegiatan..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-xs bg-muted/30"
+                className="pl-8 h-8 text-xs bg-muted/30 w-full"
               />
             </div>
 
-            <div className="flex items-center gap-2">
-
+            <div className="flex items-center justify-end gap-2 shrink-0">
               <div className="flex items-center border rounded-lg p-0.5 bg-muted/30">
                 <Button
                   size="icon"
@@ -652,7 +658,7 @@ export function KegiatanManager({
                 key={st}
                 size="sm"
                 variant={statusFilter === st ? "default" : "outline"}
-                className="h-7 text-xs px-3 rounded-lg capitalize"
+                className="h-7 text-xs px-3 rounded-lg capitalize whitespace-nowrap shrink-0"
                 onClick={() => setStatusFilter(st)}
               >
                 {st} (
@@ -711,7 +717,7 @@ export function KegiatanManager({
                             <span>{k.totalFoto} Foto</span>
                           </Button>
                         </Link>
-                        {(isAdminOrKetua || k.dibuatOleh === currentUserId) && (
+                        {isAdminOrKetua && (
                           <div className="flex gap-1">
                             <Button
                               variant="ghost"
@@ -799,7 +805,7 @@ export function KegiatanManager({
                           <span>{k.totalFoto} Foto</span>
                         </Button>
                       </Link>
-                      {(isAdminOrKetua || k.dibuatOleh === currentUserId) && (
+                      {isAdminOrKetua && (
                         <div className="flex gap-1">
                           <Button
                             variant="ghost"

@@ -309,7 +309,7 @@ export function DiskusiManager({
           <Button
             size="sm"
             variant={activeTab === "semua" ? "default" : "ghost"}
-            className="text-xs h-8 px-3 rounded-lg"
+            className="text-xs h-8 px-3 rounded-lg whitespace-nowrap shrink-0"
             onClick={() => setActiveTab("semua")}
           >
             Semua ({threads.length})
@@ -317,7 +317,7 @@ export function DiskusiManager({
           <Button
             size="sm"
             variant={activeTab === "diskusi" ? "default" : "ghost"}
-            className="text-xs h-8 px-3 rounded-lg gap-1"
+            className="text-xs h-8 px-3 rounded-lg gap-1 whitespace-nowrap shrink-0"
             onClick={() => setActiveTab("diskusi")}
           >
             <MessagesSquare className="h-3.5 w-3.5" />
@@ -326,7 +326,7 @@ export function DiskusiManager({
           <Button
             size="sm"
             variant={activeTab === "catatan_umum" ? "default" : "ghost"}
-            className="text-xs h-8 px-3 rounded-lg gap-1"
+            className="text-xs h-8 px-3 rounded-lg gap-1 whitespace-nowrap shrink-0"
             onClick={() => setActiveTab("catatan_umum")}
           >
             <FileText className="h-3.5 w-3.5" />
@@ -335,7 +335,7 @@ export function DiskusiManager({
           <Button
             size="sm"
             variant={activeTab === "pinned" ? "default" : "ghost"}
-            className="text-xs h-8 px-3 rounded-lg gap-1"
+            className="text-xs h-8 px-3 rounded-lg gap-1 whitespace-nowrap shrink-0"
             onClick={() => setActiveTab("pinned")}
           >
             <Pin className="h-3.5 w-3.5" />
@@ -343,7 +343,7 @@ export function DiskusiManager({
           </Button>
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
           <div className="relative flex-1 md:w-56">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <Input
@@ -354,7 +354,7 @@ export function DiskusiManager({
             />
           </div>
           <Select value={filterBagian} onValueChange={setFilterBagian}>
-            <SelectTrigger className="h-8 text-xs w-[140px] shrink-0">
+            <SelectTrigger className="h-8 text-xs w-full sm:w-[140px] shrink-0">
               <SelectValue placeholder="Semua Bagian" />
             </SelectTrigger>
             <SelectContent>

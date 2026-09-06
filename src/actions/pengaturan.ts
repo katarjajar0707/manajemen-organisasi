@@ -611,3 +611,89 @@ export async function clearSystemCache(): Promise<{ success: boolean; message: s
     };
   }
 }
+
+/**
+ * Menghapus seluruh rekaman data dummy / percobaan awal di database platform.
+ * Khusus role Admin atau Ketua. Akun login asli dan struktur bagian utama tetap dipertahankan.
+ */
+export async function clearAllDummyData(): Promise<{ success: boolean; message: string }> {
+  try {
+    const profile = await getProfile();
+    if (!profile || (profile.role !== "admin" && profile.role !== "ketua")) {
+      return {
+        success: false,
+        message: "Akses ditolak: Hanya Admin atau Ketua yang berwenang menghapus data dummy.",
+      };
+    }
+
+    const adminSupabase = await createAdminClient();
+
+    // 1. Bersihkan dokumentasi & kalender kegiatan dummy
+    await adminSupabase.from("dokumentasi_kegiatan").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await adminSupabase.from("kalender_kegiatan").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+    // 2. Bersihkan catatan keuangan dummy
+    await adminSupabase.from("catatan_keuangan").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+    // 3. Bersihkan catatan internal divisi/bagian
+    await adminSupabase.from("catatan").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+    // 4. Bersihkan peminjaman & inventaris dummy
+    await adminSupabase.from("peminjaman_inventaris").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await adminSupabase.from("inventaris").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+    // 5. Bersihkan forum diskusi dummy
+    await adminSupabase.from("diskusi_balasan").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await adminSupabase.from("diskusi_mention").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await adminSupabase.from("diskusi").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+    // 6. Bersihkan pengumuman dummy
+    await adminSupabase.from("pengumuman").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+    // 7. Bersihkan arsip dokumen dummy
+    await adminSupabase.from("arsip_dokumen").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+    // 8. Bersihkan anggota dummy (pertahankan akun profil pengguna nyata)
+    const { data: realProfiles } = await adminSupabase.from("profiles").select("nama");
+    const realNames = (realProfiles || [])
+      .map((p) => p.nama?.trim().toLowerCase())
+      .filter(Boolean);
+
+    const { data: allAnggota } = await adminSupabase.from("anggota").select("id, nama");
+    if (allAnggota && allAnggota.length > 0) {
+      for (const ag of allAnggota) {
+        const agName = ag.nama?.trim().toLowerCase();
+        if (!realNames.includes(agName)) {
+          await adminSupabase.from("anggota").delete().eq("id", ag.id);
+        }
+      }
+    }
+
+    // 9. Bersihkan agenda organisasi dummy
+    await adminSupabase.from("agenda_organisasi").delete().ilike("nama_agenda", "%Kepengurusan Inti Karang Taruna%");
+
+    // 10. Revalidasi seluruh rute aplikasi
+    revalidatePath("/", "layout");
+    revalidatePath("/kegiatan");
+    revalidatePath("/bagian/bendahara");
+    revalidatePath("/struktur");
+    revalidatePath("/anggota");
+    revalidatePath("/profil");
+    revalidatePath("/inventaris");
+    revalidatePath("/administrasi");
+    revalidatePath("/diskusi");
+    revalidatePath("/pengumuman");
+    revalidatePath("/dashboard");
+
+    return {
+      success: true,
+      message: "Semua data dummy berhasil dibersihkan! Sistem kini siap digunakan dengan data riil organisasi.",
+    };
+  } catch (err: any) {
+    console.error("clearAllDummyData error:", err);
+    return {
+      success: false,
+      message: err.message || "Gagal membersihkan data dummy.",
+    };
+  }
+}

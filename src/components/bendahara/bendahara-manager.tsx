@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +43,10 @@ import {
   FileDown,
   Eye,
   ImageIcon,
+  Layers,
+  Calendar,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createTransaksi, deleteTransaksi } from "@/actions/keuangan";
@@ -45,6 +55,8 @@ interface Transaksi {
   id: string;
   judul: string;
   keterangan: string;
+  kategori?: string;
+  displayKeterangan?: string;
   jenis: "masuk" | "keluar";
   jumlah: number;
   tanggal: string;
@@ -58,11 +70,17 @@ interface Transaksi {
 interface BendaharaManagerProps {
   initialList: any[];
   initialSaldo: { masuk: number; keluar: number; sisa: number };
+  agendaCategories?: string[];
 }
 
-export function BendaharaManager({ initialList, initialSaldo }: BendaharaManagerProps) {
+export function BendaharaManager({
+  initialList,
+  initialSaldo,
+  agendaCategories = [],
+}: BendaharaManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterJenis, setFilterJenis] = useState<"semua" | "masuk" | "keluar">("semua");
+  const [activeCategory, setActiveCategory] = useState<string>("Semua");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -71,11 +89,26 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
   const [jenis, setJenis] = useState<"masuk" | "keluar">("masuk");
   const [judul, setJudul] = useState("");
   const [keterangan, setKeterangan] = useState("");
+  const [selectedKategori, setSelectedKategori] = useState<string>("Kas General");
   const [jumlah, setJumlah] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Kategori menu bar sinkron 1:1 langsung dari data kegiatan di /kegiatan
+  const allCategories = useMemo(() => {
+    const list: string[] = [];
+    (agendaCategories || []).forEach((c) => {
+      const trimmed = c?.trim();
+      if (trimmed && !list.includes(trimmed)) {
+        list.push(trimmed);
+      }
+    });
+    return list;
+  }, [agendaCategories]);
+
+  const categoryTabs = ["Semua", ...allCategories];
 
   const formatRupiah = (angka: number | string) => {
     const num = Math.round(Number(angka) || 0);
@@ -89,6 +122,12 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
     setJumlah("");
     setFile(null);
     setError(null);
+    // Jika sedang memilih tab agenda tertentu, otomatis jadikan agenda tersebut sebagai default kategori
+    if (activeCategory !== "Semua") {
+      setSelectedKategori(activeCategory);
+    } else {
+      setSelectedKategori("Kas General");
+    }
     setIsDialogOpen(true);
   };
 
@@ -114,6 +153,7 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
       formData.append("jenis", jenis);
       formData.append("judul", judul);
       formData.append("keterangan", keterangan);
+      formData.append("kategori", selectedKategori);
       formData.append("jumlah", cleanNominal);
       if (file) {
         formData.append("lampiran", file);
@@ -131,6 +171,22 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
     });
   };
 
+  // Subtotal per kategori terpilih untuk transparansi mutasi per agenda acara
+  const categorySubtotal = useMemo(() => {
+    if (activeCategory === "Semua") return null;
+    const catItems = initialList.filter((item: any) => {
+      return (item.kategori || "").toLowerCase() === activeCategory.toLowerCase();
+    });
+    const masuk = catItems.filter((i) => i.jenis === "masuk").reduce((acc, c) => acc + Number(c.jumlah), 0);
+    const keluar = catItems.filter((i) => i.jenis === "keluar").reduce((acc, c) => acc + Number(c.jumlah), 0);
+    return {
+      masuk,
+      keluar,
+      sisa: masuk - keluar,
+      count: catItems.length,
+    };
+  }, [activeCategory, initialList]);
+
   const handleDelete = () => {
     if (deleteId) {
       startTransition(async () => {
@@ -146,15 +202,26 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
   };
 
   const filteredList = initialList.filter((item: any) => {
+    // 1. Filter Kategori (Menu Bar: Semua, Agenda 1, Agenda 2, dst)
+    if (activeCategory !== "Semua") {
+      if ((item.kategori || "").toLowerCase() !== activeCategory.toLowerCase()) {
+        return false;
+      }
+    }
+
+    // 2. Filter Jenis Transaksi (Masuk / Keluar)
     if (filterJenis !== "semua" && item.jenis !== filterJenis) {
       return false;
     }
 
+    // 3. Search Query
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
       item.judul.toLowerCase().includes(q) ||
-      item.keterangan?.toLowerCase().includes(q) ||
+      (item.displayKeterangan || "").toLowerCase().includes(q) ||
+      (item.keterangan || "").toLowerCase().includes(q) ||
+      (item.kategori || "").toLowerCase().includes(q) ||
       (item.author?.nama || "").toLowerCase().includes(q)
     );
   });
@@ -171,12 +238,14 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
       return;
     }
 
-    const filterText =
+    const filterText = [
+      activeCategory !== "Semua" ? `Kategori: ${activeCategory}` : "Kategori: Semua Agenda",
       filterJenis === "masuk"
         ? "Kas Masuk (Pemasukan)"
         : filterJenis === "keluar"
         ? "Kas Keluar (Pengeluaran)"
-        : "Semua Transaksi (Pemasukan & Pengeluaran)";
+        : "Semua Mutasi",
+    ].join(" | ");
 
     const totalMasukFiltered = filteredList
       .filter((t: any) => t.jenis === "masuk")
@@ -197,14 +266,18 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
         });
         const jenisLabel = trx.jenis === "masuk" ? "Pemasukan" : "Pengeluaran";
         const nominalColor = trx.jenis === "masuk" ? "#047857" : "#b91c1c";
+        const cleanDesc = trx.displayKeterangan || trx.keterangan || "";
 
         return `
           <tr>
             <td style="text-align: center;">${idx + 1}</td>
             <td style="white-space: nowrap;">${tgl}</td>
             <td>
-              <div style="font-weight: 600; color: #0f172a;">${trx.judul}</div>
-              ${trx.keterangan ? `<div style="color: #64748b; font-size: 11px; margin-top: 2px;">${trx.keterangan}</div>` : ""}
+              <div style="font-weight: 600; color: #0f172a;">
+                ${trx.judul}
+                ${trx.kategori && trx.kategori !== "Kas General" ? `<span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 10px; background-color: #e0f2fe; color: #0369a1; font-weight: normal;">[${trx.kategori}]</span>` : ""}
+              </div>
+              ${cleanDesc ? `<div style="color: #64748b; font-size: 11px; margin-top: 2px;">${cleanDesc}</div>` : ""}
             </td>
             <td style="text-align: center;">
               <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background-color: ${trx.jenis === "masuk" ? "#d1fae5" : "#fee2e2"}; color: ${trx.jenis === "masuk" ? "#065f46" : "#991b1b"};">
@@ -527,6 +600,92 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
         </Card>
       </div>
 
+      {/* Menu Bar Kategori Catatan Keuangan (Sinkron Data Kegiatan /kegiatan) */}
+      <div className="bg-card border rounded-xl p-4 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">
+              Menu Kategori Keuangan (Data Kegiatan)
+            </h3>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{allCategories.length} kegiatan aktif dari kalender</span>
+            <span>•</span>
+            <Link
+              href="/kegiatan"
+              className="text-primary hover:underline font-medium inline-flex items-center gap-1"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              <span>Kelola di /kegiatan</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Menu Bar Tabs: Semua, Agenda 1, Agenda 2, ... */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+          {categoryTabs.map((cat) => {
+            const isSelected = activeCategory === cat;
+            const count =
+              cat === "Semua"
+                ? initialList.length
+                : initialList.filter(
+                    (i: any) => (i.kategori || "").toLowerCase() === cat.toLowerCase()
+                  ).length;
+
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={cn(
+                  "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border",
+                  isSelected
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-background text-muted-foreground hover:text-foreground hover:bg-muted border-border"
+                )}
+              >
+                <span>{cat}</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.2 rounded-full text-[10px] font-mono",
+                    isSelected
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {categorySubtotal && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2.5 border-t text-xs bg-muted/20 px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs font-medium bg-primary/10 text-primary border-primary/20">
+                Kategori: {activeCategory}
+              </Badge>
+              <span className="text-muted-foreground text-xs">
+                ({categorySubtotal.count} transaksi)
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs font-mono font-medium">
+              <span className="text-emerald-600 dark:text-emerald-400">
+                Masuk: {formatRupiah(categorySubtotal.masuk)}
+              </span>
+              <span className="text-rose-600 dark:text-rose-400">
+                Keluar: {formatRupiah(categorySubtotal.keluar)}
+              </span>
+              <span className={cn("font-bold", categorySubtotal.sisa >= 0 ? "text-primary" : "text-rose-600")}>
+                Saldo: {formatRupiah(categorySubtotal.sisa)}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
       <Card>
         <CardHeader className="pb-4 border-b">
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
@@ -542,14 +701,14 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
               </CardDescription>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full xl:w-auto">
               {/* Filter Semua, Kas Masuk, Kas Keluar */}
-              <div className="inline-flex items-center p-1 rounded-lg bg-muted/60 border border-border/70 text-xs">
+              <div className="inline-flex items-center p-1 rounded-lg bg-muted/60 border border-border/70 text-xs overflow-x-auto max-w-full">
                 <button
                   type="button"
                   onClick={() => setFilterJenis("semua")}
                   className={cn(
-                    "px-3 py-1.5 rounded-md font-medium transition-all text-xs cursor-pointer",
+                    "px-2.5 sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs cursor-pointer whitespace-nowrap",
                     filterJenis === "semua"
                       ? "bg-background text-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -561,52 +720,55 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
                   type="button"
                   onClick={() => setFilterJenis("masuk")}
                   className={cn(
-                    "px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer",
+                    "px-2.5 sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap",
                     filterJenis === "masuk"
                       ? "bg-emerald-600 text-white shadow-xs"
                       : "text-muted-foreground hover:text-emerald-600"
                   )}
                 >
                   <TrendingUp className="h-3 w-3" />
-                  Kas Masuk ({initialList.filter((i: any) => i.jenis === "masuk").length})
+                  Masuk ({initialList.filter((i: any) => i.jenis === "masuk").length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilterJenis("keluar")}
                   className={cn(
-                    "px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer",
+                    "px-2.5 sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap",
                     filterJenis === "keluar"
                       ? "bg-rose-600 text-white shadow-xs"
                       : "text-muted-foreground hover:text-rose-600"
                   )}
                 >
                   <TrendingDown className="h-3 w-3" />
-                  Kas Keluar ({initialList.filter((i: any) => i.jenis === "keluar").length})
+                  Keluar ({initialList.filter((i: any) => i.jenis === "keluar").length})
                 </button>
               </div>
 
-              {/* Input Pencarian */}
-              <div className="relative flex-1 sm:w-56 min-w-[160px]">
-                <Input
-                  placeholder="Cari transaksi..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 h-8 text-xs"
-                />
-                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
+                {/* Input Pencarian */}
+                <div className="relative flex-1 min-w-[130px]">
+                  <Input
+                    placeholder="Cari transaksi..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 h-8 text-xs w-full"
+                  />
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                </div>
 
-              {/* Tombol Export PDF */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs border-primary/40 hover:bg-primary/10 hover:text-primary hover:border-primary shrink-0"
-                onClick={handleExportPDF}
-              >
-                <FileDown className="h-3.5 w-3.5 text-primary" />
-                <span>Export .PDF</span>
-              </Button>
+                {/* Tombol Export PDF */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs border-primary/40 hover:bg-primary/10 hover:text-primary hover:border-primary shrink-0"
+                  onClick={handleExportPDF}
+                >
+                  <FileDown className="h-3.5 w-3.5 text-primary" />
+                  <span className="hidden sm:inline">Export</span>
+                  <span>.PDF</span>
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -615,44 +777,53 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-muted-foreground bg-muted/50 uppercase border-b">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Tanggal</th>
-                  <th className="px-6 py-3 font-medium">Keterangan</th>
-                  <th className="px-6 py-3 font-medium text-right">Jumlah</th>
-                  <th className="px-6 py-3 font-medium text-center">Status</th>
-                  <th className="px-6 py-3 font-medium text-center">Lampiran</th>
-                  <th className="px-6 py-3 text-right">Aksi</th>
+                  <th className="px-3 sm:px-6 py-3 font-medium">Tanggal</th>
+                  <th className="px-3 sm:px-6 py-3 font-medium">Keterangan</th>
+                  <th className="px-3 sm:px-6 py-3 font-medium text-right">Jumlah</th>
+                  <th className="px-3 sm:px-6 py-3 font-medium text-center">Status</th>
+                  <th className="px-3 sm:px-6 py-3 font-medium text-center">Lampiran</th>
+                  <th className="px-3 sm:px-6 py-3 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filteredList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-3 sm:px-6 py-8 text-center text-muted-foreground">
                       Belum ada transaksi kas umum.
                     </td>
                   </tr>
                 ) : (
                   filteredList.map((trx: any) => (
                     <tr key={trx.id} className="hover:bg-muted/30 transition-colors">
-                      <td suppressHydrationWarning className="px-6 py-4 whitespace-nowrap text-xs">
+                      <td suppressHydrationWarning className="px-3 sm:px-6 py-3.5 whitespace-nowrap text-xs">
                         {new Date(trx.created_at).toLocaleDateString("id-ID", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
                         })}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-foreground">{trx.judul}</div>
-                        {trx.keterangan && (
-                          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{trx.keterangan}</div>
+                      <td className="px-3 sm:px-6 py-3.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-foreground">{trx.judul}</span>
+                          {trx.kategori && trx.kategori !== "Kas General" && trx.kategori !== "Kas General / Operasional" && (
+                            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 font-medium">
+                              {trx.kategori}
+                            </Badge>
+                          )}
+                        </div>
+                        {(trx.displayKeterangan || trx.keterangan) && (
+                          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                            {trx.displayKeterangan || trx.keterangan}
+                          </div>
                         )}
                         <div className="text-[10px] text-muted-foreground mt-1">
                           Oleh: {trx.author?.nama || "Unknown"}
                         </div>
                       </td>
-                      <td suppressHydrationWarning className={`px-6 py-4 text-right font-semibold whitespace-nowrap ${trx.jenis === "masuk" ? "text-emerald-600" : "text-rose-600"}`}>
+                      <td suppressHydrationWarning className={`px-3 sm:px-6 py-3.5 text-right font-semibold whitespace-nowrap ${trx.jenis === "masuk" ? "text-emerald-600" : "text-rose-600"}`}>
                         {formatRupiah(trx.jumlah)}
                       </td>
-                      <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3.5 text-center whitespace-nowrap">
                         <Badge 
                           variant="secondary" 
                           className={trx.jenis === "masuk" ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" : "bg-rose-100 text-rose-800 hover:bg-rose-100"}
@@ -750,6 +921,26 @@ export function BendaharaManager({ initialList, initialSaldo }: BendaharaManager
                   className="text-xs"
                   required
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Kategori / Agenda Acara</Label>
+                <Select value={selectedKategori} onValueChange={setSelectedKategori}>
+                  <SelectTrigger className="text-xs">
+                    <SelectValue placeholder="Pilih Kategori / Agenda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Kas General">Kas General (Umum / Operasional)</SelectItem>
+                    {allCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        Agenda: {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Pilih agenda sesuai acara yang dibuat, atau pilih Kas General untuk transaksi umum.
+                </p>
               </div>
 
               <div className="space-y-1.5">

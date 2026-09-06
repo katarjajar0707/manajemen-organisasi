@@ -600,51 +600,53 @@ export function InventarisManager({
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 </div>
 
-                {/* Select Kategori */}
-                <div className="w-full md:w-48">
-                  <Select value={filterKategori} onValueChange={setFilterKategori}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Kategori" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Kategori</SelectItem>
-                      <SelectItem value="Elektronik & Sound">Elektronik & Sound</SelectItem>
-                      <SelectItem value="Tenda & Panggung">Tenda & Panggung</SelectItem>
-                      <SelectItem value="Meja & Kursi">Meja & Kursi</SelectItem>
-                      <SelectItem value="Logistik & Kebersihan">Logistik & Kebersihan</SelectItem>
-                      <SelectItem value="Olahraga">Olahraga</SelectItem>
-                      <SelectItem value="Lainnya">Lainnya</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full md:flex md:w-auto">
+                  {/* Select Kategori */}
+                  <div className="w-full md:w-48">
+                    <Select value={filterKategori} onValueChange={setFilterKategori}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Kategori" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Kategori</SelectItem>
+                        <SelectItem value="Elektronik & Sound">Elektronik & Sound</SelectItem>
+                        <SelectItem value="Tenda & Panggung">Tenda & Panggung</SelectItem>
+                        <SelectItem value="Meja & Kursi">Meja & Kursi</SelectItem>
+                        <SelectItem value="Logistik & Kebersihan">Logistik & Kebersihan</SelectItem>
+                        <SelectItem value="Olahraga">Olahraga</SelectItem>
+                        <SelectItem value="Lainnya">Lainnya</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {/* Select Kondisi */}
-                <div className="w-full md:w-40">
-                  <Select value={filterKondisi} onValueChange={setFilterKondisi}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Kondisi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Kondisi</SelectItem>
-                      <SelectItem value="baik">Baik</SelectItem>
-                      <SelectItem value="rusak_ringan">Rusak Ringan</SelectItem>
-                      <SelectItem value="rusak_berat">Rusak Berat</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  {/* Select Kondisi */}
+                  <div className="w-full md:w-40">
+                    <Select value={filterKondisi} onValueChange={setFilterKondisi}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Kondisi" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Kondisi</SelectItem>
+                        <SelectItem value="baik">Baik</SelectItem>
+                        <SelectItem value="rusak_ringan">Rusak Ringan</SelectItem>
+                        <SelectItem value="rusak_berat">Rusak Berat</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {/* Select Status */}
-                <div className="w-full md:w-40">
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Status Pinjam" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Status</SelectItem>
-                      <SelectItem value="Tersedia">Tersedia</SelectItem>
-                      <SelectItem value="Dipinjam">Dipinjam</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* Select Status */}
+                  <div className="w-full md:w-40">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Status Pinjam" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Status</SelectItem>
+                        <SelectItem value="Tersedia">Tersedia</SelectItem>
+                        <SelectItem value="Dipinjam">Dipinjam</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 

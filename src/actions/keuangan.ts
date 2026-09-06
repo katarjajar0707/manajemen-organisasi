@@ -4,6 +4,34 @@ import { createClient, createAdminClient, getProfile } from "@/lib/supabase/serv
 import { uploadLampiran } from "./storage";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Mengambil daftar kegiatan langsung dari kalender_kegiatan (/kegiatan)
+ * sehingga menu bar kategori di /bagian/bendahara sinkron 1:1 dengan data kegiatan.
+ */
+export async function getAgendaCategories(): Promise<string[]> {
+  const supabase = await createClient();
+
+  const { data: kegiatans, error } = await supabase
+    .from("kalender_kegiatan")
+    .select("judul")
+    .order("tanggal_mulai", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching kalender_kegiatan for categories:", error);
+    return [];
+  }
+
+  const list: string[] = [];
+  (kegiatans || []).forEach((k) => {
+    const judul = k.judul?.trim();
+    if (judul && !list.includes(judul)) {
+      list.push(judul);
+    }
+  });
+
+  return list;
+}
+
 export async function getKeuanganList(bagianSlug: string = "bendahara") {
   const supabase = await createClient();
 
@@ -36,11 +64,31 @@ export async function getKeuanganList(bagianSlug: string = "bendahara") {
     return { list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
   }
 
-  // Calculate aggregations
+  // Parse kategori and clean keterangan per transaction
+  const parsedList = (list || []).map((trx: any) => {
+    let kategori = "Kas General";
+    let displayKeterangan = trx.keterangan || "";
+
+    const match = (trx.keterangan || "").match(/^\[Kategori:\s*([^\]]+)\]/i);
+    if (match) {
+      kategori = match[1].trim();
+      displayKeterangan = (trx.keterangan || "").replace(/^\[Kategori:\s*[^\]]+\]\s*/i, "").trim();
+    } else if (trx.kategori) {
+      kategori = trx.kategori;
+    }
+
+    return {
+      ...trx,
+      kategori,
+      displayKeterangan,
+    };
+  });
+
+  // Calculate aggregations (Semua transaksi terhitung sama masuk ke kas general)
   let totalMasuk = 0;
   let totalKeluar = 0;
 
-  list?.forEach((trx) => {
+  parsedList.forEach((trx) => {
     if (trx.jenis === "masuk") {
       totalMasuk += Number(trx.jumlah);
     } else if (trx.jenis === "keluar") {
@@ -49,7 +97,7 @@ export async function getKeuanganList(bagianSlug: string = "bendahara") {
   });
 
   return {
-    list: list || [],
+    list: parsedList,
     saldo: {
       masuk: totalMasuk,
       keluar: totalKeluar,
@@ -68,6 +116,7 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = "
     const jenis = formData.get("jenis") as "masuk" | "keluar";
     const judul = formData.get("judul") as string;
     const keterangan = formData.get("keterangan") as string;
+    const kategori = (formData.get("kategori") as string)?.trim() || "Kas General";
     const jumlahStr = (formData.get("jumlah") as string) || "";
     // Hilangkan titik pemisah ribuan locale ID dan normalisasi
     const cleanedJumlah = jumlahStr
@@ -119,6 +168,12 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = "
       lampiran_url = uploadRes.url || null;
     }
 
+    // Format keterangan dengan tag [Kategori: ...] bila bukan Kas General
+    let keteranganToSave = keterangan?.trim() || "";
+    if (kategori && kategori !== "Kas General" && kategori !== "Kas General / Operasional") {
+      keteranganToSave = `[Kategori: ${kategori}] ${keteranganToSave}`.trim();
+    }
+
     // Insert menggunakan adminSupabase untuk mencegah kegagalan RLS
     const { error: insertError } = await adminSupabase
       .from("catatan_keuangan")
@@ -126,7 +181,7 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = "
         bagian_id: bagian.id,
         jenis,
         judul: judul.trim(),
-        keterangan: keterangan?.trim() || null,
+        keterangan: keteranganToSave || null,
         jumlah,
         lampiran_url,
         dibuat_oleh: profile.id,

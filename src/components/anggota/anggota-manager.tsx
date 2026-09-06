@@ -1,19 +1,10 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -22,33 +13,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  UserPlus,
   Search,
   Phone,
-  MapPin,
-  MoreVertical,
-  Edit,
-  Trash2,
   Users,
   Download,
-  Filter,
-  Shield,
-  Loader2,
-  AlertCircle,
-  Camera,
-  X,
-  Building2,
-  Calendar,
+  ShieldCheck,
+  ArrowRight,
   CheckCircle2,
 } from "lucide-react";
-import Image from "next/image";
-import { AnggotaDetail, createAnggota, updateAnggota, deleteAnggota } from "@/actions/anggota";
+import Link from "next/link";
+import { AnggotaDetail } from "@/actions/anggota";
 
 interface BagianItem {
   id: string;
@@ -79,218 +53,32 @@ export function AnggotaManager({
   metadata = { daftarBagian: [], daftarPeriode: [] },
   userRole = "anggota",
 }: AnggotaManagerProps) {
-  const [members, setMembers] = useState<AnggotaDetail[]>(initialMembers);
+  const [members] = useState<AnggotaDetail[]>(initialMembers);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRt, setFilterRt] = useState("Semua RT");
   const [filterStatus, setFilterStatus] = useState<"semua" | "Aktif" | "Alumni" | "Cuti">("semua");
   const [filterBagian, setFilterBagian] = useState<string>("semua");
 
-  const [isPending, startTransition] = useTransition();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Modal State
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<AnggotaDetail | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  // Form Fields
-  const [nama, setNama] = useState("");
-  const [jabatan, setJabatan] = useState("Anggota");
-  const [bagianId, setBagianId] = useState<string>("");
-  const [periodeId, setPeriodeId] = useState<string>("");
-  const [rt, setRt] = useState("RT 03 / RW 05");
-  const [kontak, setKontak] = useState("");
-  const [status, setStatus] = useState<"Aktif" | "Alumni" | "Cuti">("Aktif");
-
-  // Photo State
-  const [fotoFile, setFotoFile] = useState<File | null>(null);
-  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
-  const [removeFoto, setRemoveFoto] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const isAdminOrKetua = userRole === "admin" || userRole === "ketua";
-
-  const handleOpenCreate = () => {
-    setEditingMember(null);
-    setNama("");
-    setJabatan("Anggota");
-    setBagianId(metadata.daftarBagian[0]?.id || "");
-    setPeriodeId(metadata.daftarPeriode.find((p) => p.isAktif)?.id || "");
-    setRt("RT 01 / RW 05");
-    setKontak("");
-    setStatus("Aktif");
-    setFotoFile(null);
-    setFotoPreview(null);
-    setRemoveFoto(false);
-    setErrorMessage(null);
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenEdit = (m: AnggotaDetail) => {
-    setEditingMember(m);
-    setNama(m.nama);
-    setJabatan(m.jabatan);
-    setBagianId(m.bagianId || "");
-    setPeriodeId(m.periodeId || "");
-    setRt(m.rt_rw);
-    setKontak(m.kontak);
-    setStatus(m.status);
-    setFotoFile(null);
-    setFotoPreview(m.foto_url);
-    setRemoveFoto(false);
-    setErrorMessage(null);
-    setIsDialogOpen(true);
-  };
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Ukuran foto maksimal 5MB.");
-        return;
-      }
-      setFotoFile(file);
-      setFotoPreview(URL.createObjectURL(file));
-      setRemoveFoto(false);
-    }
-  };
-
-  const handleRemovePhoto = () => {
-    setFotoFile(null);
-    setFotoPreview(null);
-    setRemoveFoto(true);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleSave = () => {
-    if (!nama.trim() || !kontak.trim()) {
-      setErrorMessage("Nama dan kontak wajib diisi.");
-      return;
-    }
-
-    setErrorMessage(null);
-
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.set("nama", nama);
-      formData.set("jabatan", jabatan);
-      formData.set("rt_rw", rt);
-      formData.set("kontak", kontak);
-      formData.set("status", status);
-      if (bagianId) formData.set("bagian_id", bagianId);
-      if (periodeId && periodeId !== "none") formData.set("periode_id", periodeId);
-      if (fotoFile) formData.set("foto", fotoFile);
-      if (removeFoto) formData.set("removeFoto", "true");
-
-      if (editingMember) {
-        const res = await updateAnggota(editingMember.id, formData);
-        if (res.error) {
-          setErrorMessage(res.error);
-          return;
-        }
-
-        const selectedBagian = metadata.daftarBagian.find((b) => b.id === bagianId);
-        const selectedPeriode = metadata.daftarPeriode.find((p) => p.id === periodeId);
-
-        setMembers((prev) =>
-          prev.map((item) =>
-            item.id === editingMember.id
-              ? {
-                  ...item,
-                  nama,
-                  jabatan,
-                  bagian: selectedBagian?.nama || item.bagian,
-                  bagianId: bagianId || null,
-                  periode: selectedPeriode?.nama || item.periode,
-                  periodeId: periodeId || null,
-                  rt_rw: rt,
-                  kontak,
-                  status,
-                  foto_url: removeFoto ? null : fotoPreview || item.foto_url,
-                }
-              : item
-          )
-        );
-      } else {
-        const res = await createAnggota(formData);
-        if (res.error) {
-          setErrorMessage(res.error);
-          return;
-        }
-
-        const selectedBagian = metadata.daftarBagian.find((b) => b.id === bagianId);
-        const selectedPeriode = metadata.daftarPeriode.find((p) => p.id === periodeId);
-
-        const newMember: AnggotaDetail = res.anggota
-          ? {
-              ...res.anggota,
-              bagian: selectedBagian?.nama || "Umum",
-              bagianId: bagianId || null,
-              periode: selectedPeriode?.nama || "Anggota Umum",
-              periodeId: periodeId || null,
-              agendaId: null,
-              agendaNama: "-",
-              tanggalBergabung: "Baru saja",
-              createdAt: new Date().toISOString(),
-            }
-          : {
-              id: Date.now().toString(),
-              nama,
-              jabatan,
-              bagian: selectedBagian?.nama || "Umum",
-              bagianId: bagianId || null,
-              periode: selectedPeriode?.nama || "Anggota Umum",
-              periodeId: periodeId || null,
-              agendaId: null,
-              agendaNama: "-",
-              rt_rw: rt,
-              kontak,
-              status,
-              foto_url: fotoPreview || null,
-              tanggalBergabung: "Baru saja",
-              createdAt: new Date().toISOString(),
-            };
-
-        setMembers([newMember, ...members]);
-      }
-
-      setIsDialogOpen(false);
-    });
-  };
-
-  const handleDelete = () => {
-    if (!deleteId) return;
-
-    startTransition(async () => {
-      const res = await deleteAnggota(deleteId);
-      if (res.error) {
-        alert(res.error);
-        return;
-      }
-      setMembers((prev) => prev.filter((m) => m.id !== deleteId));
-      setDeleteId(null);
-    });
-  };
+  const isAdmin = userRole === "admin";
 
   const handleExportCsv = () => {
-    const headers = ["Nama", "Jabatan", "Bagian", "RT/RW", "Kontak", "Status", "Periode", "Tanggal Bergabung"];
+    const headers = ["Nama", "Jabatan", "Bagian", "RT/RW", "Kontak", "Status", "Periode"];
     const rows = filteredMembers.map((m) => [
-      `"${m.nama.replace(/"/g, '""')}"`,
-      `"${m.jabatan.replace(/"/g, '""')}"`,
-      `"${m.bagian.replace(/"/g, '""')}"`,
-      `"${m.rt_rw.replace(/"/g, '""')}"`,
-      `"${m.kontak.replace(/"/g, '""')}"`,
+      `"${m.nama}"`,
+      `"${m.jabatan}"`,
+      `"${m.bagian}"`,
+      `"${m.rt_rw}"`,
+      `"${m.kontak}"`,
       `"${m.status}"`,
-      `"${(m.periode || "").replace(/"/g, '""')}"`,
-      `"${m.tanggalBergabung}"`,
+      `"${m.periode}"`,
     ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `data_anggota_karang_taruna_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `Data_Anggota_Karang_Taruna_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -332,60 +120,72 @@ export function AnggotaManager({
             <Download className="h-3.5 w-3.5" />
             <span>Ekspor CSV</span>
           </Button>
-          {isAdminOrKetua && (
-            <Button
-              size="sm"
-              className="gap-1.5 shadow-sm bg-primary hover:bg-primary/90 text-xs h-8 flex-1 sm:flex-initial"
-              onClick={handleOpenCreate}
-            >
-              <UserPlus className="h-4 w-4" />
-              <span>Tambah Anggota</span>
-            </Button>
+          {isAdmin && (
+            <Link href="/pengguna">
+              <Button
+                size="sm"
+                className="gap-1.5 shadow-sm bg-primary hover:bg-primary/90 text-xs h-8 flex-1 sm:flex-initial"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                <span>Kelola di Manajemen Pengguna</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
           )}
         </div>
       </div>
 
+      {/* Info Banner Sinkronisasi Terpusat */}
+      <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
+        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+        <p>
+          Pembuatan dan pengelolaan anggota dilakukan <strong>terpusat melalui Manajemen Pengguna</strong>. Setiap akun yang dibuat Admin otomatis tersinkronisasi ke dalam tabel anggota ini.
+        </p>
+      </div>
+
       {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border rounded-xl p-3 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-60">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border rounded-xl p-3 shadow-xs">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto flex-1">
+          <div className="relative w-full sm:w-56 flex-1 min-w-[140px]">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Cari nama, jabatan, atau RT..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-xs bg-muted/30"
+              className="pl-8 h-8 text-xs bg-muted/30 w-full"
             />
           </div>
 
-          <Select value={filterRt} onValueChange={setFilterRt}>
-            <SelectTrigger className="h-8 text-xs w-[110px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RT_OPTIONS.map((opt) => (
-                <SelectItem key={opt} value={opt}>
-                  {opt}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {metadata.daftarBagian.length > 0 && (
-            <Select value={filterBagian} onValueChange={setFilterBagian}>
-              <SelectTrigger className="h-8 text-xs w-[130px]">
-                <SelectValue placeholder="Bagian" />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Select value={filterRt} onValueChange={setFilterRt}>
+              <SelectTrigger className="h-8 text-xs flex-1 sm:w-[110px]">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="semua">Semua Bagian</SelectItem>
-                {metadata.daftarBagian.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.nama}
+                {RT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {opt}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          )}
+
+            {metadata.daftarBagian.length > 0 && (
+              <Select value={filterBagian} onValueChange={setFilterBagian}>
+                <SelectTrigger className="h-8 text-xs flex-1 sm:w-[130px]">
+                  <SelectValue placeholder="Bagian" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semua">Semua Bagian</SelectItem>
+                  {metadata.daftarBagian.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
@@ -394,7 +194,7 @@ export function AnggotaManager({
               key={st}
               size="sm"
               variant={filterStatus === st ? "default" : "ghost"}
-              className="text-xs h-8 px-3 rounded-lg capitalize"
+              className="text-xs h-8 px-3 rounded-lg capitalize whitespace-nowrap shrink-0"
               onClick={() => setFilterStatus(st)}
             >
               {st === "semua" ? `Semua (${members.length})` : `${st} (${members.filter((m) => m.status === st).length})`}
@@ -411,7 +211,7 @@ export function AnggotaManager({
               <Users className="h-4 w-4 text-primary" />
               <span>Daftar Keanggotaan ({filteredMembers.length})</span>
             </CardTitle>
-            <span className="text-xs text-muted-foreground">Karang Taruna RW 05</span>
+            <span className="text-xs text-muted-foreground">Tersinkronisasi Terpusat</span>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -450,61 +250,30 @@ export function AnggotaManager({
                           ? "secondary"
                           : "outline"
                       }
-                      className="text-[10px] py-0 px-2 shrink-0"
+                      className="text-[10px] py-0 px-2 shrink-0 capitalize"
                     >
                       {m.status}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-primary shrink-0" />
-                      {m.rt_rw}
-                    </span>
-                    <span className="flex items-center gap-1 font-mono">
-                      <Phone className="h-3 w-3 text-emerald-500 shrink-0" />
-                      {m.kontak}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10px] text-muted-foreground">
-                      {m.periode}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <a
-                        href={`https://wa.me/${m.kontak.replace(/[^0-9]/g, "")}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs px-2.5 gap-1 text-emerald-600 dark:text-emerald-400"
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
+                    <span>{m.rt_rw}</span>
+                    <div className="flex items-center gap-1.5">
+                      {m.kontak && m.kontak !== "-" && (
+                        <a
+                          href={`https://wa.me/${m.kontak.replace(/[^0-9]/g, "")}`}
+                          target="_blank"
+                          rel="noreferrer"
                         >
-                          <Phone className="h-3 w-3" />
-                          <span>WA</span>
-                        </Button>
-                      </a>
-                      {isAdminOrKetua && (
-                        <>
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            className="h-7 text-xs px-2"
-                            onClick={() => handleOpenEdit(m)}
+                            className="h-7 text-xs px-2.5 gap-1 text-emerald-600 dark:text-emerald-400"
                           >
-                            <Edit className="h-3 w-3" />
+                            <Phone className="h-3 w-3" />
+                            <span>WA</span>
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteId(m.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </>
+                        </a>
                       )}
                     </div>
                   </div>
@@ -551,32 +320,18 @@ export function AnggotaManager({
                             </div>
                           )}
                           <div>
-                            <p className="font-semibold text-foreground">{m.nama}</p>
-                            <p className="text-[10px] text-muted-foreground">Sejak {m.tanggalBergabung}</p>
+                            <p className="font-medium text-foreground">{m.nama}</p>
+                            <p className="text-[10px] text-muted-foreground">ID: {m.id.slice(0, 8)}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <p className="font-medium text-foreground">{m.jabatan}</p>
-                        <p className="text-[11px] text-muted-foreground">{m.bagian}</p>
+                        <p className="text-muted-foreground text-[11px]">{m.bagian}</p>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="flex items-center gap-1 text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                          {m.rt_rw}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-mono text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                          {m.kontak}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline" className="text-[10px] truncate max-w-[150px]">
-                          {m.periode}
-                        </Badge>
-                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">{m.rt_rw}</td>
+                      <td className="py-3 px-4 text-muted-foreground font-mono">{m.kontak}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{m.periode}</td>
                       <td className="py-3 px-4">
                         <Badge
                           variant={
@@ -586,13 +341,13 @@ export function AnggotaManager({
                               ? "secondary"
                               : "outline"
                           }
-                          className="text-[10px]"
+                          className="capitalize text-[10px]"
                         >
                           {m.status}
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        {m.kontak && m.kontak !== "-" && (
                           <a
                             href={`https://wa.me/${m.kontak.replace(/[^0-9]/g, "")}`}
                             target="_blank"
@@ -607,29 +362,7 @@ export function AnggotaManager({
                               <span>WA</span>
                             </Button>
                           </a>
-                          {isAdminOrKetua && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                                  <MoreVertical className="h-3.5 w-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenEdit(m)}>
-                                  <Edit className="h-3.5 w-3.5 mr-2" />
-                                  <span>Edit Anggota</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => setDeleteId(m.id)}
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                  <span>Hapus Anggota</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -639,230 +372,6 @@ export function AnggotaManager({
           </div>
         </CardContent>
       </Card>
-
-      {/* Dialog Tambah / Edit Anggota */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-primary" />
-              <span>{editingMember ? "Edit Data Anggota" : "Tambah Anggota Baru"}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Lengkapi data anggota pemuda karang taruna dan penugasannya.
-            </DialogDescription>
-          </DialogHeader>
-
-          {errorMessage && (
-            <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-lg flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          <div className="space-y-3.5 py-2">
-            {/* Foto Upload & Preview */}
-            <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/20">
-              <div className="relative w-14 h-14 rounded-full overflow-hidden border bg-background shrink-0 flex items-center justify-center">
-                {fotoPreview ? (
-                  <img src={fotoPreview} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <Camera className="h-6 w-6 text-muted-foreground opacity-50" />
-                )}
-              </div>
-              <div className="space-y-1 text-xs flex-1">
-                <p className="font-semibold text-foreground">Foto Profil Anggota (Opsional)</p>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Pilih Foto
-                  </Button>
-                  {fotoPreview && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs text-destructive hover:bg-destructive/10"
-                      onClick={handleRemovePhoto}
-                    >
-                      <X className="h-3.5 w-3.5 mr-1" />
-                      Hapus Foto
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Nama & Kontak */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nama Lengkap *</Label>
-                <Input
-                  value={nama}
-                  onChange={(e) => setNama(e.target.value)}
-                  placeholder="Contoh: Rian Pratama"
-                  className="text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">No. WhatsApp / HP *</Label>
-                <Input
-                  value={kontak}
-                  onChange={(e) => setKontak(e.target.value)}
-                  placeholder="0812-3456-7890"
-                  className="text-xs"
-                />
-              </div>
-            </div>
-
-            {/* Jabatan & Bagian */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Jabatan Organisasi *</Label>
-                <Input
-                  value={jabatan}
-                  onChange={(e) => setJabatan(e.target.value)}
-                  placeholder="Contoh: Anggota, Kabid Acara, dsb."
-                  className="text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Bagian Organisasi</Label>
-                <Select value={bagianId} onValueChange={setBagianId}>
-                  <SelectTrigger className="text-xs">
-                    <SelectValue placeholder="Pilih bagian..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {metadata.daftarBagian.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {b.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Periode Kepengurusan */}
-            {metadata.daftarPeriode.length > 0 && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">Periode Kepengurusan (Bagan Terhubung)</Label>
-                <Select value={periodeId} onValueChange={setPeriodeId}>
-                  <SelectTrigger className="text-xs">
-                    <SelectValue placeholder="Pilih periode atau tanpa periode..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Tanpa Kaitan Periode Spesifik</SelectItem>
-                    {metadata.daftarPeriode.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Domisili & Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Domisili RT/RW *</Label>
-                <Input
-                  value={rt}
-                  onChange={(e) => setRt(e.target.value)}
-                  placeholder="Contoh: RT 03 / RW 05"
-                  className="text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Status Keanggotaan</Label>
-                <Select value={status} onValueChange={(v: any) => setStatus(v)}>
-                  <SelectTrigger className="text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Aktif">Aktif</SelectItem>
-                    <SelectItem value="Alumni">Alumni</SelectItem>
-                    <SelectItem value="Cuti">Cuti</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={() => setIsDialogOpen(false)}
-              disabled={isPending}
-            >
-              Batal
-            </Button>
-            <Button
-              size="sm"
-              className="text-xs bg-primary hover:bg-primary/90 gap-1.5"
-              onClick={handleSave}
-              disabled={isPending}
-            >
-              {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              <span>{editingMember ? "Simpan Perubahan" : "Tambah Anggota"}</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Konfirmasi Hapus Anggota */}
-      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base text-destructive flex items-center gap-2">
-              <Trash2 className="h-5 w-5" />
-              <span>Hapus Data Anggota?</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Data keanggotaan ini akan dihapus dari sistem dan seluruh bagan organisasi terkait.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 mt-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={() => setDeleteId(null)}
-              disabled={isPending}
-            >
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="text-xs gap-1.5"
-              onClick={handleDelete}
-              disabled={isPending}
-            >
-              {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              <span>Hapus</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

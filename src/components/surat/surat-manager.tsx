@@ -398,8 +398,8 @@ export function SuratManager({
       </div>
 
       {/* Filter & Kategori Tabs */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-muted/60 rounded-lg border border-border/40">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-lg border border-border/40 overflow-x-auto max-w-full pb-1 md:pb-1">
           {[
             { id: "semua", label: "Semua" },
             { id: "undangan", label: "Undangan" },
@@ -410,7 +410,7 @@ export function SuratManager({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap shrink-0 ${
                 activeTab === tab.id
                   ? "bg-background text-foreground shadow-sm font-semibold"
                   : "text-muted-foreground hover:text-foreground"

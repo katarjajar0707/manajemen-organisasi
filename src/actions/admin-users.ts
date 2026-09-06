@@ -3,11 +3,49 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+export async function syncProfilesToAnggota() {
+  try {
+    const supabase = await createAdminClient();
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, nama, role, bagian_id");
+
+    if (!profiles || profiles.length === 0) return;
+
+    const { data: existingAnggota } = await supabase
+      .from("anggota")
+      .select("id");
+
+    const existingIds = new Set((existingAnggota || []).map((a: any) => a.id));
+
+    const toInsert = profiles
+      .filter((p: any) => !existingIds.has(p.id))
+      .map((p: any) => ({
+        id: p.id,
+        nama: p.nama || "Pengurus",
+        kontak: "-",
+        rt_rw: "RT 01 / RW 05",
+        jabatan: p.role === "ketua" ? "Ketua" : p.role === "admin" ? "Administrator" : "Anggota",
+        bagian_id: p.bagian_id || null,
+        status: "Aktif",
+      }));
+
+    if (toInsert.length > 0) {
+      await supabase.from("anggota").upsert(toInsert);
+    }
+  } catch (err) {
+    console.error("Error syncing profiles to anggota:", err);
+  }
+}
+
 export async function getUsers() {
   const supabase = await createAdminClient();
+  // Jalankan sinkronisasi background jika ada profile belum tersinkron
+  syncProfilesToAnggota().catch(() => {});
+
   const { data: profiles, error } = await supabase
     .from("profiles")
-    .select("id, nama, username, role, bagian_id, bagian:bagian_id(id, nama)")
+    .select("id, nama, username, role, bagian_id, created_at, bagian:bagian_id(id, nama)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -15,18 +53,28 @@ export async function getUsers() {
     return [];
   }
 
-  return profiles || [];
+  // Normalize bagian from array (Supabase FK join) to single object
+  const normalized = (profiles || []).map((p: any) => ({
+    ...p,
+    bagian: Array.isArray(p.bagian) ? (p.bagian[0] || null) : (p.bagian || null),
+  }));
+
+  return normalized;
 }
 
 export async function createUser(formData: FormData) {
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
-  const nama = formData.get("nama") as string;
+  const nama = (formData.get("nama") as string)?.trim();
   const role = formData.get("role") as string;
-  const bagian_id = formData.get("bagian_id") as string;
+  const bagian_id = (formData.get("bagian_id") as string)?.trim() || null;
+  const kontak = (formData.get("kontak") as string)?.trim() || "-";
+  const rt_rw = (formData.get("rt_rw") as string)?.trim() || "RT 01 / RW 05";
+  const jabatanInput = (formData.get("jabatan") as string)?.trim();
+  const jabatan = jabatanInput || (role === "ketua" ? "Ketua" : role === "admin" ? "Administrator" : "Anggota");
 
   if (!email || !password || !nama || !role) {
-    return { error: "Semua kolom wajib diisi (kecuali bagian jika Admin)" };
+    return { error: "Nama, email, password, dan role wajib diisi." };
   }
 
   try {
@@ -48,11 +96,7 @@ export async function createUser(formData: FormData) {
 
     const userId = authData.user.id;
 
-    // 2. The trigger `handle_new_user` will automatically create a profile for this user.
-    // However, it creates it with default 'anggota' role and no bagian_id.
-    // We need to update the newly created profile with the requested role and bagian_id.
-    
-    // We update using the admin client, so RLS is bypassed or we satisfy the admin policies.
+    // 2. Update profile with role and bagian_id
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
@@ -65,7 +109,30 @@ export async function createUser(formData: FormData) {
       return { error: "Akun auth dibuat, tetapi gagal mengupdate role/bagian: " + profileError.message };
     }
 
+    // 3. Otomatis sinkronisasi ke tabel anggota agar langsung tertera di tabel anggota & profil
+    const { error: anggotaError } = await supabase
+      .from("anggota")
+      .upsert({
+        id: userId,
+        nama,
+        kontak,
+        rt_rw,
+        jabatan,
+        bagian_id: bagian_id || null,
+        status: "Aktif",
+      });
+
+    if (anggotaError) {
+      console.warn("Peringatan sinkronisasi anggota:", anggotaError.message);
+    }
+
     revalidatePath("/pengguna");
+    revalidatePath("/profil");
+    revalidatePath("/anggota");
+    revalidatePath("/struktur");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan internal." };
@@ -73,25 +140,52 @@ export async function createUser(formData: FormData) {
 }
 
 export async function updateUser(userId: string, formData: FormData) {
+  const nama = (formData.get("nama") as string)?.trim();
   const role = formData.get("role") as string;
-  const bagian_id = formData.get("bagian_id") as string;
+  const bagian_id = (formData.get("bagian_id") as string)?.trim() || null;
+  const kontak = (formData.get("kontak") as string)?.trim();
+  const rt_rw = (formData.get("rt_rw") as string)?.trim();
+  const jabatan = (formData.get("jabatan") as string)?.trim();
 
   try {
     const supabase = await createAdminClient();
     
+    const profileUpdate: any = {
+      role: role,
+      bagian_id: bagian_id || null,
+    };
+    if (nama) profileUpdate.nama = nama;
+
     const { error } = await supabase
       .from("profiles")
-      .update({
-        role: role,
-        bagian_id: bagian_id || null,
-      })
+      .update(profileUpdate)
       .eq("id", userId);
 
     if (error) {
       return { error: error.message };
     }
 
+    // Sinkronkan ke tabel anggota
+    const anggotaUpdate: any = {
+      bagian_id: bagian_id || null,
+    };
+    if (nama) anggotaUpdate.nama = nama;
+    if (jabatan) anggotaUpdate.jabatan = jabatan;
+    if (kontak) anggotaUpdate.kontak = kontak;
+    if (rt_rw) anggotaUpdate.rt_rw = rt_rw;
+
+    await supabase
+      .from("anggota")
+      .update(anggotaUpdate)
+      .eq("id", userId);
+
     revalidatePath("/pengguna");
+    revalidatePath("/profil");
+    revalidatePath("/anggota");
+    revalidatePath("/struktur");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan internal." };
@@ -102,6 +196,9 @@ export async function deleteUser(userId: string) {
   try {
     const supabase = await createAdminClient();
     
+    // Hapus juga dari tabel anggota
+    await supabase.from("anggota").delete().eq("id", userId);
+
     // Deleting from auth.users will cascade to public.profiles due to FK ON DELETE CASCADE
     const { error } = await supabase.auth.admin.deleteUser(userId);
 
@@ -110,6 +207,12 @@ export async function deleteUser(userId: string) {
     }
 
     revalidatePath("/pengguna");
+    revalidatePath("/profil");
+    revalidatePath("/anggota");
+    revalidatePath("/struktur");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+
     return { success: true };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan internal." };

@@ -418,7 +418,7 @@ export function ArsipManager({
       {/* Filter & Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-muted/30 p-2.5 rounded-xl border">
         {/* Kategori Tabs Baru */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 md:pb-0">
           {[
             { id: "semua", label: "Semua Berkas", count: archives.length },
             { id: "drive", label: "Link Drive", count: archives.filter((a) => !!a.driveUrl).length },
@@ -428,7 +428,7 @@ export function ArsipManager({
             <button
               key={tab.id}
               onClick={() => setActiveCategory(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all whitespace-nowrap shrink-0 ${
                 activeCategory === tab.id
                   ? "bg-background text-foreground shadow-xs font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -449,10 +449,10 @@ export function ArsipManager({
         </div>
 
         {/* Filter Agenda & Search */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
           {agendaList.length > 0 && (
             <Select value={filterAgenda} onValueChange={setFilterAgenda}>
-              <SelectTrigger className="w-44 h-8 text-xs bg-background">
+              <SelectTrigger className="w-full sm:w-44 h-8 text-xs bg-background">
                 <SelectValue placeholder="Filter Agenda" />
               </SelectTrigger>
               <SelectContent>
@@ -466,13 +466,13 @@ export function ArsipManager({
             </Select>
           )}
 
-          <div className="relative w-full sm:w-56">
+          <div className="relative w-full sm:w-56 flex-1">
             <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Cari judul / deskripsi / link..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-xs bg-background"
+              className="pl-8 h-8 text-xs bg-background w-full"
             />
           </div>
         </div>

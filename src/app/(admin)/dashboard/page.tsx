@@ -99,7 +99,7 @@ export default async function DashboardPage() {
               <Wallet className="h-4 w-4 text-primary shrink-0" />
             </CardHeader>
             <CardContent className="p-3.5 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-lg sm:text-2xl font-bold truncate">
+              <div className="text-base sm:text-2xl font-bold truncate">
                 {formatRupiah(summaryData.keuangan.saldoAkhir)}
               </div>
               <div className="flex items-center text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 mt-1 gap-1">

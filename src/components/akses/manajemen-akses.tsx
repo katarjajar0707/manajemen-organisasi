@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -165,15 +165,18 @@ export interface ModulePermission {
   access: Record<KatarRole, boolean>;
 }
 
-// Data Default Hak Akses
-const INITIAL_PERMISSIONS: ModulePermission[] = [
+const STORAGE_KEY = "katar_access_permissions_v3";
+
+// Data Lengkap Seluruh Menu & Halaman Website
+export const INITIAL_PERMISSIONS: ModulePermission[] = [
+  // ── Kategori: Utama ──
   {
     id: "dashboard",
-    nama: "Dashboard Internal",
+    nama: "Dashboard Utama",
     kategori: "Utama",
     path: "/dashboard",
     iconName: "LayoutDashboard",
-    deskripsi: "Ringkasan metrik statistik, pengumuman terbaru, dan jadwal kegiatan terdekat.",
+    deskripsi: "Ringkasan statistik metrik, pengumuman terbaru, kas organisasi, dan jadwal kegiatan terdekat.",
     access: {
       admin: true,
       ketua: true,
@@ -184,12 +187,46 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
+    id: "profil",
+    nama: "Profil & Direktori Anggota",
+    kategori: "Utama",
+    path: "/profil",
+    iconName: "User",
+    deskripsi: "Informasi identitas akun terverifikasi dan direktori seluruh anggota organisasi hasil sinkronisasi Manajemen Pengguna.",
+    access: {
+      admin: true,
+      ketua: true,
+      sekretaris: true,
+      bendahara: true,
+      koordinator: true,
+      anggota: true,
+    },
+  },
+  {
+    id: "transparansi",
+    nama: "Portal Transparansi Publik",
+    kategori: "Utama",
+    path: "/",
+    iconName: "Eye",
+    deskripsi: "Portal transparansi kas keuangan, rekap jumlah anggota aktif, dan kalender kegiatan untuk warga tanpa login.",
+    access: {
+      admin: true,
+      ketua: true,
+      sekretaris: true,
+      bendahara: true,
+      koordinator: true,
+      anggota: true,
+    },
+  },
+
+  // ── Kategori: Organisasi ──
+  {
     id: "keuangan",
     nama: "Catatan Kas & Keuangan",
     kategori: "Organisasi",
     path: "/bagian/bendahara",
     iconName: "Wallet",
-    deskripsi: "Buku kas masuk, kas keluar, upload nota/bukti transaksi, dan rekap saldo.",
+    deskripsi: "Buku kas masuk, kas keluar, unggah nota/bukti transaksi pengeluaran, dan rekapitulasi saldo bendahara.",
     access: {
       admin: true,
       ketua: true,
@@ -201,11 +238,11 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
   },
   {
     id: "anggota",
-    nama: "Database Anggota",
+    nama: "Database Keanggotaan",
     kategori: "Organisasi",
     path: "/anggota",
     iconName: "Users",
-    deskripsi: "Daftar pengurus dan anggota karang taruna, kontak telepon, dan alamat RT/RW.",
+    deskripsi: "Daftar keanggotaan pemuda terpusat, domisili RT/RW, penugasan bagian, status aktif, dan kontak WhatsApp.",
     access: {
       admin: true,
       ketua: true,
@@ -217,11 +254,11 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
   },
   {
     id: "struktur",
-    nama: "Struktur & Bagan Organisasi",
+    nama: "Struktur Organisasi Multi-Agenda",
     kategori: "Organisasi",
     path: "/struktur",
     iconName: "FolderKanban",
-    deskripsi: "Bagan susunan kepengurusan per periode dan kepengurusan agenda khusus.",
+    deskripsi: "Bagan susunan kepengurusan per agenda organisasi dan periode aktif kepanitiaan.",
     access: {
       admin: true,
       ketua: true,
@@ -233,11 +270,27 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
   },
   {
     id: "kegiatan",
-    nama: "Kalender Kegiatan & Dokumentasi",
+    nama: "Kalender Kegiatan & Agenda",
     kategori: "Organisasi",
     path: "/kegiatan",
     iconName: "Calendar",
-    deskripsi: "Jadwal program kerja, rapat panitia, dan galeri dokumentasi foto kegiatan.",
+    deskripsi: "Jadwal program kerja, rapat panitia, lokasi pelaksanaan, dan penanggung jawab bagian.",
+    access: {
+      admin: true,
+      ketua: true,
+      sekretaris: true,
+      bendahara: true,
+      koordinator: true,
+      anggota: true,
+    },
+  },
+  {
+    id: "dokumentasi",
+    nama: "Dokumentasi Foto Kegiatan",
+    kategori: "Organisasi",
+    path: "/kegiatan/[id]/dokumentasi",
+    iconName: "Camera",
+    deskripsi: "Galeri foto dokumentasi per kegiatan, upload multi-gambar, dan pratinjau resolusi tinggi.",
     access: {
       admin: true,
       ketua: true,
@@ -253,7 +306,7 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
     kategori: "Organisasi",
     path: "/pengumuman",
     iconName: "Megaphone",
-    deskripsi: "Pemberitahuan resmi pengurus yang disiarkan ke seluruh anggota atau bagian.",
+    deskripsi: "Pemberitahuan resmi pengurus yang disiarkan satu arah ke seluruh anggota atau bagian tertentu.",
     access: {
       admin: true,
       ketua: true,
@@ -269,7 +322,23 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
     kategori: "Organisasi",
     path: "/diskusi",
     iconName: "MessagesSquare",
-    deskripsi: "Ruang tukar pikiran, urun rembuk usulan program, dan voting gagasan.",
+    deskripsi: "Forum komunikasi dua arah, catatan umum lintas bagian, dan penandaan @departemen.",
+    access: {
+      admin: true,
+      ketua: true,
+      sekretaris: true,
+      bendahara: true,
+      koordinator: true,
+      anggota: true,
+    },
+  },
+  {
+    id: "bagian_catatan",
+    nama: "Catatan Internal Divisi / Bagian",
+    kategori: "Organisasi",
+    path: "/bagian/[slug]",
+    iconName: "FileText",
+    deskripsi: "Catatan operasional internal privat masing-masing bagian (Sekretaris, Humas, Acara, dll).",
     access: {
       admin: true,
       ketua: true,
@@ -281,11 +350,11 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
   },
   {
     id: "inventaris",
-    nama: "Inventaris & Pinjam Aset",
+    nama: "Inventaris & Peminjaman Aset",
     kategori: "Organisasi",
     path: "/inventaris",
     iconName: "Package",
-    deskripsi: "Pencatatan aset fisik organisasi, kontrol kondisi, dan form sirkulasi pinjam-pakai.",
+    deskripsi: "Pencatatan aset fisik organisasi, kontrol kondisi barang, dan form sirkulasi pinjam-pakai.",
     access: {
       admin: true,
       ketua: true,
@@ -295,13 +364,15 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
       anggota: false,
     },
   },
+
+  // ── Kategori: Administrasi ──
   {
     id: "surat",
-    nama: "Template Surat & Administrasi",
+    nama: "Administrasi & Template Surat",
     kategori: "Administrasi",
     path: "/surat",
     iconName: "FileText",
-    deskripsi: "Pembuatan surat undangan, permohonan izin balai, dan template proposal kegiatan.",
+    deskripsi: "Pembuatan surat keluar, surat masuk, permohonan izin balai, undangan, dan template proposal.",
     access: {
       admin: true,
       ketua: true,
@@ -317,7 +388,7 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
     kategori: "Administrasi",
     path: "/arsip",
     iconName: "Archive",
-    deskripsi: "Penyimpanan berkas SK kepengurusan, LPJ kegiatan, dan dokumen legalitas.",
+    deskripsi: "Penyimpanan berkas SK kepengurusan, laporan pertanggungjawaban (LPJ), dan dokumen legalitas.",
     access: {
       admin: true,
       ketua: true,
@@ -333,7 +404,7 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
     kategori: "Administrasi",
     path: "/bagian",
     iconName: "Building2",
-    deskripsi: "Pengaturan daftar divisi organisasi, slug URL, dan deskripsi tugas pokok seksi.",
+    deskripsi: "Pengaturan master divisi organisasi, slug URL, dan deskripsi tugas pokok seksi.",
     access: {
       admin: true,
       ketua: true,
@@ -349,7 +420,7 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
     kategori: "Administrasi",
     path: "/pengguna",
     iconName: "ShieldCheck",
-    deskripsi: "Pemberian akun login pengurus, ubah peranan (role), dan reset password.",
+    deskripsi: "Pembuatan akun login terpusat, sinkronisasi data anggota, penetapan role, dan reset password.",
     access: {
       admin: true,
       ketua: false,
@@ -361,11 +432,11 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
   },
   {
     id: "akses",
-    nama: "Manajemen Hak Akses",
+    nama: "Manajemen Hak Akses (RBAC)",
     kategori: "Administrasi",
     path: "/akses",
     iconName: "KeyRound",
-    deskripsi: "Kontrol matriks perizinan On/Off tiap menu dan modul aplikasi.",
+    deskripsi: "Kontrol matriks perizinan visibilitas On/Off setiap menu dan modul sistem.",
     access: {
       admin: true,
       ketua: false,
@@ -377,11 +448,11 @@ const INITIAL_PERMISSIONS: ModulePermission[] = [
   },
   {
     id: "pengaturan",
-    nama: "Pengaturan Sistem & Backup",
+    nama: "Pengaturan Sistem & Kebijakan",
     kategori: "Administrasi",
     path: "/pengaturan",
     iconName: "Sliders",
-    deskripsi: "Konfigurasi profil organisasi, kebijakan operasional, dan cadangan basis data.",
+    deskripsi: "Konfigurasi profil organisasi, kebijakan operasional, format nomor surat, dan pencadangan data.",
     access: {
       admin: true,
       ketua: false,
@@ -399,6 +470,25 @@ export function ManajemenAkses() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedKategori, setSelectedKategori] = useState<string>("all");
   const [selectedRoleDetail, setSelectedRoleDetail] = useState<KatarRole>("ketua");
+
+  // Load saved permissions from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed: ModulePermission[] = JSON.parse(saved);
+        // Merge with initial permissions to ensure any newly added modules are always present
+        const merged = INITIAL_PERMISSIONS.map((initialItem) => {
+          const found = parsed.find((p) => p.id === initialItem.id);
+          return found || initialItem;
+        });
+        setPermissions(merged);
+        setInitialSnapshot(merged);
+      }
+    } catch (e) {
+      console.error("Error loading permissions from storage:", e);
+    }
+  }, []);
 
   // Notification Toast
   const [notification, setNotification] = useState<{
@@ -498,6 +588,11 @@ export function ManajemenAkses() {
   const handleSaveAll = () => {
     setInitialSnapshot(permissions);
     setIsSaveConfirmOpen(false);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(permissions));
+    } catch (e) {
+      console.error("Error saving permissions:", e);
+    }
     triggerToast("Hak akses dan izin menu berhasil diperbarui dan diterapkan ke seluruh pengguna!", "success");
   };
 
@@ -512,6 +607,11 @@ export function ManajemenAkses() {
     setPermissions(INITIAL_PERMISSIONS);
     setInitialSnapshot(INITIAL_PERMISSIONS);
     setIsResetDialogOpen(false);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      console.error("Error clearing permissions:", e);
+    }
     triggerToast("Hak akses telah dikembalikan ke konfigurasi standar organisasi.", "success");
   };
 
