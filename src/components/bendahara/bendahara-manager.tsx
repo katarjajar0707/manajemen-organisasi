@@ -243,8 +243,8 @@ export function BendaharaManager({
       filterJenis === "masuk"
         ? "Kas Masuk (Pemasukan)"
         : filterJenis === "keluar"
-        ? "Kas Keluar (Pengeluaran)"
-        : "Semua Mutasi",
+          ? "Kas Keluar (Pengeluaran)"
+          : "Semua Mutasi",
     ].join(" | ");
 
     const totalMasukFiltered = filteredList
@@ -520,8 +520,8 @@ export function BendaharaManager({
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex-1 sm:flex-none gap-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60"
             size="sm"
             onClick={() => handleOpenCreate("masuk")}
@@ -529,7 +529,7 @@ export function BendaharaManager({
             <TrendingUp className="h-4 w-4" />
             <span>Kas Masuk</span>
           </Button>
-          <Button 
+          <Button
             className="flex-1 sm:flex-none gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
             size="sm"
             onClick={() => handleOpenCreate("keluar")}
@@ -590,7 +590,7 @@ export function BendaharaManager({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div suppressHydrationWarning className="text-2xl font-extrabold text-rose-800 dark:text-rose-100">
+            <div suppressHydrationWarning className="text-2xl font-extrabold text-rose-800 dark:text-rose-300">
               {formatRupiah(initialSaldo.keluar)}
             </div>
             <p className="text-xs text-slate-700 dark:text-rose-400/80 font-medium mt-1">
@@ -630,8 +630,8 @@ export function BendaharaManager({
               cat === "Semua"
                 ? initialList.length
                 : initialList.filter(
-                    (i: any) => (i.kategori || "").toLowerCase() === cat.toLowerCase()
-                  ).length;
+                  (i: any) => (i.kategori || "").toLowerCase() === cat.toLowerCase()
+                ).length;
 
             return (
               <button
@@ -824,8 +824,8 @@ export function BendaharaManager({
                         {formatRupiah(trx.jumlah)}
                       </td>
                       <td className="px-3 sm:px-6 py-3.5 text-center whitespace-nowrap">
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className={trx.jenis === "masuk" ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" : "bg-rose-100 text-rose-800 hover:bg-rose-100"}
                         >
                           {trx.jenis === "masuk" ? "Pemasukan" : "Pengeluaran"}
@@ -868,7 +868,7 @@ export function BendaharaManager({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => setDeleteId(trx.id)}
                             >
@@ -911,7 +911,7 @@ export function BendaharaManager({
                   <span>{error}</span>
                 </div>
               )}
-              
+
               <div className="space-y-1.5">
                 <Label className="text-xs">Judul Transaksi</Label>
                 <Input
@@ -1033,7 +1033,7 @@ export function BendaharaManager({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Preview Lampiran Modal */}
       <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
         <DialogContent className="max-w-3xl w-full p-2">
