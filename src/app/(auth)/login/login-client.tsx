@@ -74,7 +74,7 @@ export function LoginClient({ settings }: { settings?: PengaturanSistemData }) {
         </div>
 
         <Card className="shadow-lg border-border/80">
-          <form action={handleLogin}>
+          <form id="login-form" action={handleLogin} autoComplete="on">
             <CardHeader>
               <CardTitle className="text-lg">Masuk ke Akun</CardTitle>
               <CardDescription>
@@ -95,6 +95,7 @@ export function LoginClient({ settings }: { settings?: PengaturanSistemData }) {
                     id="email"
                     name="email"
                     type="email"
+                    autoComplete="username"
                     placeholder="pengurus@karangtaruna.id"
                     className="pl-9"
                     required
@@ -112,6 +113,7 @@ export function LoginClient({ settings }: { settings?: PengaturanSistemData }) {
                     id="password"
                     name="password"
                     type="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     className="pl-9"
                     required
