@@ -62,12 +62,23 @@ export async function getUsers() {
 
   const { data: profiles, error } = await supabase
     .from("profiles")
-    .select("id, nama, username, role, bagian_id, created_at, bagian:bagian_id(id, nama)")
+    .select("id, nama, username, foto_url, role, bagian_id, created_at, bagian:bagian_id(id, nama)")
     .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching users:", error);
     return [];
+  }
+
+  // Ambil foto profil dari tabel anggota jika ada fallback
+  const { data: anggotaPhotos } = await supabase
+    .from("anggota")
+    .select("id, foto_url");
+  const anggotaPhotoMap = new Map<string, string>();
+  if (anggotaPhotos) {
+    for (const a of anggotaPhotos) {
+      if (a.foto_url) anggotaPhotoMap.set(a.id, a.foto_url);
+    }
   }
 
   // Try fetching nomor_wa separately (column mungkin belum ada di DB)
@@ -97,6 +108,7 @@ export async function getUsers() {
   // Normalize bagian from array (Supabase FK join) to single object
   const normalized = (profiles || []).map((p: any) => ({
     ...p,
+    foto_url: p.foto_url || anggotaPhotoMap.get(p.id) || null,
     nomor_wa: waMap.get(p.id) || "",
     email: emailMap.get(p.id) || "",
     bagian: Array.isArray(p.bagian) ? (p.bagian[0] || null) : (p.bagian || null),

@@ -549,7 +549,7 @@ export function BendaharaManager({
         <Card className="bg-blue-50/70 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/20 dark:border-blue-900/40 dark:bg-card shadow-xs">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-bold text-slate-900 dark:text-blue-300 flex items-center gap-2">
-              <span className="p-1 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-400">
+              <span className="p-1 rounded-md bg-blue-500/10 text-blue-950 dark:text-blue-400">
                 <Wallet className="h-4 w-4" />
               </span>
               <span>Total Saldo Aktif</span>

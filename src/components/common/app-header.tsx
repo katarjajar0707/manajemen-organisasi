@@ -79,10 +79,13 @@ export function AppHeader({
   const storeName = useAuthStore((s) => s.userName);
   const storeAvatarUrl = useAuthStore((s) => s.avatarUrl);
   const setAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
-  const userRole = propUserRole || storeRole || "admin";
-  const userName = propUserName || storeName || "Azzam Azhari";
-  // The effective avatar: store takes priority (realtime updates), fallback to server prop
-  const avatarUrl = storeAvatarUrl || userAvatarUrl || null;
+  const setUserName = useAuthStore((s) => s.setUserName);
+  const setUserRole = useAuthStore((s) => s.setUserRole);
+
+  const userRole = propUserRole || storeRole || "anggota";
+  const userName = propUserName || storeName || "Pengguna";
+  // The effective avatar: store takes priority if set, otherwise fallback to server prop
+  const avatarUrl = storeAvatarUrl !== null ? storeAvatarUrl : (userAvatarUrl ?? null);
   const departemen =
     propUserDepartemen ||
     (userRole === "admin"
@@ -100,11 +103,14 @@ export function AppHeader({
   const [mounted, setMounted] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isLoggingOut, startLogoutTransition] = React.useTransition();
+  const [imgError, setImgError] = React.useState(false);
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
 
   const handleLogout = () => {
     startLogoutTransition(async () => {
+      setAvatarUrl(null);
+      setUserName("");
       await logout();
     });
   };
@@ -113,12 +119,40 @@ export function AppHeader({
     setMounted(true);
   }, []);
 
-  // Seed the store with server-provided avatar URL on first mount
+  // Sync server prop to store whenever userAvatarUrl prop changes
   React.useEffect(() => {
-    if (userAvatarUrl && !storeAvatarUrl) {
+    if (userAvatarUrl !== undefined) {
       setAvatarUrl(userAvatarUrl);
     }
-  }, [userAvatarUrl, storeAvatarUrl, setAvatarUrl]);
+  }, [userAvatarUrl, setAvatarUrl]);
+
+  React.useEffect(() => {
+    if (propUserName) {
+      setUserName(propUserName);
+    }
+    if (propUserRole) {
+      setUserRole(propUserRole as any);
+    }
+  }, [propUserName, propUserRole, setUserName, setUserRole]);
+
+  // Reset img error whenever avatarUrl changes
+  React.useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
+
+  // Listen to immediate custom events for avatar changes (optimistic updates from other components)
+  React.useEffect(() => {
+    const handleAvatarEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ url: string | null }>;
+      if (customEvent.detail && "url" in customEvent.detail) {
+        setAvatarUrl(customEvent.detail.url);
+      }
+    };
+    window.addEventListener("user-avatar-updated", handleAvatarEvent);
+    return () => {
+      window.removeEventListener("user-avatar-updated", handleAvatarEvent);
+    };
+  }, [setAvatarUrl]);
 
   const currentTheme = theme === "system" ? systemTheme : theme;
   const isDark = currentTheme === "dark";
@@ -229,23 +263,24 @@ export function AppHeader({
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden",
-                !avatarUrl && "bg-gradient-to-br from-primary to-emerald-400",
+                "flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden shrink-0",
+                (!avatarUrl || imgError) && "bg-gradient-to-br from-primary to-emerald-400",
                 "text-primary-foreground font-bold text-xs",
                 "shadow-[0_0_12px_rgba(16,185,129,0.25)]",
                 "hover:shadow-[0_0_18px_rgba(16,185,129,0.4)]",
                 "transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40"
               )}
             >
-              {avatarUrl ? (
+              {avatarUrl && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={avatarUrl}
                   alt={userName}
+                  onError={() => setImgError(true)}
                   className="h-full w-full object-cover"
                 />
               ) : (
-                initials
+                initials || "KT"
               )}
             </button>
           </DropdownMenuTrigger>

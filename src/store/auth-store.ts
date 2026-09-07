@@ -12,8 +12,8 @@ interface AuthStore {
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
-  userRole: "admin",
-  userName: "Azzam Azhari",
+  userRole: "anggota",
+  userName: "",
   avatarUrl: null,
   setUserRole: (role) => set({ userRole: role }),
   setUserName: (name) => set({ userName: name }),

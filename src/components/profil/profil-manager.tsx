@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Shield,
   Camera,
@@ -43,6 +44,7 @@ import {
   UserCheck,
   Phone,
   UserPen,
+  Eye,
 } from "lucide-react";
 import { updateAvatar, changePassword, updateMyProfile } from "@/actions/profil";
 import { useAuthStore } from "@/store/auth-store";
@@ -68,6 +70,7 @@ export interface UserItem {
   id: string;
   nama: string;
   username: string;
+  foto_url?: string | null;
   role: string;
   bagian_id: string | null;
   created_at?: string;
@@ -99,6 +102,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  const router = useRouter();
   const setStoreAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
   const setStoreUserName = useAuthStore((s) => s.setUserName);
 
@@ -106,6 +110,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterBagian, setFilterBagian] = useState<string>("semua");
   const [filterRole, setFilterRole] = useState<string>("semua");
+  const [previewMember, setPreviewMember] = useState<UserItem | null>(null);
 
   // Edit Profile Modal states
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -133,6 +138,10 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
 
     const localUrl = URL.createObjectURL(file);
     setAvatarUrl(localUrl);
+    setStoreAvatarUrl(localUrl);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("user-avatar-updated", { detail: { url: localUrl } }));
+    }
 
     startTransition(async () => {
       const formData = new FormData();
@@ -142,9 +151,17 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
       if (res?.error) {
         setFeedback({ type: "error", message: res.error });
         setAvatarUrl(profile.foto_url);
+        setStoreAvatarUrl(profile.foto_url);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("user-avatar-updated", { detail: { url: profile.foto_url } }));
+        }
       } else if (res?.url) {
         setAvatarUrl(res.url);
         setStoreAvatarUrl(res.url);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("user-avatar-updated", { detail: { url: res.url } }));
+        }
+        router.refresh();
         setFeedback({ type: "success", message: "Foto profil berhasil diperbarui!" });
       }
       clearFeedback();
@@ -220,6 +237,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
         setEditConfirmPassword("");
         setIsEditProfileOpen(false);
         setStoreUserName(editNama.trim());
+        router.refresh();
         setFeedback({ 
           type: "success", 
           message: res?.message || "Profil akun Anda berhasil diperbarui!" 
@@ -551,13 +569,30 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                   <div key={u.id} className="p-3.5 space-y-2 hover:bg-muted/20 transition-colors">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <Avatar className="h-9 w-9 shrink-0 border border-border/60">
-                          <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
-                            {u.nama?.slice(0, 2).toUpperCase() || "KT"}
-                          </AvatarFallback>
-                        </Avatar>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMember(u)}
+                          className="relative group shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40 text-left"
+                          title="Klik untuk melihat preview foto profil"
+                        >
+                          <Avatar className="h-9 w-9 shrink-0 border border-border/60 group-hover:scale-105 transition-transform">
+                            {u.foto_url ? (
+                              <AvatarImage src={u.foto_url} alt={u.nama} className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                              {u.nama?.slice(0, 2).toUpperCase() || "KT"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </button>
                         <div className="min-w-0">
-                          <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{u.nama}</p>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewMember(u)}
+                            className="font-semibold text-xs sm:text-sm text-foreground truncate hover:text-primary transition-colors text-left block"
+                            title="Klik untuk melihat preview profil"
+                          >
+                            {u.nama}
+                          </button>
                           <p className="text-[11px] text-muted-foreground truncate">@{u.username}</p>
                         </div>
                       </div>
@@ -589,28 +624,46 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/10">
-                      <TableHead className="w-[60px]"></TableHead>
+                      <TableHead className="w-[60px]">Foto</TableHead>
                       <TableHead>Nama Anggota</TableHead>
                       <TableHead>Username</TableHead>
                       <TableHead>Bagian / Departemen</TableHead>
                       <TableHead>Role / Hak Akses</TableHead>
                       <TableHead>Status Akun</TableHead>
                       <TableHead className="text-right">Tgl Bergabung</TableHead>
+                      <TableHead className="text-right w-[60px]">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((u) => (
                       <TableRow key={u.id} className="hover:bg-muted/20">
                         <TableCell className="py-2.5">
-                          <Avatar className="h-8 w-8 border border-border/60">
-                            <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
-                              {u.nama?.slice(0, 2).toUpperCase() || "KT"}
-                            </AvatarFallback>
-                          </Avatar>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewMember(u)}
+                            className="relative group shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40 text-left block"
+                            title="Klik untuk melihat preview foto profil"
+                          >
+                            <Avatar className="h-9 w-9 border border-border/60 group-hover:scale-110 group-hover:ring-2 group-hover:ring-primary/40 transition-all shadow-2xs">
+                              {u.foto_url ? (
+                                <AvatarImage src={u.foto_url} alt={u.nama} className="object-cover" />
+                              ) : null}
+                              <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
+                                {u.nama?.slice(0, 2).toUpperCase() || "KT"}
+                              </AvatarFallback>
+                            </Avatar>
+                          </button>
                         </TableCell>
                         <TableCell className="font-medium text-xs sm:text-sm">
                           <div className="flex items-center gap-1.5">
-                            <span>{u.nama}</span>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewMember(u)}
+                              className="hover:text-primary transition-colors text-left font-medium"
+                              title="Klik untuk melihat preview profil"
+                            >
+                              {u.nama}
+                            </button>
                             {u.id === profile.id && (
                               <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/40 text-primary">
                                 Anda
@@ -655,6 +708,17 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                                 year: "numeric",
                               })
                             : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                            onClick={() => setPreviewMember(u)}
+                            title="Lihat Foto & Detail Anggota"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
