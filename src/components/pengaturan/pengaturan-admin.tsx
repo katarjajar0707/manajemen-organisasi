@@ -494,7 +494,7 @@ export function PengaturanAdmin({
                         <img
                           src={orgProfile.logoUrl}
                           alt="Logo Karang Taruna"
-                          className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                         />
                         <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <Camera className="h-5 w-5 text-white" />

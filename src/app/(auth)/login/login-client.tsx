@@ -58,7 +58,7 @@ export function LoginClient({ settings }: { settings?: PengaturanSistemData }) {
               <img
                 src={settings.profil.logoUrl}
                 alt={orgName}
-                className="w-full h-full object-contain p-0.5"
+                className="w-full h-full object-cover"
               />
             </div>
           ) : (

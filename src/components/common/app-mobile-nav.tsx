@@ -80,7 +80,7 @@ export function AppMobileNav({
           <div className="flex items-center gap-3">
             {orgLogoUrl ? (
               <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs bg-background">
-                <img src={orgLogoUrl} alt={orgName || "Logo"} className="w-full h-full object-contain p-0.5" />
+                <img src={orgLogoUrl} alt={orgName || "Logo"} className="w-full h-full object-cover" />
               </div>
             ) : (
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground font-extrabold text-sm shadow-[0_0_16px_rgba(16,185,129,0.3)]">KT</div>

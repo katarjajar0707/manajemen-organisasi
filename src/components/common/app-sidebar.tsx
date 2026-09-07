@@ -44,7 +44,7 @@ export function AppSidebar({
         <div className={cn('flex h-14 items-center border-b border-border/60 shrink-0', isCollapsed ? 'justify-center px-0' : 'gap-3 px-4')}>
           {orgLogoUrl ? (
             <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 overflow-hidden border border-border/80 shadow-xs bg-background">
-              <img src={orgLogoUrl} alt={orgName || "Logo"} className="w-full h-full object-contain p-0.5" />
+              <img src={orgLogoUrl} alt={orgName || "Logo"} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div
