@@ -1,7 +1,15 @@
 "use server";
 
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, getProfile } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+
+async function requireAdmin() {
+  const profile = await getProfile();
+  if (!profile || profile.role !== "admin") {
+    return { authorized: false, error: "Akses ditolak: Hanya Administrator yang berhak mengelola data akun pengguna lain." };
+  }
+  return { authorized: true, profile };
+}
 
 export async function syncProfilesToAnggota() {
   try {
@@ -63,6 +71,11 @@ export async function getUsers() {
 }
 
 export async function createUser(formData: FormData) {
+  const authCheck = await requireAdmin();
+  if (!authCheck.authorized) {
+    return { error: authCheck.error };
+  }
+
   const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
   const nama = (formData.get("nama") as string)?.trim();
@@ -140,6 +153,11 @@ export async function createUser(formData: FormData) {
 }
 
 export async function updateUser(userId: string, formData: FormData) {
+  const authCheck = await requireAdmin();
+  if (!authCheck.authorized) {
+    return { error: authCheck.error };
+  }
+
   const nama = (formData.get("nama") as string)?.trim();
   const role = formData.get("role") as string;
   const bagian_id = (formData.get("bagian_id") as string)?.trim() || null;
@@ -193,6 +211,11 @@ export async function updateUser(userId: string, formData: FormData) {
 }
 
 export async function deleteUser(userId: string) {
+  const authCheck = await requireAdmin();
+  if (!authCheck.authorized) {
+    return { error: authCheck.error };
+  }
+
   try {
     const supabase = await createAdminClient();
     

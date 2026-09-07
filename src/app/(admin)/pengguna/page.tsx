@@ -5,7 +5,9 @@ import { UserFormModal } from "./components/user-form-modal";
 import { DeleteUserButton } from "./components/delete-user-button";
 import { getUsers } from "@/actions/admin-users";
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/supabase/server";
+import { ShieldAlert, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function UserManagementPage() {
@@ -19,9 +21,27 @@ export default async function UserManagementPage() {
   
   if (!currentProfile || currentProfile.role !== "admin") {
     return (
-      <div className="p-6 text-center">
-        <h2 className="text-xl font-bold text-destructive">Akses Ditolak</h2>
-        <p className="text-muted-foreground mt-2">Halaman ini hanya dapat diakses oleh Admin.</p>
+      <div className="py-12 px-4 max-w-md mx-auto text-center">
+        <Card className="border shadow-sm p-6 space-y-4">
+          <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+            <ShieldAlert className="h-6 w-6" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-foreground">Akses Khusus Administrator</h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Halaman ini hanya dapat diakses oleh akun dengan peran <strong>Administrator</strong>. 
+              Sebagai pengurus/anggota, Anda dapat mengelola profil akun Anda sendiri melalui halaman Profil.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link href="/profil">
+              <Button size="sm" variant="outline" className="gap-2 text-xs">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Kembali ke Profil Saya</span>
+              </Button>
+            </Link>
+          </div>
+        </Card>
       </div>
     );
   }

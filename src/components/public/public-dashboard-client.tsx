@@ -38,8 +38,11 @@ import {
   Phone,
   Printer,
   Loader2,
+  AlertTriangle,
+  Globe,
 } from "lucide-react";
 import { PublicTransparencyData, kirimAspirasiWarga } from "@/actions/transparansi";
+import type { PengaturanSistemData } from "@/actions/pengaturan";
 
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
@@ -49,22 +52,37 @@ function formatRupiah(amount: number): string {
   }).format(amount);
 }
 
+function getInitials(name: string): string {
+  const parts = name.split(" ").filter(Boolean);
+  if (parts.length === 0) return "KT";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
+}
+
 export function PublicDashboardClient({
   initialData,
+  settings,
 }: {
   initialData: PublicTransparencyData;
+  settings?: PengaturanSistemData;
 }) {
   const [data] = useState<PublicTransparencyData>(initialData);
 
   // Aspirasi Warga State
   const [namaWarga, setNamaWarga] = useState("");
-  const [rtWarga, setRtWarga] = useState("RT 03");
+  const [rtWarga, setRtWarga] = useState(settings?.profil.unitWilayah || "RT 01 / RW 05");
   const [pesanAspirasi, setPesanAspirasi] = useState("");
   const [isSent, setIsSent] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // Download / Cetak Modal
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+
+  const orgName = settings?.profil.nama || "Karang Taruna";
+  const orgWilayah = [settings?.profil.unitWilayah, settings?.profil.kelurahan]
+    .filter(Boolean)
+    .join(" · ");
+  const isKasPublik = settings?.keamanan?.transparansiKasPublik ?? true;
 
   const handleSubmitAspirasi = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,19 +110,76 @@ export function PublicDashboardClient({
     }
   };
 
+  // Jika portal publik dinonaktifkan oleh kebijakan organisasi
+  if (settings?.keamanan && !settings.keamanan.portalPublikAktif) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
+        <header className="flex h-16 w-full items-center justify-between border-b px-4 md:px-8 bg-background/80 backdrop-blur-md">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm">
+              {getInitials(orgName)}
+            </div>
+            <div>
+              <span className="font-bold text-sm sm:text-base">{orgName}</span>
+              {orgWilayah && <p className="text-[11px] text-muted-foreground">{orgWilayah}</p>}
+            </div>
+          </div>
+          <Link href="/login">
+            <Button size="sm">Masuk Portal Pengurus</Button>
+          </Link>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto space-y-4">
+          <div className="p-4 rounded-full bg-muted/60 text-muted-foreground">
+            <Shield className="h-10 w-10" />
+          </div>
+          <h2 className="text-xl font-bold">Portal Publik Dinonaktifkan</h2>
+          <p className="text-sm text-muted-foreground">
+            Akses portal transparansi publik untuk {orgName} saat ini ditutup sesuai kebijakan organisasi. Silakan login ke portal pengurus jika Anda memiliki akun terdaftar.
+          </p>
+          <Link href="/login">
+            <Button className="gap-2">
+              <span>Masuk Portal Pengurus</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20">
+      {/* Banner Mode Maintenance jika aktif */}
+      {settings?.keamanan?.modeMaintenance && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-800 dark:text-amber-200 px-4 py-2 text-xs text-center font-medium flex items-center justify-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+          <span>Sistem sedang dalam mode pemeliharaan berkala. Beberapa fitur mungkin sedang disesuaikan.</span>
+        </div>
+      )}
+
       {/* Header Publik */}
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b bg-background/80 px-4 md:px-8 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm">
-            KT
-          </div>
+          {settings?.profil.logoUrl ? (
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs bg-background shrink-0">
+              <img
+                src={settings.profil.logoUrl}
+                alt={orgName}
+                className="w-full h-full object-contain p-0.5"
+              />
+            </div>
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm shrink-0">
+              {getInitials(orgName)}
+            </div>
+          )}
           <div>
             <h1 className="text-sm sm:text-base font-bold leading-none tracking-tight">
-              Karang Taruna Bhakti Karya
+              {orgName}
             </h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5">RW 05 Kelurahan Sukamaju</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {orgWilayah || "Portal Transparansi Publik"}
+            </p>
           </div>
         </div>
 
@@ -125,7 +200,9 @@ export function PublicDashboardClient({
         <section className="relative px-4 pt-14 pb-12 md:pt-20 md:pb-16 text-center max-w-4xl mx-auto space-y-5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-muted/40 text-xs text-muted-foreground shadow-xs">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span className="font-medium text-foreground">Portal Transparansi Publik 2026</span>
+            <span className="font-medium text-foreground">
+              Portal Transparansi Publik · Periode {settings?.operasional.periodeAktif || "Aktif"}
+            </span>
           </div>
 
           <h2 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
@@ -133,18 +210,21 @@ export function PublicDashboardClient({
           </h2>
 
           <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-            Menyajikan data keuangan kas, jumlah anggota pemuda, jadwal kegiatan kemasyarakatan, dan kanal aspirasi warga secara transparan dan akuntabel.
+            {settings?.profil.slogan ||
+              "Menyajikan data keuangan kas, jumlah anggota pemuda, jadwal kegiatan kemasyarakatan, dan kanal aspirasi warga secara transparan dan akuntabel."}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Button
-              size="sm"
-              className="gap-2 h-9 px-5 shadow-sm"
-              onClick={() => setIsDownloadOpen(true)}
-            >
-              <Download className="h-4 w-4" />
-              <span>Lihat Ringkasan Kas Resmi</span>
-            </Button>
+            {isKasPublik && (
+              <Button
+                size="sm"
+                className="gap-2 h-9 px-5 shadow-sm"
+                onClick={() => setIsDownloadOpen(true)}
+              >
+                <Download className="h-4 w-4" />
+                <span>Lihat Ringkasan Kas Resmi</span>
+              </Button>
+            )}
             <a href="#aspirasi">
               <Button size="sm" variant="outline" className="gap-2 h-9 px-5">
                 <MessageSquare className="h-4 w-4" />
@@ -167,15 +247,27 @@ export function PublicDashboardClient({
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
-                {formatRupiah(data.keuangan.saldoAkhir)}
-              </div>
-              <div className="flex items-center gap-2 mt-2 text-xs">
-                <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 font-semibold gap-0.5">
-                  <TrendingUp className="h-3.5 w-3.5" /> Saldo Aktif
-                </span>
-                <span className="text-muted-foreground">Tersimpan di kas bendahara</span>
-              </div>
+              {isKasPublik ? (
+                <>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
+                    {formatRupiah(data.keuangan.saldoAkhir)}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 text-xs">
+                    <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 font-semibold gap-0.5">
+                      <TrendingUp className="h-3.5 w-3.5" /> Saldo Aktif
+                    </span>
+                    <span className="text-muted-foreground">Tersimpan di kas bendahara</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xl font-bold text-muted-foreground">Internal Only</div>
+                  <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+                    <Shield className="h-3.5 w-3.5" />
+                    <span>Transparansi kas publik dinonaktifkan</span>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -221,63 +313,65 @@ export function PublicDashboardClient({
         </section>
 
         {/* Ringkasan Keuangan Transparan */}
-        <section className="px-4 md:px-8 max-w-6xl mx-auto">
-          <Card className="border shadow-xs overflow-hidden">
-            <CardHeader className="border-b bg-muted/20">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <CardTitle className="text-base sm:text-lg">Transparansi Arus Kas Terkini</CardTitle>
-                  <CardDescription className="text-xs">
-                    Ringkasan pemasukan & pengeluaran kas bendahara demi transparansi warga.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs self-start sm:self-auto h-8"
-                  onClick={() => setIsDownloadOpen(true)}
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  <span>Rincian Ringkasan Kas</span>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border bg-emerald-500/5 space-y-1">
-                  <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                    <span className="flex items-center gap-1">
-                      <TrendingUp className="h-4 w-4" /> Total Pemasukan Kas
-                    </span>
-                    <span className="text-sm font-bold">{formatRupiah(data.keuangan.totalMasuk)}</span>
+        {isKasPublik && (
+          <section className="px-4 md:px-8 max-w-6xl mx-auto">
+            <Card className="border shadow-xs overflow-hidden">
+              <CardHeader className="border-b bg-muted/20">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-base sm:text-lg">Transparansi Arus Kas Terkini</CardTitle>
+                    <CardDescription className="text-xs">
+                      Ringkasan pemasukan & pengeluaran kas bendahara demi transparansi warga {orgName}.
+                    </CardDescription>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Iuran bulanan pengurus/anggota, donasi warga, dan bantuan swadaya masyarakat.
-                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs self-start sm:self-auto h-8"
+                    onClick={() => setIsDownloadOpen(true)}
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Rincian Ringkasan Kas</span>
+                  </Button>
                 </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl border bg-emerald-500/5 space-y-1">
+                    <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <span className="flex items-center gap-1">
+                        <TrendingUp className="h-4 w-4" /> Total Pemasukan Kas
+                      </span>
+                      <span className="text-sm font-bold">{formatRupiah(data.keuangan.totalMasuk)}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Iuran bulanan pengurus/anggota, donasi warga, dan bantuan swadaya masyarakat.
+                    </p>
+                  </div>
 
-                <div className="p-4 rounded-xl border bg-rose-500/5 space-y-1">
-                  <div className="flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-semibold">
-                    <span className="flex items-center gap-1">
-                      <TrendingDown className="h-4 w-4" /> Total Pengeluaran Kas
-                    </span>
-                    <span className="text-sm font-bold">{formatRupiah(data.keuangan.totalKeluar)}</span>
+                  <div className="p-4 rounded-xl border bg-rose-500/5 space-y-1">
+                    <div className="flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                      <span className="flex items-center gap-1">
+                        <TrendingDown className="h-4 w-4" /> Total Pengeluaran Kas
+                      </span>
+                      <span className="text-sm font-bold">{formatRupiah(data.keuangan.totalKeluar)}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Operasional kegiatan kemasyarakatan, perlengkapan inventaris, dan kepanitiaan.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Operasional kegiatan kemasyarakatan, perlengkapan inventaris, dan kepanitiaan.
-                  </p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         {/* Jadwal Kegiatan Publik */}
         <section className="px-4 md:px-8 max-w-6xl mx-auto space-y-4">
           <div>
             <h3 className="text-lg sm:text-xl font-bold tracking-tight">Jadwal Kegiatan & Agenda Warga</h3>
             <p className="text-xs text-muted-foreground">
-              Ayo hadir dan ramaikan program-program kepemudaan bersama seluruh warga RW 05.
+              Ayo hadir dan ramaikan program-program kepemudaan bersama seluruh warga {orgWilayah || orgName}.
             </p>
           </div>
 
@@ -286,7 +380,7 @@ export function PublicDashboardClient({
               <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm font-semibold">Belum ada jadwal kegiatan mendatang</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Agenda dan kegiatan baru akan segera diumumkan oleh pengurus Karang Taruna.
+                Agenda dan kegiatan baru akan segera diumumkan oleh pengurus {orgName}.
               </p>
             </Card>
           ) : (
@@ -326,8 +420,95 @@ export function PublicDashboardClient({
           )}
         </section>
 
+        {/* Sekretariat & Saluran Komunikasi Resmi */}
+        <section className="px-4 md:px-8 max-w-6xl mx-auto space-y-4">
+          <div>
+            <h3 className="text-lg sm:text-xl font-bold tracking-tight">
+              Sekretariat & Saluran Komunikasi Resmi
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Hubungi pengurus atau kunjungi sekretariat {orgName} untuk layanan dan koordinasi warga.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="border bg-card/60">
+              <CardHeader className="pb-2 flex flex-row items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0">
+                  <MapPin className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-xs font-semibold">Alamat Sekretariat</CardTitle>
+                  <p className="text-[11px] text-muted-foreground">Balai Pertemuan Warga</p>
+                </div>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">{settings?.profil.alamat || "Balai Warga"}</p>
+                <p>
+                  {[settings?.profil.kelurahan, settings?.profil.kecamatan, settings?.profil.kota]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border bg-card/60">
+              <CardHeader className="pb-2 flex flex-row items-center gap-3">
+                <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 shrink-0">
+                  <Mail className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-xs font-semibold">Email Resmi</CardTitle>
+                  <p className="text-[11px] text-muted-foreground">Persuratan & Undangan</p>
+                </div>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground space-y-1">
+                <a
+                  href={`mailto:${settings?.profil.email || ""}`}
+                  className="font-medium text-foreground hover:text-primary transition-colors block truncate"
+                >
+                  {settings?.profil.email || "-"}
+                </a>
+                <p>Korespondensi resmi pengurus</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border bg-card/60">
+              <CardHeader className="pb-2 flex flex-row items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-xs font-semibold">Kontak & WhatsApp</CardTitle>
+                  <p className="text-[11px] text-muted-foreground">Layanan Cepat Warga</p>
+                </div>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">{settings?.profil.telepon || "-"}</p>
+                <p>Respon pesan & konfirmasi agenda</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border bg-card/60">
+              <CardHeader className="pb-2 flex flex-row items-center gap-3">
+                <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 shrink-0">
+                  <Globe className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-xs font-semibold">Media Sosial</CardTitle>
+                  <p className="text-[11px] text-muted-foreground">Publikasi & Dokumentasi</p>
+                </div>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">{settings?.profil.instagram || "-"}</p>
+                <p>Instagram & kanal publikasi</p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
         {/* Form Aspirasi & Kotak Saran Warga */}
-        <section id="aspirasi" className="px-4 md:px-8 max-w-4xl mx-auto pt-6">
+        <section id="aspirasi" className="px-4 md:px-8 max-w-4xl mx-auto pt-4">
           <Card className="border shadow-sm bg-card/60">
             <CardHeader className="text-center pb-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-1">
@@ -361,7 +542,7 @@ export function PublicDashboardClient({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-medium">Domisili RT</label>
+                    <label className="text-xs font-medium">Domisili RT / Wilayah</label>
                     <Input
                       value={rtWarga}
                       onChange={(e) => setRtWarga(e.target.value)}
@@ -395,65 +576,93 @@ export function PublicDashboardClient({
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/30 py-8 px-4 md:px-8 text-center text-xs text-muted-foreground">
+      <footer className="border-t bg-muted/30 py-8 px-4 md:px-8 text-xs text-muted-foreground">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 Karang Taruna Bhakti Karya RW 05. Seluruh hak cipta dilindungi.</p>
-          <div className="flex items-center gap-4 text-xs">
-            <span className="flex items-center gap-1">
-              <Mail className="h-3.5 w-3.5" /> katar.rw05@sukamaju.id
-            </span>
-            <span className="flex items-center gap-1">
-              <Phone className="h-3.5 w-3.5" /> +62 812-3456-7890
-            </span>
+          <div className="text-center sm:text-left space-y-1">
+            <p className="font-semibold text-foreground">
+              © {new Date().getFullYear()} {orgName}
+              {settings?.profil.unitWilayah ? ` (${settings.profil.unitWilayah})` : ""}. Seluruh hak cipta dilindungi.
+            </p>
+            <p className="text-[11px]">
+              {[settings?.profil.alamat, settings?.profil.kelurahan, settings?.profil.kota]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
+            {settings?.profil.email && (
+              <a
+                href={`mailto:${settings.profil.email}`}
+                className="flex items-center gap-1 hover:text-foreground transition-colors"
+              >
+                <Mail className="h-3.5 w-3.5 text-primary" />
+                <span>{settings.profil.email}</span>
+              </a>
+            )}
+            {settings?.profil.telepon && (
+              <span className="flex items-center gap-1">
+                <Phone className="h-3.5 w-3.5 text-primary" />
+                <span>{settings.profil.telepon}</span>
+              </span>
+            )}
+            {settings?.profil.instagram && (
+              <span className="flex items-center gap-1">
+                <Globe className="h-3.5 w-3.5 text-primary" />
+                <span>{settings.profil.instagram}</span>
+              </span>
+            )}
           </div>
         </div>
       </footer>
 
       {/* Dialog Ringkasan Kas Resmi */}
-      <Dialog open={isDownloadOpen} onOpenChange={setIsDownloadOpen}>
-        <DialogContent className="max-w-md w-[95vw]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Laporan Ringkasan Kas Publik
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Transparansi saldo dan rekapitulasi keuangan Karang Taruna Bhakti Karya.
-            </DialogDescription>
-          </DialogHeader>
+      {isKasPublik && (
+        <Dialog open={isDownloadOpen} onOpenChange={setIsDownloadOpen}>
+          <DialogContent className="max-w-md w-[95vw]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Laporan Ringkasan Kas Publik
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Transparansi saldo dan rekapitulasi keuangan {orgName}.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-3 py-2 text-xs">
-            <div className="p-3.5 rounded-lg bg-muted/40 border space-y-2">
-              <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-medium">
-                <span>Total Pemasukan Kas:</span>
-                <span className="font-bold text-sm">{formatRupiah(data.keuangan.totalMasuk)}</span>
+            <div className="space-y-3 py-2 text-xs">
+              <div className="p-3.5 rounded-lg bg-muted/40 border space-y-2">
+                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span>Total Pemasukan Kas:</span>
+                  <span className="font-bold text-sm">{formatRupiah(data.keuangan.totalMasuk)}</span>
+                </div>
+                <div className="flex justify-between items-center text-rose-600 dark:text-rose-400 font-medium">
+                  <span>Total Pengeluaran Kas:</span>
+                  <span className="font-bold text-sm">{formatRupiah(data.keuangan.totalKeluar)}</span>
+                </div>
+                <div className="border-t border-border/60 pt-2 flex justify-between items-center text-foreground font-bold">
+                  <span>Saldo Akhir Kas:</span>
+                  <span className="text-base text-primary">{formatRupiah(data.keuangan.saldoAkhir)}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center text-rose-600 dark:text-rose-400 font-medium">
-                <span>Total Pengeluaran Kas:</span>
-                <span className="font-bold text-sm">{formatRupiah(data.keuangan.totalKeluar)}</span>
-              </div>
-              <div className="border-t border-border/60 pt-2 flex justify-between items-center text-foreground font-bold">
-                <span>Saldo Akhir Kas:</span>
-                <span className="text-base text-primary">{formatRupiah(data.keuangan.saldoAkhir)}</span>
-              </div>
+
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                * Data kas ini disinkronkan secara realtime dari pencatatan bendahara umum dan diverifikasi untuk transparansi warga {orgName}.
+              </p>
             </div>
 
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              * Data kas ini disinkronkan secara realtime dari pencatatan bendahara umum dan diverifikasi untuk transparansi warga.
-            </p>
-          </div>
-
-          <DialogFooter className="gap-2 pt-2">
-            <Button variant="outline" onClick={() => setIsDownloadOpen(false)}>
-              Tutup
-            </Button>
-            <Button onClick={handlePrintRekap} className="gap-1.5">
-              <Printer className="h-3.5 w-3.5" />
-              Cetak / Print
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter className="gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsDownloadOpen(false)}>
+                Tutup
+              </Button>
+              <Button onClick={handlePrintRekap} className="gap-1.5">
+                <Printer className="h-3.5 w-3.5" />
+                Cetak / Print
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
+

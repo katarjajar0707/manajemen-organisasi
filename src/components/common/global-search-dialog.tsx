@@ -123,9 +123,9 @@ const SEARCH_ITEMS: SearchItem[] = [
     title: "Profil Saya",
     category: "Modul Utama",
     href: "/profil",
-    description: "Edit foto profil, username, dan bio akun pribadi",
+    description: "Edit profil akun: nama lengkap, username, nomor WhatsApp, kata sandi, dan foto",
     icon: User,
-    keywords: "profil akun setting biodata foto avatar password",
+    keywords: "profil akun setting biodata foto avatar password kata sandi wa whatsapp nomor nama",
   },
   {
     title: "Manajemen Pengguna",

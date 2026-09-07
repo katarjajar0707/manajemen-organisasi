@@ -50,6 +50,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createTransaksi, deleteTransaksi } from "@/actions/keuangan";
+import type { PengaturanSistemData } from "@/actions/pengaturan";
 
 interface Transaksi {
   id: string;
@@ -71,13 +72,16 @@ interface BendaharaManagerProps {
   initialList: any[];
   initialSaldo: { masuk: number; keluar: number; sisa: number };
   agendaCategories?: string[];
+  settings?: PengaturanSistemData;
 }
 
 export function BendaharaManager({
   initialList,
   initialSaldo,
   agendaCategories = [],
+  settings,
 }: BendaharaManagerProps) {
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterJenis, setFilterJenis] = useState<"semua" | "masuk" | "keluar">("semua");
   const [activeCategory, setActiveCategory] = useState<string>("Semua");
@@ -552,7 +556,7 @@ export function BendaharaManager({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div suppressHydrationWarning className="text-2xl font-extrabold text-slate-950 dark:text-blue-100">
+            <div suppressHydrationWarning className="text-2xl font-extrabold text-slate-950 dark:text-blue-300">
               {formatRupiah(initialSaldo.sisa)}
             </div>
             <p className="text-xs text-slate-700 dark:text-blue-400/80 font-medium mt-1">
@@ -571,7 +575,7 @@ export function BendaharaManager({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div suppressHydrationWarning className="text-2xl font-extrabold text-emerald-800 dark:text-emerald-100">
+            <div suppressHydrationWarning className="text-2xl font-extrabold text-emerald-800 dark:text-emerald-300">
               {formatRupiah(initialSaldo.masuk)}
             </div>
             <p className="text-xs text-slate-700 dark:text-emerald-400/80 font-medium mt-1">
@@ -972,6 +976,31 @@ export function BendaharaManager({
                   className="text-xs"
                 />
               </div>
+
+              {jenis === "keluar" && settings?.operasional && (
+                (() => {
+                  const nominalVal = parseInt(jumlah.replace(/\./g, ""), 10) || 0;
+                  const batasNotif = parseFloat(settings.operasional.batasNotifPengeluaran || "1000000") || 1000000;
+                  const isBesar = settings.operasional.notifPengeluaranBesar && nominalVal >= batasNotif;
+                  const maxTanpaNota = parseFloat(settings.operasional.maxPengeluaranTanpaNota || "50000") || 50000;
+
+                  return (
+                    <div className="space-y-1.5 pt-1">
+                      {isBesar && (
+                        <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                          <span>
+                            Perhatian: Nominal pengeluaran ini tergolong pengeluaran besar (mencapai batas Rp {new Intl.NumberFormat("id-ID").format(batasNotif)}). Pastikan telah berkoordinasi dan disetujui Ketua.
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground">
+                        * Kebijakan operasional {settings.profil.nama || "organisasi"}: Pengeluaran kas di atas Rp {new Intl.NumberFormat("id-ID").format(maxTanpaNota)} wajib menyertakan lampiran nota fisik.
+                      </p>
+                    </div>
+                  );
+                })()
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs">

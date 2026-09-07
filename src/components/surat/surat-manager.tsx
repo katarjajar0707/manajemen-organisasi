@@ -58,12 +58,15 @@ import {
   updateTemplateSurat,
   deleteTemplateSurat,
 } from "@/actions/surat";
+import type { PengaturanSistemData } from "@/actions/pengaturan";
 
 interface SuratManagerProps {
   initialTemplates?: TemplateSurat[];
   userRole?: string;
   currentUserId?: string;
+  settings?: PengaturanSistemData;
 }
+
 
 const DEFAULT_TEMPLATES: TemplateSurat[] = [
   {
@@ -130,11 +133,28 @@ Koordinator Kegiatan
   },
 ];
 
+function formatNomorSuratDinamis(formatPattern?: string) {
+  const pattern = formatPattern || "{NOMOR}/KT-03/{BULAN}/{TAHUN}";
+  const now = new Date();
+  const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
+  const tahun = now.getFullYear().toString();
+  const nomor = String(Math.floor(Math.random() * 80 + 10)).padStart(3, "0");
+
+  return pattern
+    .replace("{NOMOR}", nomor)
+    .replace("{BULAN}", romawiBulan)
+    .replace("{TAHUN}", tahun);
+}
+
 export function SuratManager({
   initialTemplates = [],
   userRole = "anggota",
   currentUserId,
+  settings,
 }: SuratManagerProps) {
+  const orgName = settings?.profil.nama || "Karang Taruna";
+  const orgWilayah = [settings?.profil.unitWilayah, settings?.profil.kelurahan].filter(Boolean).join(" · ");
+
   const [templates, setTemplates] = useState<TemplateSurat[]>(
     initialTemplates.length > 0 ? initialTemplates : DEFAULT_TEMPLATES
   );
@@ -175,9 +195,9 @@ export function SuratManager({
   const [genPerihal, setGenPerihal] = useState("Rapat Koordinasi Persiapan Lomba 17 Agustus");
   const [genTanggal, setGenTanggal] = useState("Sabtu, 18 Juli 2026");
   const [genWaktu, setGenWaktu] = useState("19.30 - 22.00");
-  const [genTempat, setGenTempat] = useState("Balai Warga RW 05");
+  const [genTempat, setGenTempat] = useState(settings?.profil.alamat || "Balai Pertemuan Warga");
   const [genAgenda, setGenAgenda] = useState("Pembentukan Panitia Teknis & Rincian Anggaran");
-  const [genPenandatangan, setGenPenandatangan] = useState("Ketua Karang Taruna");
+  const [genPenandatangan, setGenPenandatangan] = useState(`Ketua ${orgName}`);
   const [isCopied, setIsCopied] = useState(false);
 
   // Delete Dialog
@@ -261,8 +281,13 @@ export function SuratManager({
 
   const handleOpenGenerator = (tpl: TemplateSurat) => {
     setActiveGeneratorTemplate(tpl);
-    const randomNum = Math.floor(Math.random() * 80 + 10);
-    setGenNomor(`02${randomNum}/${tpl.kodeFormat || "KT-RW05"}/2026`);
+    setGenNomor(formatNomorSuratDinamis(settings?.operasional.formatNomorSurat));
+    if (settings?.profil.alamat) {
+      setGenTempat(settings.profil.alamat);
+    }
+    if (settings?.profil.nama) {
+      setGenPenandatangan(`Ketua ${settings.profil.nama}`);
+    }
     setIsCopied(false);
   };
 
@@ -298,13 +323,23 @@ export function SuratManager({
         printWindow.document.write(`
           <html>
             <head>
-              <title>${activeGeneratorTemplate?.nama || "Surat Organisasi"}</title>
+              <title>${activeGeneratorTemplate?.nama || "Surat Organisasi"} - ${orgName}</title>
               <style>
-                body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; padding: 40px; }
-                pre { font-family: 'Times New Roman', serif; white-space: pre-wrap; word-wrap: break-word; }
+                body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; padding: 40px; color: #111; }
+                .kop { text-align: center; border-bottom: 2px double #000; padding-bottom: 12px; margin-bottom: 24px; }
+                .kop h2 { margin: 0; font-size: 16pt; text-transform: uppercase; letter-spacing: 0.5px; }
+                .kop h3 { margin: 4px 0; font-size: 12pt; font-weight: normal; }
+                .kop p { margin: 2px 0; font-size: 10pt; color: #333; }
+                pre { font-family: 'Times New Roman', serif; white-space: pre-wrap; word-wrap: break-word; font-size: 12pt; }
               </style>
             </head>
             <body>
+              <div class="kop">
+                <h2>${orgName}</h2>
+                ${orgWilayah ? `<h3>${orgWilayah}</h3>` : ""}
+                <p>${[settings?.profil.alamat, settings?.profil.kelurahan, settings?.profil.kota].filter(Boolean).join(", ")}</p>
+                <p>Email: ${settings?.profil.email || "-"} | Telp/WA: ${settings?.profil.telepon || "-"}</p>
+              </div>
               <pre>${content}</pre>
               <script>
                 window.onload = function() { window.print(); }
@@ -316,6 +351,7 @@ export function SuratManager({
       }
     }
   };
+
 
   const handleDeleteTemplate = () => {
     if (!deleteId) return;

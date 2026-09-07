@@ -74,12 +74,14 @@ import {
   getRiwayatPeminjaman,
 } from "@/actions/inventaris";
 import { uploadLampiran } from "@/actions/storage";
+import type { PengaturanSistemData } from "@/actions/pengaturan";
 
 interface InventarisManagerProps {
   initialItems?: ItemInventaris[];
   initialRiwayat?: PeminjamanRecord[];
   userRole?: string;
   currentUserId?: string;
+  settings?: PengaturanSistemData;
 }
 
 export function InventarisManager({
@@ -87,7 +89,9 @@ export function InventarisManager({
   initialRiwayat = [],
   userRole = "anggota",
   currentUserId,
+  settings,
 }: InventarisManagerProps) {
+
   const [items, setItems] = useState<ItemInventaris[]>(initialItems);
   const [riwayat, setRiwayat] = useState<PeminjamanRecord[]>(initialRiwayat);
   const [activeTab, setActiveTab] = useState<"daftar" | "riwayat">("daftar");
@@ -334,15 +338,21 @@ export function InventarisManager({
 
   const handleOpenPinjam = (item: ItemInventaris) => {
     setSelectedItem(item);
+    const today = new Date();
+    const maxHari = parseInt(settings?.operasional.maxHariPinjamInventaris || "3") || 3;
+    const defaultKembali = new Date(today);
+    defaultKembali.setDate(defaultKembali.getDate() + maxHari);
+
     setPinjamForm({
       peminjam: item.peminjam || "",
-      tanggalPinjam: item.tglPinjam || new Date().toISOString().split("T")[0],
-      tanggalKembaliRencana: item.tglKembaliRencana || "",
+      tanggalPinjam: item.tglPinjam || today.toISOString().split("T")[0],
+      tanggalKembaliRencana: item.tglKembaliRencana || defaultKembali.toISOString().split("T")[0],
       jumlahPinjam: 1,
       keterangan: "",
     });
     setIsPinjamOpen(true);
   };
+
 
   const handlePinjamSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1399,6 +1409,19 @@ export function InventarisManager({
 
           {selectedItem && selectedItem.status === "Tersedia" ? (
             <form onSubmit={handlePinjamSubmit} className="space-y-4 py-2">
+              {settings?.operasional && (
+                <div className="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-xs text-sky-700 dark:text-sky-300 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
+                    <span>Kebijakan Peminjaman {settings.profil.nama || "Organisasi"}:</span>
+                  </div>
+                  <p>• Batas maksimal peminjaman: <strong>{settings.operasional.maxHariPinjamInventaris} hari</strong>.</p>
+                  {settings.operasional.wajibPersetujuanKetua && (
+                    <p>• Peminjaman aset wajib mendapatkan persetujuan / konfirmasi dari Ketua.</p>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label htmlFor="pinjam-nama" className="text-xs">
                   Nama Peminjam / Acara <span className="text-destructive">*</span>

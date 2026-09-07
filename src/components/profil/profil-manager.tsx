@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -40,8 +41,10 @@ import {
   Building2,
   ShieldCheck,
   UserCheck,
+  Phone,
+  UserPen,
 } from "lucide-react";
-import { updateAvatar, changePassword } from "@/actions/profil";
+import { updateAvatar, changePassword, updateMyProfile } from "@/actions/profil";
 import { useAuthStore } from "@/store/auth-store";
 
 interface ProfileData {
@@ -53,6 +56,7 @@ interface ProfileData {
   role: "admin" | "ketua" | "anggota";
   created_at: string;
   email?: string;
+  nomor_wa?: string;
   bagian?: {
     id: string;
     nama: string;
@@ -85,24 +89,42 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
+  // Personal profile local states
+  const [currentNama, setCurrentNama] = useState(profile.nama);
+  const [currentUsername, setCurrentUsername] = useState(profile.username);
+  const [currentNomorWa, setCurrentNomorWa] = useState(profile.nomor_wa || "");
+  const [currentBio, setCurrentBio] = useState(profile.bio || "");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.foto_url);
+
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
   const setStoreAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
+  const setStoreUserName = useAuthStore((s) => s.setUserName);
 
   // Search & Filter state for member table
   const [searchQuery, setSearchQuery] = useState("");
   const [filterBagian, setFilterBagian] = useState<string>("semua");
   const [filterRole, setFilterRole] = useState<string>("semua");
 
-  // Password Modal
+  // Edit Profile Modal states
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [editNama, setEditNama] = useState(profile.nama);
+  const [editUsername, setEditUsername] = useState(profile.username);
+  const [editNomorWa, setEditNomorWa] = useState(profile.nomor_wa || "");
+  const [editBio, setEditBio] = useState(profile.bio || "");
+  const [editPassword, setEditPassword] = useState("");
+  const [editConfirmPassword, setEditConfirmPassword] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Quick Password Modal states
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const clearFeedback = () => {
-    setTimeout(() => setFeedback(null), 4000);
+    setTimeout(() => setFeedback(null), 5000);
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,6 +151,84 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
     });
   };
 
+  const handleOpenEditProfile = () => {
+    setEditNama(currentNama);
+    setEditUsername(currentUsername);
+    setEditNomorWa(currentNomorWa);
+    setEditBio(currentBio);
+    setEditPassword("");
+    setEditConfirmPassword("");
+    setEditError(null);
+    setIsEditProfileOpen(true);
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError(null);
+
+    // Validasi client-side
+    if (!editNama.trim() || editNama.trim().length < 2) {
+      setEditError("Nama lengkap wajib diisi minimal 2 karakter.");
+      return;
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_.]{3,30}$/;
+    if (!usernameRegex.test(editUsername.trim())) {
+      setEditError("Username hanya boleh berisi huruf, angka, titik, atau underscore (3-30 karakter).");
+      return;
+    }
+
+    if (editNomorWa.trim()) {
+      const phoneRegex = /^[0-9+\s\-]{8,20}$/;
+      if (!phoneRegex.test(editNomorWa.trim())) {
+        setEditError("Format nomor WhatsApp tidak valid. Contoh: 081234567890 atau +6281234567890.");
+        return;
+      }
+    }
+
+    if (editPassword) {
+      if (editPassword.length < 6) {
+        setEditError("Kata sandi baru minimal 6 karakter.");
+        return;
+      }
+      if (editPassword !== editConfirmPassword) {
+        setEditError("Konfirmasi kata sandi baru tidak sesuai.");
+        return;
+      }
+    }
+
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append("nama", editNama.trim());
+      formData.append("username", editUsername.trim());
+      formData.append("nomor_wa", editNomorWa.trim());
+      formData.append("bio", editBio.trim());
+      if (editPassword) {
+        formData.append("newPassword", editPassword);
+        formData.append("confirmPassword", editConfirmPassword);
+      }
+
+      const res = await updateMyProfile(formData);
+      if (res?.error) {
+        setEditError(res.error);
+      } else {
+        setCurrentNama(editNama.trim());
+        setCurrentUsername(editUsername.trim().toLowerCase());
+        setCurrentNomorWa(editNomorWa.trim());
+        setCurrentBio(editBio.trim());
+        setEditPassword("");
+        setEditConfirmPassword("");
+        setIsEditProfileOpen(false);
+        setStoreUserName(editNama.trim());
+        setFeedback({ 
+          type: "success", 
+          message: res?.message || "Profil akun Anda berhasil diperbarui!" 
+        });
+        clearFeedback();
+      }
+    });
+  };
+
   const handleSavePassword = () => {
     setPasswordError(null);
 
@@ -152,7 +252,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
         setIsPasswordModalOpen(false);
         setNewPassword("");
         setConfirmPassword("");
-        setFeedback({ type: "success", message: "Kata sandi berhasil diperbarui!" });
+        setFeedback({ type: "success", message: "Kata sandi akun berhasil diperbarui!" });
         clearFeedback();
       }
     });
@@ -192,7 +292,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Profil &amp; Direktori Anggota</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Informasi akun pengguna dan direktori seluruh anggota organisasi yang tersinkronisasi terpusat dari Manajemen Pengguna.
+            Kelola profil identitas akun pribadi Anda dan lihat direktori resmi seluruh anggota organisasi.
           </p>
         </div>
         {profile.role === "admin" && (
@@ -209,7 +309,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
       {/* Feedback Banner */}
       {feedback && (
         <div
-          className={`p-3 rounded-xl flex items-center gap-2 text-xs font-medium animate-in fade-in slide-in-from-top-2 ${
+          className={`p-3.5 rounded-xl flex items-center gap-2.5 text-xs font-medium animate-in fade-in slide-in-from-top-2 ${
             feedback.type === "success"
               ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
               : "bg-destructive/10 border border-destructive/30 text-destructive"
@@ -240,7 +340,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                   />
                 ) : (
                   <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
-                    {profile.nama.slice(0, 2).toUpperCase()}
+                    {currentNama.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 )}
               </Avatar>
@@ -265,12 +365,12 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
               </label>
             </div>
 
-            {/* Info detail (read-only) */}
+            {/* Info detail */}
             <div className="flex-1 text-center sm:text-left space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                  <h2 className="text-xl font-bold text-foreground">{profile.nama}</h2>
-                  <p className="text-xs text-muted-foreground">@{profile.username}</p>
+                  <h2 className="text-xl font-bold text-foreground">{currentNama}</h2>
+                  <p className="text-xs text-muted-foreground">@{currentUsername}</p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center sm:justify-end gap-1.5">
                   <Badge
@@ -295,9 +395,9 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                 </div>
               </div>
 
-              {profile.bio && (
+              {currentBio && (
                 <p className="text-xs text-muted-foreground italic max-w-2xl">
-                  "{profile.bio}"
+                  "{currentBio}"
                 </p>
               )}
 
@@ -306,6 +406,25 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                   <Mail className="h-3.5 w-3.5 text-primary" />
                   <span>{profile.email || "Email Terdaftar"}</span>
                 </span>
+
+                {currentNomorWa ? (
+                  <a
+                    href={`https://wa.me/${currentNomorWa.replace(/[^0-9]/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
+                    title="Buka Chat WhatsApp"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    <span>WA: {currentNomorWa}</span>
+                  </a>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-muted-foreground/70">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>WA: <em>Belum diatur</em></span>
+                  </span>
+                )}
+
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   <span>
@@ -319,8 +438,17 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
               </div>
             </div>
 
-            {/* Quick Action */}
+            {/* Quick Actions (Tersedia untuk setiap role: Admin, Ketua, Anggota) */}
             <div className="shrink-0 flex sm:flex-col gap-2 w-full sm:w-auto">
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-1.5 text-xs h-8 flex-1 sm:flex-initial shadow-xs"
+                onClick={handleOpenEditProfile}
+              >
+                <UserPen className="h-3.5 w-3.5" />
+                <span>Edit Profil Akun</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -341,7 +469,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
         </CardContent>
       </Card>
 
-      {/* Main Table Section: Synchronized Members Table */}
+      {/* Main Table Section: Synchronized Members Table (Read-Only untuk Ketua & Anggota) */}
       <Card className="border shadow-xs overflow-hidden">
         <CardHeader className="p-4 sm:p-5 border-b bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -354,7 +482,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                 </Badge>
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                Daftar anggota resmi yang tersinkronisasi otomatis dari pembuatan akun di Manajemen Pengguna.
+                Direktori seluruh akun anggota organisasi. Hanya Administrator yang memiliki hak mengelola akun pengguna lain.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -456,7 +584,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                 ))}
               </div>
 
-              {/* Desktop Table View (>= md) */}
+              {/* Desktop Table View (>= md) - Read-Only */}
               <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -465,8 +593,8 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                       <TableHead>Nama Anggota</TableHead>
                       <TableHead>Username</TableHead>
                       <TableHead>Bagian / Departemen</TableHead>
-                      <TableHead>Role / Akses</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Role / Hak Akses</TableHead>
+                      <TableHead>Status Akun</TableHead>
                       <TableHead className="text-right">Tgl Bergabung</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -480,7 +608,16 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                             </AvatarFallback>
                           </Avatar>
                         </TableCell>
-                        <TableCell className="font-medium text-xs sm:text-sm">{u.nama}</TableCell>
+                        <TableCell className="font-medium text-xs sm:text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <span>{u.nama}</span>
+                            {u.id === profile.id && (
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/40 text-primary">
+                                Anda
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">@{u.username}</TableCell>
                         <TableCell className="text-xs">
                           {u.bagian?.nama ? (
@@ -529,7 +666,187 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
         </CardContent>
       </Card>
 
-      {/* Password Modal */}
+      {/* Modal: Edit Profil Akun Sendiri (Admin, Ketua, Anggota) */}
+      <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
+                <UserPen className="h-5 w-5 text-primary" />
+                <span>Edit Profil Akun Saya</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Perbarui data akun pribadi Anda. Perubahan akan otomatis disinkronkan ke seluruh sistem dan direktori anggota.
+              </DialogDescription>
+            </DialogHeader>
+
+            {editError && (
+              <div className="bg-destructive/15 text-destructive text-xs p-3 rounded-md flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <div className="space-y-3.5 py-1">
+              {/* Nama Lengkap */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-nama" className="text-xs font-medium">
+                  Nama Lengkap <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="edit-nama"
+                  value={editNama}
+                  onChange={(e) => setEditNama(e.target.value)}
+                  placeholder="Nama Lengkap Anda"
+                  className="text-xs h-9"
+                  required
+                />
+              </div>
+
+              {/* Username */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-username" className="text-xs font-medium">
+                  Username <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">@</span>
+                  <Input
+                    id="edit-username"
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                    placeholder="username"
+                    className="text-xs h-9 pl-7"
+                    required
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Hanya huruf kecil, angka, garis bawah (_), atau titik (3-30 karakter).
+                </p>
+              </div>
+
+              {/* Nomor WhatsApp */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-nomor-wa" className="text-xs font-medium flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Nomor WhatsApp / HP</span>
+                </Label>
+                <Input
+                  id="edit-nomor-wa"
+                  value={editNomorWa}
+                  onChange={(e) => setEditNomorWa(e.target.value)}
+                  placeholder="Contoh: 081234567890 atau +6281234567890"
+                  className="text-xs h-9"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Nomor aktif WhatsApp Anda untuk koordinasi kepengurusan organisasi.
+                </p>
+              </div>
+
+              {/* Bio Singkat */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-bio" className="text-xs font-medium">
+                  Bio / Catatan Singkat (Opsional)
+                </Label>
+                <Textarea
+                  id="edit-bio"
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder="Motto atau peran aktif Anda di organisasi..."
+                  className="text-xs resize-none"
+                  rows={2}
+                  maxLength={200}
+                />
+              </div>
+
+              {/* Seksi Password Baru (Opsional) */}
+              <div className="pt-2 border-t space-y-3">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                    <Lock className="h-3.5 w-3.5 text-primary" />
+                    <span>Ganti Kata Sandi (Opsional)</span>
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Biarkan kosong jika Anda tidak ingin mengubah kata sandi saat ini.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-password" className="text-[11px]">Kata Sandi Baru</Label>
+                    <Input
+                      id="edit-password"
+                      type="password"
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      placeholder="Minimal 6 karakter"
+                      className="text-xs h-8"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-confirm-password" className="text-[11px]">Konfirmasi Sandi Baru</Label>
+                    <Input
+                      id="edit-confirm-password"
+                      type="password"
+                      value={editConfirmPassword}
+                      onChange={(e) => setEditConfirmPassword(e.target.value)}
+                      placeholder="Ulangi sandi baru"
+                      className="text-xs h-8"
+                      disabled={!editPassword}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Informasi Terkunci / Read-Only */}
+              <div className="pt-2 border-t">
+                <div className="bg-muted/40 rounded-lg p-3 text-xs space-y-2 border border-border/50">
+                  <p className="font-semibold text-foreground flex items-center gap-1.5 text-[11px]">
+                    <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Informasi Akun (Dikelola oleh Administrator)</span>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                    <div>
+                      <span>Role: </span>
+                      <strong className="text-foreground capitalize">{profile.role}</strong>
+                    </div>
+                    <div>
+                      <span>Bagian: </span>
+                      <strong className="text-foreground">{profile.bagian?.nama || "Umum"}</strong>
+                    </div>
+                    <div>
+                      <span>Email: </span>
+                      <strong className="text-foreground truncate block">{profile.email || "-"}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditProfileOpen(false)}
+                disabled={isPending}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isPending}
+                className="gap-1.5"
+              >
+                {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                <span>{isPending ? "Menyimpan..." : "Simpan Perubahan"}</span>
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Quick Ganti Password */}
       <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
         <DialogContent className="max-w-sm w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>

@@ -208,6 +208,11 @@ export async function updatePengaturanProfil(
 
     revalidatePath("/pengaturan");
     revalidatePath("/", "layout");
+    revalidatePath("/dashboard");
+    revalidatePath("/surat");
+    revalidatePath("/inventaris");
+    revalidatePath("/bagian/bendahara");
+    revalidatePath("/login");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Terjadi kesalahan server saat menyimpan profil." };
@@ -269,6 +274,12 @@ export async function updatePengaturanOperasional(
     }
 
     revalidatePath("/pengaturan");
+    revalidatePath("/", "layout");
+    revalidatePath("/dashboard");
+    revalidatePath("/surat");
+    revalidatePath("/inventaris");
+    revalidatePath("/bagian/bendahara");
+    revalidatePath("/login");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Terjadi kesalahan server saat menyimpan operasional." };
@@ -326,6 +337,12 @@ export async function updatePengaturanKeamanan(
     }
 
     revalidatePath("/pengaturan");
+    revalidatePath("/", "layout");
+    revalidatePath("/dashboard");
+    revalidatePath("/surat");
+    revalidatePath("/inventaris");
+    revalidatePath("/bagian/bendahara");
+    revalidatePath("/login");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Terjadi kesalahan server saat menyimpan keamanan." };

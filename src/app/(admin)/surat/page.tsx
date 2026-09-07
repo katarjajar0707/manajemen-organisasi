@@ -1,5 +1,6 @@
 import { getTemplateSuratList } from "@/actions/surat";
 import { getProfile } from "@/lib/supabase/server";
+import { getCachedPengaturanSistem } from "@/lib/cache/pengaturan";
 import { SuratManager } from "@/components/surat/surat-manager";
 
 export const metadata = {
@@ -8,9 +9,10 @@ export const metadata = {
 };
 
 export default async function SuratPage() {
-  const [templates, profile] = await Promise.all([
+  const [templates, profile, settings] = await Promise.all([
     getTemplateSuratList(),
     getProfile(),
+    getCachedPengaturanSistem(),
   ]);
 
   return (
@@ -18,6 +20,8 @@ export default async function SuratPage() {
       initialTemplates={templates}
       userRole={profile?.role || "anggota"}
       currentUserId={profile?.id}
+      settings={settings}
     />
   );
 }
+

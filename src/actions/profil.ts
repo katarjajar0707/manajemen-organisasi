@@ -5,7 +5,7 @@ import { uploadLampiran } from "./storage";
 import { revalidatePath } from "next/cache";
 
 /**
- * Mengambil profil pengguna yang sedang login beserta relasi bagian.
+ * Mengambil profil pengguna yang sedang login beserta relasi bagian & kontak WhatsApp.
  */
 export async function getMyProfile() {
   const supabase = await createClient();
@@ -17,74 +17,208 @@ export async function getMyProfile() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, nama, username, foto_url, bio, role, created_at, bagian:bagian_id(id, nama, slug)")
+    .select("*, bagian:bagian_id(id, nama, slug)")
     .eq("id", user.id)
     .single();
 
-  // Gabungkan email dari auth.users ke respons
+  // Ambil kontak dari tabel anggota untuk memastikan nomor WhatsApp sinkron
+  const { data: anggotaData } = await supabase
+    .from("anggota")
+    .select("kontak")
+    .eq("id", user.id)
+    .maybeSingle();
+
   if (profile) {
-    // Supabase bisa mengembalikan bagian sebagai array — normalisasi ke objek tunggal
     const bagianRaw = profile.bagian;
     const bagian = Array.isArray(bagianRaw) ? bagianRaw[0] ?? null : bagianRaw ?? null;
-    return { ...profile, bagian, email: user.email };
+    
+    // Ambil nomor_wa dari kolom profile jika ada, fallback ke anggota.kontak
+    const nomorWaFromDb = (profile as any).nomor_wa || (anggotaData?.kontak && anggotaData.kontak !== "-" ? anggotaData.kontak : "");
+
+    return { 
+      ...profile, 
+      bagian, 
+      email: user.email,
+      nomor_wa: nomorWaFromDb || "",
+    };
   }
   return null;
 }
 
 /**
- * Update profil pengguna (nama, username, bio).
- * Role bersifat read-only — tidak bisa diubah dari sini.
+ * Update profil pengguna sendiri (Nama Lengkap, Username, Nomor WhatsApp, Password opsional).
+ * Role dan Bagian bersifat terkunci — hanya admin yang bisa mengubahnya di Manajemen Pengguna.
  */
-export async function updateProfile(formData: FormData) {
+export async function updateMyProfile(formData: FormData) {
   try {
-    const nama = formData.get("nama") as string;
-    const username = formData.get("username") as string;
-    const bio = formData.get("bio") as string;
+    const nama = (formData.get("nama") as string)?.trim();
+    const username = (formData.get("username") as string)?.trim().toLowerCase();
+    const nomorWa = (formData.get("nomor_wa") as string)?.trim() || "";
+    const bio = (formData.get("bio") as string)?.trim() || "";
+    const newPassword = (formData.get("newPassword") as string) || "";
+    const confirmPassword = (formData.get("confirmPassword") as string) || "";
 
-    if (!nama?.trim() || !username?.trim()) {
-      return { error: "Nama dan username wajib diisi." };
+    // 1. Validasi Nama Lengkap
+    if (!nama || nama.length < 2) {
+      return { error: "Nama lengkap wajib diisi minimal 2 karakter." };
+    }
+    if (nama.length > 100) {
+      return { error: "Nama lengkap maksimal 100 karakter." };
     }
 
-    // Validasi format username: hanya alfanumerik, underscore, titik
+    // 2. Validasi Username
+    if (!username) {
+      return { error: "Username wajib diisi." };
+    }
     const usernameRegex = /^[a-zA-Z0-9_.]{3,30}$/;
     if (!usernameRegex.test(username)) {
       return { error: "Username hanya boleh berisi huruf, angka, underscore, atau titik (3-30 karakter)." };
     }
 
+    // 3. Validasi Nomor WhatsApp (jika diisi)
+    if (nomorWa) {
+      const phoneRegex = /^[0-9+\s\-]{8,20}$/;
+      if (!phoneRegex.test(nomorWa)) {
+        return { error: "Format nomor WhatsApp tidak valid. Gunakan angka, contoh: 08123456789 atau +628123456789." };
+      }
+    }
+
+    // 4. Validasi Kata Sandi Baru (jika diisi)
+    if (newPassword) {
+      if (newPassword.length < 6) {
+        return { error: "Kata sandi baru minimal 6 karakter." };
+      }
+      if (newPassword !== confirmPassword) {
+        return { error: "Konfirmasi kata sandi baru tidak sesuai." };
+      }
+    }
+
+    // 5. Autentikasi Pengguna yang Sedang Login
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: "Unauthenticated" };
+    if (!user) {
+      return { error: "Sesi login tidak valid atau telah kedaluwarsa. Silakan login kembali." };
+    }
 
-    // Cek apakah username sudah dipakai user lain
+    // 6. Validasi Keunikan Username (tidak boleh dipakai pengguna lain)
     const { data: existingUser } = await supabase
       .from("profiles")
       .select("id")
       .eq("username", username)
       .neq("id", user.id)
-      .single();
+      .maybeSingle();
 
     if (existingUser) {
-      return { error: "Username sudah digunakan oleh pengguna lain." };
+      return { error: "Username @" + username + " sudah digunakan oleh pengguna lain." };
     }
 
-    const { error } = await supabase
+    // 7. Update Tabel profiles (Hanya record milik user.id)
+    const profileUpdateData: Record<string, any> = {
+      nama,
+      username,
+      bio: bio || null,
+    };
+
+    // Coba update dengan kolom nomor_wa
+    let { error: updateProfileError } = await supabase
       .from("profiles")
-      .update({
-        nama: nama.trim(),
-        username: username.trim(),
-        bio: bio?.trim() || null,
-      })
+      .update({ ...profileUpdateData, nomor_wa: nomorWa || null })
       .eq("id", user.id);
 
-    if (error) {
-      return { error: error.message };
+    // Fallback jika kolom nomor_wa belum dieksekusi di skema Postgres Supabase
+    if (updateProfileError && updateProfileError.message.includes("nomor_wa")) {
+      const fallback = await supabase
+        .from("profiles")
+        .update(profileUpdateData)
+        .eq("id", user.id);
+      updateProfileError = fallback.error;
     }
 
+    if (updateProfileError) {
+      return { error: "Gagal memperbarui profil: " + updateProfileError.message };
+    }
+
+    // 8. Sinkronisasi ke Tabel anggota (Data Kontak & Nama Terpadu)
+    try {
+      const { data: existingAnggota } = await supabase
+        .from("anggota")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (existingAnggota) {
+        await supabase
+          .from("anggota")
+          .update({
+            nama,
+            kontak: nomorWa || "-",
+          })
+          .eq("id", user.id);
+      } else {
+        const { data: myProfile } = await supabase
+          .from("profiles")
+          .select("role, bagian_id")
+          .eq("id", user.id)
+          .single();
+
+        await supabase
+          .from("anggota")
+          .upsert({
+            id: user.id,
+            nama,
+            kontak: nomorWa || "-",
+            rt_rw: "RT 01 / RW 05",
+            jabatan: myProfile?.role === "ketua" ? "Ketua" : myProfile?.role === "admin" ? "Administrator" : "Anggota",
+            bagian_id: myProfile?.bagian_id || null,
+            status: "Aktif",
+          });
+      }
+    } catch (syncErr) {
+      console.warn("Peringatan sinkronisasi kontak anggota:", syncErr);
+    }
+
+    // 9. Update Kata Sandi & Metadata di Supabase Auth jika ada perubahan
+    const authUpdatePayload: { password?: string; data?: { nama: string } } = {
+      data: { nama },
+    };
+    if (newPassword) {
+      authUpdatePayload.password = newPassword;
+    }
+
+    const { error: authError } = await supabase.auth.updateUser(authUpdatePayload);
+    if (authError && newPassword) {
+      return { error: `Profil berhasil diperbarui, namun penggantian kata sandi gagal: ${authError.message}` };
+    }
+
+    // 10. Revalidasi seluruh rute cache
     revalidatePath("/profil");
-    return { success: true };
+    revalidatePath("/dashboard");
+    revalidatePath("/pengguna");
+    revalidatePath("/anggota");
+    revalidatePath("/struktur");
+    revalidatePath("/", "layout");
+
+    return { 
+      success: true, 
+      message: newPassword 
+        ? "Profil dan kata sandi berhasil diperbarui!" 
+        : "Profil akun Anda berhasil diperbarui!",
+      data: {
+        nama,
+        username,
+        nomor_wa: nomorWa,
+      }
+    };
   } catch (err: any) {
-    return { error: err.message || "Terjadi kesalahan internal." };
+    return { error: err.message || "Terjadi kesalahan internal saat memperbarui profil." };
   }
+}
+
+/**
+ * Alias untuk kompatibilitas ke belakang
+ */
+export async function updateProfile(formData: FormData) {
+  return updateMyProfile(formData);
 }
 
 /**
@@ -126,13 +260,12 @@ export async function updateAvatar(formData: FormData) {
       .eq("id", user.id);
 
     if (error) {
-      // Gagal simpan ke DB — seharusnya kita hapus file dari storage,
-      // tapi untuk MVP ini kita log saja.
       console.error("Failed to save avatar URL to DB:", error);
       return { error: "Gagal menyimpan foto profil ke database." };
     }
 
     revalidatePath("/profil");
+    revalidatePath("/", "layout");
     return { success: true, url: uploadRes.url };
   } catch (err: any) {
     return { error: err.message || "Terjadi kesalahan internal." };

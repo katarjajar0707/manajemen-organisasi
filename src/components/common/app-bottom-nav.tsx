@@ -17,17 +17,20 @@ export function AppBottomNav() {
     <nav
       className={cn(
         "fixed bottom-0 left-0 right-0 z-40 lg:hidden",
-        // Glassmorphism container
-        "border-t border-white/[0.06]",
-        "bg-gradient-to-t from-black/90 via-black/80 to-black/60",
+        // Border top
+        "border-t border-border/60",
+        // Light mode: putih frosted glass
+        "bg-white/90",
+        // Dark mode: tetap dark gradient
+        "dark:bg-gradient-to-t dark:from-black/90 dark:via-black/80 dark:to-black/60",
         "backdrop-blur-xl backdrop-saturate-150",
-        // Safe area padding for notched phones + extra bottom padding
+        // Safe area padding untuk notched phones
         "pb-[env(safe-area-inset-bottom,8px)]"
       )}
     >
-      {/* Top glow line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-primary/20 to-transparent blur-sm" />
+      {/* Top glow line — lebih terlihat di dark, subtle di light */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent dark:via-primary/40" />
+      <div className="absolute top-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-primary/10 to-transparent blur-sm dark:via-primary/20" />
 
       {/* Nav items container */}
       <div className="flex items-end justify-around px-2 pt-1.5 pb-2">
@@ -53,7 +56,7 @@ export function AppBottomNav() {
                   "relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out",
                   isActive
                     ? "bg-primary/15 shadow-[0_0_16px_rgba(16,185,129,0.25),0_0_4px_rgba(16,185,129,0.15)] scale-110"
-                    : "group-hover:bg-white/[0.04] scale-100"
+                    : "group-hover:bg-foreground/[0.06] scale-100"
                 )}
               >
                 {/* Active dot indicator above icon */}
@@ -104,7 +107,7 @@ export function AppBottomNav() {
               "relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out",
               isMobileOpen
                 ? "bg-primary/15 shadow-[0_0_16px_rgba(16,185,129,0.25),0_0_4px_rgba(16,185,129,0.15)] scale-110"
-                : "group-hover:bg-white/[0.04] scale-100"
+                : "group-hover:bg-foreground/[0.06] scale-100"
             )}
           >
             {/* Active dot indicator above icon */}

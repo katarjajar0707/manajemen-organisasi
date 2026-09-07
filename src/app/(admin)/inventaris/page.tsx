@@ -1,5 +1,6 @@
 import { getInventarisList, getRiwayatPeminjaman } from "@/actions/inventaris";
 import { getProfile } from "@/lib/supabase/server";
+import { getCachedPengaturanSistem } from "@/lib/cache/pengaturan";
 import { InventarisManager } from "@/components/inventaris/inventaris-manager";
 
 export const metadata = {
@@ -8,10 +9,11 @@ export const metadata = {
 };
 
 export default async function InventarisPage() {
-  const [items, riwayat, profile] = await Promise.all([
+  const [items, riwayat, profile, settings] = await Promise.all([
     getInventarisList(),
     getRiwayatPeminjaman(),
     getProfile(),
+    getCachedPengaturanSistem(),
   ]);
 
   return (
@@ -20,6 +22,8 @@ export default async function InventarisPage() {
       initialRiwayat={riwayat}
       userRole={profile?.role || "anggota"}
       currentUserId={profile?.id}
+      settings={settings}
     />
   );
 }
+
