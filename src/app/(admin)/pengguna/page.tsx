@@ -72,6 +72,7 @@ export default async function UserManagementPage() {
                   <div>
                     <h4 className="font-semibold text-xs sm:text-sm text-foreground">{u.nama}</h4>
                     <p className="text-xs text-muted-foreground">@{u.username}</p>
+                    <p className="text-[10px] text-muted-foreground/70 truncate max-w-[180px]">{u.email}</p>
                   </div>
                   <Badge
                     variant={
@@ -92,7 +93,7 @@ export default async function UserManagementPage() {
                     <UserFormModal 
                       bagianList={bagianList || []} 
                       mode="edit" 
-                      userToEdit={{ id: u.id, nama: u.nama, role: u.role, bagian_id: u.bagian_id }} 
+                      userToEdit={{ id: u.id, nama: u.nama, username: u.username, email: u.email, nomor_wa: u.nomor_wa, role: u.role, bagian_id: u.bagian_id }} 
                     />
                     <DeleteUserButton userId={u.id} userName={u.nama} />
                   </div>
@@ -107,7 +108,7 @@ export default async function UserManagementPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama</TableHead>
-                  <TableHead>Username</TableHead>
+                  <TableHead>Email / Username</TableHead>
                   <TableHead>Bagian</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
@@ -117,7 +118,10 @@ export default async function UserManagementPage() {
                 {users.map((u: any) => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.nama}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">@{u.username}</TableCell>
+                    <TableCell>
+                      <div className="text-xs text-muted-foreground">{u.email}</div>
+                      <div className="text-[10px] text-muted-foreground/60">@{u.username}</div>
+                    </TableCell>
                     <TableCell>{u.bagian?.nama || "-"}</TableCell>
                     <TableCell>
                       <Badge
@@ -138,7 +142,7 @@ export default async function UserManagementPage() {
                         <UserFormModal 
                           bagianList={bagianList || []} 
                           mode="edit" 
-                          userToEdit={{ id: u.id, nama: u.nama, role: u.role, bagian_id: u.bagian_id }} 
+                          userToEdit={{ id: u.id, nama: u.nama, username: u.username, email: u.email, nomor_wa: u.nomor_wa, role: u.role, bagian_id: u.bagian_id }} 
                         />
                         <DeleteUserButton userId={u.id} userName={u.nama} />
                       </div>

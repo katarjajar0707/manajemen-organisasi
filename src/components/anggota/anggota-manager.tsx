@@ -20,9 +20,17 @@ import {
   ShieldCheck,
   ArrowRight,
   CheckCircle2,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
 import { AnggotaDetail } from "@/actions/anggota";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface BagianItem {
   id: string;
@@ -58,6 +66,7 @@ export function AnggotaManager({
   const [filterRt, setFilterRt] = useState("Semua RT");
   const [filterStatus, setFilterStatus] = useState<"semua" | "Aktif" | "Alumni" | "Cuti">("semua");
   const [filterBagian, setFilterBagian] = useState<string>("semua");
+  const [previewMember, setPreviewMember] = useState<AnggotaDetail | null>(null);
 
   const isAdmin = userRole === "admin";
 
@@ -226,17 +235,29 @@ export function AnggotaManager({
                 <div key={m.id} className="p-3.5 space-y-2 hover:bg-muted/20 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      {m.foto_url ? (
-                        <img
-                          src={m.foto_url}
-                          alt={m.nama}
-                          className="w-9 h-9 rounded-full object-cover border shrink-0"
-                        />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
-                          {m.nama.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setPreviewMember(m)}
+                        className="relative group shrink-0 rounded-full focus:outline-hidden focus:ring-2 focus:ring-primary/40 text-left"
+                        title="Klik untuk melihat preview foto profil"
+                      >
+                        {m.foto_url ? (
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border shadow-2xs">
+                            <img
+                              src={m.foto_url}
+                              alt={m.nama}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                            />
+                            <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Eye className="w-3.5 h-3.5 text-white drop-shadow-xs" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0 border border-border/60 group-hover:bg-primary/20 transition-colors">
+                            {m.nama.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                      </button>
                       <div className="min-w-0">
                         <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{m.nama}</p>
                         <p className="text-[11px] text-muted-foreground truncate">{m.jabatan} • {m.bagian}</p>
@@ -308,19 +329,38 @@ export function AnggotaManager({
                     <tr key={m.id} className="hover:bg-muted/20 transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
-                          {m.foto_url ? (
-                            <img
-                              src={m.foto_url}
-                              alt={m.nama}
-                              className="w-8 h-8 rounded-full object-cover border shrink-0"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
-                              {m.nama.slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => setPreviewMember(m)}
+                            className="relative group shrink-0 rounded-full focus:outline-hidden focus:ring-2 focus:ring-primary/40 text-left"
+                            title="Klik untuk melihat preview foto profil"
+                          >
+                            {m.foto_url ? (
+                              <div className="relative w-9 h-9 rounded-full overflow-hidden border border-border shadow-2xs">
+                                <img
+                                  src={m.foto_url}
+                                  alt={m.nama}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                                />
+                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <Eye className="w-3.5 h-3.5 text-white drop-shadow-xs" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0 border border-border/60 group-hover:bg-primary/20 transition-colors">
+                                {m.nama.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                          </button>
                           <div>
-                            <p className="font-medium text-foreground">{m.nama}</p>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewMember(m)}
+                              className="font-medium text-foreground hover:text-primary transition-colors text-left block"
+                              title="Klik untuk melihat preview profil"
+                            >
+                              {m.nama}
+                            </button>
                             <p className="text-[10px] text-muted-foreground">ID: {m.id.slice(0, 8)}</p>
                           </div>
                         </div>
@@ -347,22 +387,34 @@ export function AnggotaManager({
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        {m.kontak && m.kontak !== "-" && (
-                          <a
-                            href={`https://wa.me/${m.kontak.replace(/[^0-9]/g, "")}`}
-                            target="_blank"
-                            rel="noreferrer"
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground gap-1"
+                            onClick={() => setPreviewMember(m)}
+                            title="Lihat Foto & Detail Anggota"
                           >
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs px-2 text-emerald-600 dark:text-emerald-400 gap-1"
+                            <Eye className="h-3.5 w-3.5 text-primary" />
+                            <span className="hidden lg:inline">Foto</span>
+                          </Button>
+                          {m.kontak && m.kontak !== "-" && (
+                            <a
+                              href={`https://wa.me/${m.kontak.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noreferrer"
                             >
-                              <Phone className="h-3 w-3" />
-                              <span>WA</span>
-                            </Button>
-                          </a>
-                        )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs px-2 text-emerald-600 dark:text-emerald-400 gap-1"
+                              >
+                                <Phone className="h-3 w-3" />
+                                <span>WA</span>
+                              </Button>
+                            </a>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -372,6 +424,97 @@ export function AnggotaManager({
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal Preview Foto Profil Anggota */}
+      <Dialog open={!!previewMember} onOpenChange={(open) => !open && setPreviewMember(null)}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border bg-card shadow-2xl">
+          {previewMember && (
+            <div>
+              <div className="relative w-full bg-muted/40 flex items-center justify-center p-6 border-b">
+                {previewMember.foto_url ? (
+                  <div className="relative w-52 h-52 sm:w-60 sm:h-60 rounded-2xl overflow-hidden border-2 border-background shadow-xl ring-1 ring-border/80">
+                    <img
+                      src={previewMember.foto_url}
+                      alt={previewMember.nama}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-36 h-36 rounded-2xl bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center border-2 border-dashed border-primary/30">
+                    {previewMember.nama.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <DialogTitle className="text-lg font-bold text-foreground">
+                      {previewMember.nama}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                      {previewMember.jabatan} • {previewMember.bagian}
+                    </DialogDescription>
+                  </div>
+                  <Badge
+                    variant={
+                      previewMember.status === "Aktif"
+                        ? "default"
+                        : previewMember.status === "Alumni"
+                        ? "secondary"
+                        : "outline"
+                    }
+                    className="text-xs px-2.5 py-0.5 capitalize shrink-0"
+                  >
+                    {previewMember.status}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs bg-muted/30 p-3 rounded-xl border border-border/50">
+                  <div>
+                    <p className="text-muted-foreground text-[11px]">Domisili</p>
+                    <p className="font-medium text-foreground mt-0.5">{previewMember.rt_rw}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[11px]">Periode</p>
+                    <p className="font-medium text-foreground mt-0.5">{previewMember.periode}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  {previewMember.kontak && previewMember.kontak !== "-" ? (
+                    <a
+                      href={`https://wa.me/${previewMember.kontak.replace(/[^0-9]/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1"
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        <span>Hubungi via WhatsApp</span>
+                      </Button>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">Kontak belum tersedia</span>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="text-xs px-4"
+                    onClick={() => setPreviewMember(null)}
+                  >
+                    Tutup
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

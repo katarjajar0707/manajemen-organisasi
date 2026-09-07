@@ -81,6 +81,17 @@ export async function getAnggotaList(filters?: {
 
   if (!data) return [];
 
+  // Ambil foto profil dari tabel profiles untuk fallback sinkronisasi
+  const { data: profileAvatars } = await supabase
+    .from("profiles")
+    .select("id, foto_url");
+  const avatarMap = new Map<string, string>();
+  if (profileAvatars) {
+    for (const p of profileAvatars) {
+      if (p.foto_url) avatarMap.set(p.id, p.foto_url);
+    }
+  }
+
   return data.map((m: any) => {
     const directBagian = Array.isArray(m.bagian) ? m.bagian[0] : m.bagian;
     const periodeObj = Array.isArray(m.periode) ? m.periode[0] : m.periode;
@@ -104,7 +115,7 @@ export async function getAnggotaList(filters?: {
       rt_rw: m.rt_rw,
       kontak: m.kontak,
       status: (m.status as any) || "Aktif",
-      foto_url: m.foto_url || null,
+      foto_url: m.foto_url || avatarMap.get(m.id) || null,
       periode: periodeObj ? periodeObj.nama_periode : "Anggota Umum",
       periodeId: m.periode_id || null,
       agendaId: agendaObj ? agendaObj.id : null,

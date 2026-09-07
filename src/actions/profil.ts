@@ -264,7 +264,16 @@ export async function updateAvatar(formData: FormData) {
       return { error: "Gagal menyimpan foto profil ke database." };
     }
 
+    // Sinkronkan juga ke tabel anggota jika user sudah terdaftar
+    await supabase
+      .from("anggota")
+      .update({ foto_url: uploadRes.url })
+      .eq("id", user.id);
+
     revalidatePath("/profil");
+    revalidatePath("/anggota");
+    revalidatePath("/struktur");
+    revalidatePath("/dashboard");
     revalidatePath("/", "layout");
     return { success: true, url: uploadRes.url };
   } catch (err: any) {

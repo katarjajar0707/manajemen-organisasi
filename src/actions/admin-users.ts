@@ -16,18 +16,18 @@ export async function syncProfilesToAnggota() {
     const supabase = await createAdminClient();
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, nama, role, bagian_id");
+      .select("id, nama, role, bagian_id, foto_url");
 
     if (!profiles || profiles.length === 0) return;
 
     const { data: existingAnggota } = await supabase
       .from("anggota")
-      .select("id");
+      .select("id, foto_url");
 
-    const existingIds = new Set((existingAnggota || []).map((a: any) => a.id));
+    const existingMap = new Map((existingAnggota || []).map((a: any) => [a.id, a]));
 
     const toInsert = profiles
-      .filter((p: any) => !existingIds.has(p.id))
+      .filter((p: any) => !existingMap.has(p.id))
       .map((p: any) => ({
         id: p.id,
         nama: p.nama || "Pengurus",
@@ -35,11 +35,20 @@ export async function syncProfilesToAnggota() {
         rt_rw: "RT 01 / RW 05",
         jabatan: p.role === "ketua" ? "Ketua" : p.role === "admin" ? "Administrator" : "Anggota",
         bagian_id: p.bagian_id || null,
+        foto_url: p.foto_url || null,
         status: "Aktif",
       }));
 
     if (toInsert.length > 0) {
       await supabase.from("anggota").upsert(toInsert);
+    }
+
+    // Sinkronkan avatar yang belum terisi di anggota jika di profil sudah ada
+    for (const p of profiles) {
+      const existing = existingMap.get(p.id);
+      if (existing && !existing.foto_url && p.foto_url) {
+        await supabase.from("anggota").update({ foto_url: p.foto_url }).eq("id", p.id);
+      }
     }
   } catch (err) {
     console.error("Error syncing profiles to anggota:", err);
@@ -61,9 +70,35 @@ export async function getUsers() {
     return [];
   }
 
+  // Try fetching nomor_wa separately (column mungkin belum ada di DB)
+  const waMap = new Map<string, string>();
+  try {
+    const { data: waData } = await supabase
+      .from("profiles")
+      .select("id, nomor_wa");
+    if (waData) {
+      for (const w of waData) {
+        waMap.set(w.id, (w as any).nomor_wa || "");
+      }
+    }
+  } catch {
+    // Column belum ada, skip
+  }
+
+  // Fetch emails from auth.users for each profile
+  const { data: authListData } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+  const emailMap = new Map<string, string>();
+  if (authListData?.users) {
+    for (const u of authListData.users) {
+      emailMap.set(u.id, u.email || "");
+    }
+  }
+
   // Normalize bagian from array (Supabase FK join) to single object
   const normalized = (profiles || []).map((p: any) => ({
     ...p,
+    nomor_wa: waMap.get(p.id) || "",
+    email: emailMap.get(p.id) || "",
     bagian: Array.isArray(p.bagian) ? (p.bagian[0] || null) : (p.bagian || null),
   }));
 
@@ -159,6 +194,9 @@ export async function updateUser(userId: string, formData: FormData) {
   }
 
   const nama = (formData.get("nama") as string)?.trim();
+  const username = (formData.get("username") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim();
+  const nomor_wa = (formData.get("nomor_wa") as string)?.trim();
   const role = formData.get("role") as string;
   const bagian_id = (formData.get("bagian_id") as string)?.trim() || null;
   const kontak = (formData.get("kontak") as string)?.trim();
@@ -167,17 +205,38 @@ export async function updateUser(userId: string, formData: FormData) {
 
   try {
     const supabase = await createAdminClient();
+
+    // Update email via auth admin API if provided
+    if (email) {
+      const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
+        email,
+      });
+      if (authError) {
+        return { error: "Gagal mengupdate email: " + authError.message };
+      }
+    }
     
     const profileUpdate: any = {
       role: role,
       bagian_id: bagian_id || null,
     };
     if (nama) profileUpdate.nama = nama;
+    if (username) profileUpdate.username = username;
+    if (nomor_wa !== undefined && nomor_wa !== null) profileUpdate.nomor_wa = nomor_wa;
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from("profiles")
       .update(profileUpdate)
       .eq("id", userId);
+
+    if (error && error.message?.includes("nomor_wa")) {
+      delete profileUpdate.nomor_wa;
+      const retry = await supabase
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", userId);
+      error = retry.error;
+    }
 
     if (error) {
       return { error: error.message };
@@ -189,7 +248,7 @@ export async function updateUser(userId: string, formData: FormData) {
     };
     if (nama) anggotaUpdate.nama = nama;
     if (jabatan) anggotaUpdate.jabatan = jabatan;
-    if (kontak) anggotaUpdate.kontak = kontak;
+    if (kontak || nomor_wa) anggotaUpdate.kontak = kontak || nomor_wa;
     if (rt_rw) anggotaUpdate.rt_rw = rt_rw;
 
     await supabase

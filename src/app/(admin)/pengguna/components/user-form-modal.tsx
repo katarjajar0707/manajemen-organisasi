@@ -10,7 +10,15 @@ import { UserPlus, AlertCircle, Edit } from "lucide-react";
 import { createUser, updateUser } from "@/actions/admin-users";
 
 type Bagian = { id: string; nama: string };
-type User = { id: string; nama: string; role: string; bagian_id: string | null };
+type User = {
+  id: string;
+  nama: string;
+  username?: string;
+  email?: string;
+  nomor_wa?: string;
+  role: string;
+  bagian_id: string | null;
+};
 
 export function UserFormModal({
   bagianList,
@@ -59,12 +67,12 @@ export function UserFormModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <form action={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{isEdit ? "Edit Hak Akses Pengguna" : "Tambah Pengguna Baru"}</DialogTitle>
+            <DialogTitle>{isEdit ? "Edit Pengguna" : "Tambah Pengguna Baru"}</DialogTitle>
             <DialogDescription>
-              {isEdit ? "Ubah role atau bagian untuk pengguna ini." : "Buat akun login baru untuk pengurus/anggota Karang Taruna."}
+              {isEdit ? "Ubah data profil, role, dan bagian pengguna ini." : "Buat akun login baru untuk pengurus/anggota Karang Taruna."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -75,23 +83,44 @@ export function UserFormModal({
               </div>
             )}
             
+            {/* Nama Lengkap */}
             <div className="grid gap-2">
               <Label htmlFor="nama">Nama Lengkap</Label>
-              <Input id="nama" name="nama" defaultValue={userToEdit?.nama} readOnly={isEdit} required={!isEdit} />
+              <Input id="nama" name="nama" defaultValue={userToEdit?.nama} required />
             </div>
-            {!isEdit && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" required />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Password Sementara</Label>
-                  <Input id="password" name="password" type="password" required />
-                </div>
-              </>
+
+            {/* Username — tampil di mode edit */}
+            {isEdit && (
+              <div className="grid gap-2">
+                <Label htmlFor="username">Username</Label>
+                <Input id="username" name="username" defaultValue={userToEdit?.username} placeholder="username" />
+              </div>
             )}
+
+            {/* Email */}
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" defaultValue={isEdit ? userToEdit?.email : ""} required={!isEdit} />
+              {isEdit && (
+                <p className="text-xs text-muted-foreground">Mengubah email akan berpengaruh ke login pengguna.</p>
+              )}
+            </div>
+
+            {/* Password — hanya saat tambah baru */}
+            {!isEdit && (
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password Sementara</Label>
+                <Input id="password" name="password" type="password" required />
+              </div>
+            )}
+
+            {/* Nomor WhatsApp */}
+            <div className="grid gap-2">
+              <Label htmlFor="nomor_wa">Nomor WhatsApp</Label>
+              <Input id="nomor_wa" name="nomor_wa" defaultValue={userToEdit?.nomor_wa || ""} placeholder="08xxxxxxxxxx" />
+            </div>
             
+            {/* Role */}
             <div className="grid gap-2">
               <Label htmlFor="role">Role / Hak Akses</Label>
               <Select name="role" defaultValue={userToEdit?.role || "anggota"} required>
@@ -106,6 +135,7 @@ export function UserFormModal({
               </Select>
             </div>
 
+            {/* Bagian */}
             <div className="grid gap-2">
               <Label htmlFor="bagian_id">Bagian / Departemen</Label>
               <Select name="bagian_id" defaultValue={userToEdit?.bagian_id || undefined}>
@@ -126,7 +156,7 @@ export function UserFormModal({
 
             <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border/40">
               <div className="grid gap-1.5">
-                <Label htmlFor="kontak" className="text-xs">No. WhatsApp / HP</Label>
+                <Label htmlFor="kontak" className="text-xs">No. HP Lainnya</Label>
                 <Input id="kontak" name="kontak" placeholder="0812xxxx (opsional)" className="h-8 text-xs" />
               </div>
               <div className="grid gap-1.5">
