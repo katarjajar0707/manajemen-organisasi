@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import { Providers } from '@/providers';
 import './globals.css';
@@ -63,6 +63,10 @@ export const metadata: Metadata = {
     ],
     apple: '/logo192.png',
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
