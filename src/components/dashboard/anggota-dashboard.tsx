@@ -1,29 +1,16 @@
-import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Users,
-  Calendar,
-  Megaphone,
-  MessagesSquare,
-  ArrowRight,
-  MessageCircle,
-  User,
-  Clock,
-  MapPin,
-  Building2,
-  Sparkles,
-  ChevronRight,
-} from "lucide-react";
-import { LogoutButton } from "@/components/common/logout-button";
-import { DashboardAnnouncementBanner } from "@/components/dashboard/dashboard-announcement-banner";
-import { PengumumanItem } from "@/actions/pengumuman";
-import { DiskusiItem } from "@/actions/diskusi";
-import { PublicTransparencyData } from "@/actions/transparansi";
-import type { PengaturanSistemData } from "@/actions/pengaturan";
-import { Profile } from "@/types/database";
+import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Users, Calendar, Megaphone, MessagesSquare, ArrowRight, MessageCircle, User, Clock, MapPin, Building2, Sparkles, ChevronRight } from 'lucide-react';
+import { LogoutButton } from '@/components/common/logout-button';
+import { DashboardAnnouncementBanner } from '@/components/dashboard/dashboard-announcement-banner';
+import { PengumumanItem } from '@/actions/pengumuman';
+import { DiskusiItem } from '@/actions/diskusi';
+import { PublicTransparencyData } from '@/actions/transparansi';
+import type { PengaturanSistemData } from '@/actions/pengaturan';
+import { Profile } from '@/types/database';
 
 interface AnggotaDashboardProps {
   profile: Profile;
@@ -33,7 +20,6 @@ interface AnggotaDashboardProps {
   settings?: PengaturanSistemData;
 }
 
-
 function formatRelativeTime(dateIso: string): string {
   try {
     const date = new Date(dateIso);
@@ -42,44 +28,36 @@ function formatRelativeTime(dateIso: string): string {
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffMinutes < 1) return "Baru saja";
+    if (diffMinutes < 1) return 'Baru saja';
     if (diffMinutes < 60) return `${diffMinutes} menit lalu`;
     if (diffHours < 24) return `${diffHours} jam lalu`;
     if (diffDays < 7) return `${diffDays} hari lalu`;
-    return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
   } catch {
-    return "Baru saja";
+    return 'Baru saja';
   }
 }
 
 function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 11) return "Selamat pagi";
-  if (hour < 15) return "Selamat siang";
-  if (hour < 18) return "Selamat sore";
-  return "Selamat malam";
+  if (hour < 11) return 'Selamat pagi';
+  if (hour < 15) return 'Selamat siang';
+  if (hour < 18) return 'Selamat sore';
+  return 'Selamat malam';
 }
 
 function getInitials(name: string): string {
   return name
-    .split(" ")
+    .split(' ')
     .slice(0, 2)
     .map((n) => n[0])
-    .join("")
+    .join('')
     .toUpperCase();
 }
 
-export function AnggotaDashboard({
-  profile,
-  summaryData,
-  announcements,
-  diskusis,
-  settings,
-}: AnggotaDashboardProps) {
+export function AnggotaDashboard({ profile, summaryData, announcements, diskusis, settings }: AnggotaDashboardProps) {
   const latestDiskusis = diskusis.slice(0, 4);
   const kegiatanMendatang = summaryData.kegiatan.jadwalMendatang.slice(0, 4);
-  const orgName = settings?.profil.nama || "Karang Taruna";
-  const orgWilayah = [settings?.profil.unitWilayah, settings?.profil.kelurahan].filter(Boolean).join(" · ");
 
   return (
     <div className="space-y-6">
@@ -87,21 +65,13 @@ export function AnggotaDashboard({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-sm shrink-0">
-            {profile.foto_url ? (
-               <AvatarImage src={profile.foto_url} alt={profile.nama} />
-            ) : null}
-            <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-              {getInitials(profile.nama)}
-            </AvatarFallback>
+            {profile.foto_url ? <AvatarImage src={profile.foto_url} alt={profile.nama} /> : null}
+            <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">{getInitials(profile.nama)}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              {getGreeting()}, selamat datang di {orgName} {orgWilayah ? `(${orgWilayah})` : ""}
-            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground">{getGreeting()}</p>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                {profile.nama}!
-              </h1>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{profile.nama}!</h1>
               <Badge variant="outline" className="text-xs px-2 py-0.5 border-primary/30 text-primary">
                 Anggota
               </Badge>
@@ -137,17 +107,11 @@ export function AnggotaDashboard({
       </div>
 
       {/* ── Pengumuman Banner ── */}
-      <DashboardAnnouncementBanner
-        announcements={announcements}
-        userRole={profile.role}
-        userBagianNama={profile.bagian?.nama}
-      />
+      <DashboardAnnouncementBanner announcements={announcements} userRole={profile.role} userBagianNama={profile.bagian?.nama} />
 
       {/* ── Stat Cards ── */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">
-          Informasi Organisasi
-        </p>
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Informasi Organisasi</p>
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
           <Link href="/anggota" className="block">
             <Card className="hover:border-indigo-500/40 transition-all duration-200 hover:shadow-md h-full">
@@ -157,9 +121,7 @@ export function AnggotaDashboard({
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{summaryData.anggota.totalAktif}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Anggota aktif dari {summaryData.anggota.totalSemua} terdaftar
-                  </p>
+                  <p className="text-xs text-muted-foreground">Anggota aktif dari {summaryData.anggota.totalSemua} terdaftar</p>
                 </div>
               </CardContent>
             </Card>
@@ -173,9 +135,7 @@ export function AnggotaDashboard({
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{summaryData.kegiatan.totalProgram}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Total program, {summaryData.kegiatan.kegiatanTerlaksana} telah terlaksana
-                  </p>
+                  <p className="text-xs text-muted-foreground">Total program, {summaryData.kegiatan.kegiatanTerlaksana} telah terlaksana</p>
                 </div>
               </CardContent>
             </Card>
@@ -189,9 +149,7 @@ export function AnggotaDashboard({
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{announcements.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {announcements.length > 0 ? "Pengumuman aktif untukmu" : "Belum ada pengumuman"}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{announcements.length > 0 ? 'Pengumuman aktif untukmu' : 'Belum ada pengumuman'}</p>
                 </div>
               </CardContent>
             </Card>
@@ -208,27 +166,19 @@ export function AnggotaDashboard({
               <User className="h-4 w-4 text-primary" />
               Profil Saya
             </CardTitle>
-            <CardDescription className="text-xs">
-              Informasi akun dan posisi kamu di organisasi
-            </CardDescription>
+            <CardDescription className="text-xs">Informasi akun dan posisi kamu di organisasi</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Avatar + Name */}
             <div className="flex items-center gap-3">
               <Avatar className="h-14 w-14 border-2 border-primary/20">
-                {profile.foto_url ? (
-                  <AvatarImage src={profile.foto_url} alt={profile.nama} />
-                ) : null}
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
-                  {getInitials(profile.nama)}
-                </AvatarFallback>
+                {profile.foto_url ? <AvatarImage src={profile.foto_url} alt={profile.nama} /> : null}
+                <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">{getInitials(profile.nama)}</AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-semibold text-sm">{profile.nama}</p>
                 <p className="text-xs text-muted-foreground">@{profile.username}</p>
-                <Badge className="mt-1 text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                  Anggota
-                </Badge>
+                <Badge className="mt-1 text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">Anggota</Badge>
               </div>
             </div>
 
@@ -236,9 +186,7 @@ export function AnggotaDashboard({
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between py-1.5 border-b border-border/50">
                 <span className="text-muted-foreground text-xs">Divisi / Bagian</span>
-                <span className="font-medium text-xs text-right">
-                  {profile.bagian?.nama || "—"}
-                </span>
+                <span className="font-medium text-xs text-right">{profile.bagian?.nama || '—'}</span>
               </div>
               <div className="flex items-center justify-between py-1.5 border-b border-border/50">
                 <span className="text-muted-foreground text-xs">Username</span>
@@ -247,20 +195,16 @@ export function AnggotaDashboard({
               <div className="flex items-center justify-between py-1.5">
                 <span className="text-muted-foreground text-xs">Bergabung</span>
                 <span className="text-xs">
-                  {new Date(profile.created_at).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
+                  {new Date(profile.created_at).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
                   })}
                 </span>
               </div>
             </div>
 
-            {profile.bio && (
-              <p className="text-xs text-muted-foreground italic border-l-2 border-primary/30 pl-3 py-1">
-                &ldquo;{profile.bio}&rdquo;
-              </p>
-            )}
+            {profile.bio && <p className="text-xs text-muted-foreground italic border-l-2 border-primary/30 pl-3 py-1">&ldquo;{profile.bio}&rdquo;</p>}
 
             {settings?.profil.alamat && (
               <div className="pt-2.5 border-t text-[11px] text-muted-foreground space-y-1">
@@ -268,9 +212,7 @@ export function AnggotaDashboard({
                   <MapPin className="h-3 w-3 text-primary shrink-0" /> Sekretariat:
                 </span>
                 <p className="truncate">{settings.profil.alamat}</p>
-                {settings.profil.telepon && (
-                  <p>Kontak: {settings.profil.telepon}</p>
-                )}
+                {settings.profil.telepon && <p>Kontak: {settings.profil.telepon}</p>}
               </div>
             )}
 
@@ -291,9 +233,7 @@ export function AnggotaDashboard({
                 <Sparkles className="h-4 w-4 text-orange-500" />
                 Jadwal Kegiatan
               </CardTitle>
-              <CardDescription className="text-xs">
-                Kegiatan terbaru yang direncanakan organisasi
-              </CardDescription>
+              <CardDescription className="text-xs">Kegiatan terbaru yang direncanakan organisasi</CardDescription>
             </div>
             <Link href="/kegiatan">
               <Button variant="ghost" size="sm" className="gap-1 text-xs">
@@ -315,12 +255,8 @@ export function AnggotaDashboard({
                       <Calendar className="h-3.5 w-3.5 text-orange-600" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">
-                        {k.judul}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
-                        {k.tanggal}
-                      </p>
+                      <p className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">{k.judul}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{k.tanggal}</p>
                       {k.lokasi && (
                         <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
                           <MapPin className="h-2.5 w-2.5 shrink-0" />
@@ -328,10 +264,7 @@ export function AnggotaDashboard({
                         </div>
                       )}
                     </div>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] shrink-0 text-orange-600 border-orange-300"
-                    >
+                    <Badge variant="outline" className="text-[10px] shrink-0 text-orange-600 border-orange-300">
                       {k.bagian}
                     </Badge>
                   </div>
@@ -350,9 +283,7 @@ export function AnggotaDashboard({
               <MessagesSquare className="h-4 w-4 text-sky-600" />
               Diskusi & Catatan Umum Terbaru
             </CardTitle>
-            <CardDescription className="text-xs">
-              Ikut berpartisipasi dalam diskusi organisasi
-            </CardDescription>
+            <CardDescription className="text-xs">Ikut berpartisipasi dalam diskusi organisasi</CardDescription>
           </div>
           <Link href="/diskusi">
             <Button variant="ghost" size="sm" className="gap-1 text-xs">
@@ -379,14 +310,9 @@ export function AnggotaDashboard({
                   <Link key={disc.id} href={`/diskusi/${disc.id}`} className="block group">
                     <div className="p-3 rounded-lg border bg-card hover:bg-muted/40 transition-colors space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">
-                          {disc.judul}
-                        </h4>
+                        <h4 className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">{disc.judul}</h4>
                         {disc.mentions && disc.mentions.length > 0 && (
-                          <Badge
-                            variant="outline"
-                            className="text-primary text-[10px] shrink-0"
-                          >
+                          <Badge variant="outline" className="text-primary text-[10px] shrink-0">
                             @{disc.mentions[0].bagianNama}
                           </Badge>
                         )}

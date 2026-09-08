@@ -1,80 +1,20 @@
-"use client";
+'use client';
 
-import { useState, useMemo, useTransition, useRef } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Package,
-  Plus,
-  Search,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Eye,
-  Pencil,
-  Trash2,
-  ArrowRightLeft,
-  Boxes,
-  MapPin,
-  Clock,
-  User,
-  Filter,
-  Check,
-  Loader2,
-  Image as ImageIcon,
-  History,
-  Upload,
-  Calendar,
-} from "lucide-react";
-import {
-  ItemInventaris,
-  PeminjamanRecord,
-  KondisiBarang,
-  StatusBarang,
-  KategoriBarang,
-  createInventaris,
-  updateInventaris,
-  deleteInventaris,
-  pinjamInventaris,
-  kembalikanInventaris,
-  getRiwayatPeminjaman,
-} from "@/actions/inventaris";
-import { uploadLampiran } from "@/actions/storage";
-import type { PengaturanSistemData } from "@/actions/pengaturan";
+import { useState, useMemo, useTransition, useRef } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Package, Plus, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Pencil, Trash2, ArrowRightLeft, Boxes, MapPin, Clock, User, Filter, Check, Loader2, Image as ImageIcon, History, Upload, Calendar } from 'lucide-react';
+import { ItemInventaris, PeminjamanRecord, KondisiBarang, StatusBarang, KategoriBarang, createInventaris, updateInventaris, deleteInventaris, pinjamInventaris, kembalikanInventaris, getRiwayatPeminjaman } from '@/actions/inventaris';
+import { uploadLampiran } from '@/actions/storage';
+import type { PengaturanSistemData } from '@/actions/pengaturan';
 
 interface InventarisManagerProps {
   initialItems?: ItemInventaris[];
@@ -84,36 +24,26 @@ interface InventarisManagerProps {
   settings?: PengaturanSistemData;
 }
 
-export function InventarisManager({
-  initialItems = [],
-  initialRiwayat = [],
-  userRole = "anggota",
-  currentUserId,
-  settings,
-}: InventarisManagerProps) {
-
+export function InventarisManager({ initialItems = [], initialRiwayat = [], userRole = 'anggota', currentUserId, settings }: InventarisManagerProps) {
   const [items, setItems] = useState<ItemInventaris[]>(initialItems);
   const [riwayat, setRiwayat] = useState<PeminjamanRecord[]>(initialRiwayat);
-  const [activeTab, setActiveTab] = useState<"daftar" | "riwayat">("daftar");
+  const [activeTab, setActiveTab] = useState<'daftar' | 'riwayat'>('daftar');
   const [isPending, startTransition] = useTransition();
 
   // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterKategori, setFilterKategori] = useState<string>("all");
-  const [filterKondisi, setFilterKondisi] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterKategori, setFilterKategori] = useState<string>('all');
+  const [filterKondisi, setFilterKondisi] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Notification Toast State
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
-    type: "success" | "info" | "warning";
-  }>({ show: false, message: "", type: "success" });
+    type: 'success' | 'info' | 'warning';
+  }>({ show: false, message: '', type: 'success' });
 
-  const triggerNotification = (
-    message: string,
-    type: "success" | "info" | "warning" = "success"
-  ) => {
+  const triggerNotification = (message: string, type: 'success' | 'info' | 'warning' = 'success') => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, show: false }));
@@ -142,23 +72,23 @@ export function InventarisManager({
     fotoUrl: string;
     keterangan: string;
   }>({
-    nama: "",
-    kategori: "Elektronik & Sound",
+    nama: '',
+    kategori: 'Elektronik & Sound',
     jumlah: 1,
-    satuan: "Unit",
-    kondisi: "baik",
-    lokasi: "Ruang Sekretariat Katar",
-    fotoUrl: "",
-    keterangan: "",
+    satuan: 'Unit',
+    kondisi: 'baik',
+    lokasi: 'Ruang Sekretariat Katar',
+    fotoUrl: '',
+    keterangan: '',
   });
 
   // Form state for Peminjaman
   const [pinjamForm, setPinjamForm] = useState({
-    peminjam: "",
-    tanggalPinjam: new Date().toISOString().split("T")[0],
-    tanggalKembaliRencana: "",
+    peminjam: '',
+    tanggalPinjam: new Date().toISOString().split('T')[0],
+    tanggalKembaliRencana: '',
     jumlahPinjam: 1,
-    keterangan: "",
+    keterangan: '',
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -167,9 +97,9 @@ export function InventarisManager({
   const stats = useMemo(() => {
     const totalJenis = items.length;
     const totalUnit = items.reduce((acc, curr) => acc + curr.jumlah, 0);
-    const kondisiBaik = items.filter((i) => i.kondisi === "baik").length;
-    const kondisiRusak = items.filter((i) => i.kondisi !== "baik").length;
-    const dipinjam = items.filter((i) => i.status === "Dipinjam").length;
+    const kondisiBaik = items.filter((i) => i.kondisi === 'baik').length;
+    const kondisiRusak = items.filter((i) => i.kondisi !== 'baik').length;
+    const dipinjam = items.filter((i) => i.status === 'Dipinjam').length;
 
     return { totalJenis, totalUnit, kondisiBaik, kondisiRusak, dipinjam };
   }, [items]);
@@ -183,9 +113,9 @@ export function InventarisManager({
         item.lokasi.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.peminjam && item.peminjam.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchKategori = filterKategori === "all" || item.kategori === filterKategori;
-      const matchKondisi = filterKondisi === "all" || item.kondisi === filterKondisi;
-      const matchStatus = filterStatus === "all" || item.status === filterStatus;
+      const matchKategori = filterKategori === 'all' || item.kategori === filterKategori;
+      const matchKondisi = filterKondisi === 'all' || item.kondisi === filterKondisi;
+      const matchStatus = filterStatus === 'all' || item.status === filterStatus;
 
       return matchSearch && matchKategori && matchKondisi && matchStatus;
     });
@@ -198,15 +128,15 @@ export function InventarisManager({
 
     try {
       setIsUploading(true);
-      const res = await uploadLampiran(file, "inventaris");
+      const res = await uploadLampiran(file, 'inventaris');
       if (res.error || !res.url) {
-        triggerNotification(res.error || "Gagal mengunggah foto.", "warning");
+        triggerNotification(res.error || 'Gagal mengunggah foto.', 'warning');
       } else {
         setFormData((prev) => ({ ...prev, fotoUrl: res.url! }));
-        triggerNotification("Foto inventaris berhasil diunggah!", "success");
+        triggerNotification('Foto inventaris berhasil diunggah!', 'success');
       }
     } catch (err: any) {
-      triggerNotification(err.message || "Gagal mengunggah foto.", "warning");
+      triggerNotification(err.message || 'Gagal mengunggah foto.', 'warning');
     } finally {
       setIsUploading(false);
     }
@@ -215,14 +145,14 @@ export function InventarisManager({
   // Handlers
   const handleOpenCreate = () => {
     setFormData({
-      nama: "",
-      kategori: "Elektronik & Sound",
+      nama: '',
+      kategori: 'Elektronik & Sound',
       jumlah: 1,
-      satuan: "Unit",
-      kondisi: "baik",
-      lokasi: "Ruang Sekretariat Katar",
-      fotoUrl: "",
-      keterangan: "",
+      satuan: 'Unit',
+      kondisi: 'baik',
+      lokasi: 'Ruang Sekretariat Katar',
+      fotoUrl: '',
+      keterangan: '',
     });
     setIsCreateOpen(true);
   };
@@ -236,9 +166,9 @@ export function InventarisManager({
         nama: formData.nama,
         kategori: formData.kategori,
         jumlah: Number(formData.jumlah) || 1,
-        satuan: formData.satuan || "Unit",
+        satuan: formData.satuan || 'Unit',
         kondisi: formData.kondisi,
-        lokasi: formData.lokasi || "Sekretariat",
+        lokasi: formData.lokasi || 'Sekretariat',
         fotoUrl: formData.fotoUrl || null,
         keterangan: formData.keterangan,
       });
@@ -246,9 +176,9 @@ export function InventarisManager({
       if (res.success && res.data) {
         setItems((prev) => [res.data!, ...prev]);
         setIsCreateOpen(false);
-        triggerNotification(`Barang "${res.data.nama}" berhasil ditambahkan ke database!`, "success");
+        triggerNotification(`Barang "${res.data.nama}" berhasil ditambahkan ke database!`, 'success');
       } else {
-        triggerNotification(res.error || "Gagal menambahkan barang.", "warning");
+        triggerNotification(res.error || 'Gagal menambahkan barang.', 'warning');
       }
     });
   };
@@ -257,13 +187,13 @@ export function InventarisManager({
     setSelectedItem(item);
     setFormData({
       nama: item.nama,
-      kategori: (item.kategori as KategoriBarang) || "Lainnya",
+      kategori: (item.kategori as KategoriBarang) || 'Lainnya',
       jumlah: item.jumlah,
       satuan: item.satuan,
       kondisi: item.kondisi,
       lokasi: item.lokasi,
-      fotoUrl: item.fotoUrl || "",
-      keterangan: item.keterangan || "",
+      fotoUrl: item.fotoUrl || '',
+      keterangan: item.keterangan || '',
     });
     setIsEditOpen(true);
   };
@@ -299,13 +229,13 @@ export function InventarisManager({
                   fotoUrl: formData.fotoUrl || null,
                   keterangan: formData.keterangan,
                 }
-              : i
-          )
+              : i,
+          ),
         );
         setIsEditOpen(false);
-        triggerNotification(`Data barang "${formData.nama}" berhasil diperbarui!`, "success");
+        triggerNotification(`Data barang "${formData.nama}" berhasil diperbarui!`, 'success');
       } else {
-        triggerNotification(res.error || "Gagal memperbarui barang.", "warning");
+        triggerNotification(res.error || 'Gagal memperbarui barang.', 'warning');
       }
     });
   };
@@ -328,10 +258,10 @@ export function InventarisManager({
       if (res.success) {
         setItems((prev) => prev.filter((i) => i.id !== selectedItem.id));
         setIsDeleteOpen(false);
-        triggerNotification(`Barang "${selectedItem.nama}" berhasil dihapus dari inventaris.`, "warning");
+        triggerNotification(`Barang "${selectedItem.nama}" berhasil dihapus dari inventaris.`, 'warning');
         setSelectedItem(null);
       } else {
-        triggerNotification(res.error || "Gagal menghapus barang.", "warning");
+        triggerNotification(res.error || 'Gagal menghapus barang.', 'warning');
       }
     });
   };
@@ -339,33 +269,32 @@ export function InventarisManager({
   const handleOpenPinjam = (item: ItemInventaris) => {
     setSelectedItem(item);
     const today = new Date();
-    const maxHari = parseInt(settings?.operasional.maxHariPinjamInventaris || "3") || 3;
+    const maxHari = parseInt(settings?.operasional.maxHariPinjamInventaris || '3') || 3;
     const defaultKembali = new Date(today);
     defaultKembali.setDate(defaultKembali.getDate() + maxHari);
 
     setPinjamForm({
-      peminjam: item.peminjam || "",
-      tanggalPinjam: item.tglPinjam || today.toISOString().split("T")[0],
-      tanggalKembaliRencana: item.tglKembaliRencana || defaultKembali.toISOString().split("T")[0],
+      peminjam: item.peminjam || '',
+      tanggalPinjam: item.tglPinjam || today.toISOString().split('T')[0],
+      tanggalKembaliRencana: item.tglKembaliRencana || defaultKembali.toISOString().split('T')[0],
       jumlahPinjam: 1,
-      keterangan: "",
+      keterangan: '',
     });
     setIsPinjamOpen(true);
   };
-
 
   const handlePinjamSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItem) return;
 
     startTransition(async () => {
-      if (selectedItem.status === "Tersedia") {
+      if (selectedItem.status === 'Tersedia') {
         if (!pinjamForm.peminjam.trim()) {
-          triggerNotification("Nama peminjam wajib diisi.", "warning");
+          triggerNotification('Nama peminjam wajib diisi.', 'warning');
           return;
         }
         if (!pinjamForm.tanggalKembaliRencana) {
-          triggerNotification("Rencana tanggal pengembalian wajib diisi.", "warning");
+          triggerNotification('Rencana tanggal pengembalian wajib diisi.', 'warning');
           return;
         }
 
@@ -384,29 +313,27 @@ export function InventarisManager({
               i.id === selectedItem.id
                 ? {
                     ...i,
-                    status: "Dipinjam",
+                    status: 'Dipinjam',
                     peminjam: pinjamForm.peminjam,
                     tglPinjam: pinjamForm.tanggalPinjam,
                     tglKembaliRencana: pinjamForm.tanggalKembaliRencana,
                   }
-                : i
-            )
+                : i,
+            ),
           );
           // Refresh riwayat
           const updatedRiwayat = await getRiwayatPeminjaman();
           setRiwayat(updatedRiwayat);
-          triggerNotification(`Peminjaman "${selectedItem.nama}" oleh ${pinjamForm.peminjam} berhasil dicatat.`, "info");
+          triggerNotification(`Peminjaman "${selectedItem.nama}" oleh ${pinjamForm.peminjam} berhasil dicatat.`, 'info');
           setIsPinjamOpen(false);
         } else {
-          triggerNotification(res.error || "Gagal mencatat peminjaman.", "warning");
+          triggerNotification(res.error || 'Gagal mencatat peminjaman.', 'warning');
         }
       } else {
         // Pengembalian barang
         if (!selectedItem.aktifPinjamId) {
           // Fallback if loan id wasn't preloaded
-          const activeRecord = riwayat.find(
-            (r) => r.inventarisId === selectedItem.id && r.status === "dipinjam"
-          );
+          const activeRecord = riwayat.find((r) => r.inventarisId === selectedItem.id && r.status === 'dipinjam');
           if (activeRecord) {
             const res = await kembalikanInventaris(activeRecord.id);
             if (res.success) {
@@ -415,18 +342,18 @@ export function InventarisManager({
                   i.id === selectedItem.id
                     ? {
                         ...i,
-                        status: "Tersedia",
+                        status: 'Tersedia',
                         peminjam: undefined,
                         tglPinjam: undefined,
                         tglKembaliRencana: undefined,
                         aktifPinjamId: undefined,
                       }
-                    : i
-                )
+                    : i,
+                ),
               );
               const updatedRiwayat = await getRiwayatPeminjaman();
               setRiwayat(updatedRiwayat);
-              triggerNotification(`Barang "${selectedItem.nama}" telah berhasil dikembalikan!`, "success");
+              triggerNotification(`Barang "${selectedItem.nama}" telah berhasil dikembalikan!`, 'success');
               setIsPinjamOpen(false);
               return;
             }
@@ -439,32 +366,32 @@ export function InventarisManager({
                 i.id === selectedItem.id
                   ? {
                       ...i,
-                      status: "Tersedia",
+                      status: 'Tersedia',
                       peminjam: undefined,
                       tglPinjam: undefined,
                       tglKembaliRencana: undefined,
                       aktifPinjamId: undefined,
                     }
-                  : i
-              )
+                  : i,
+              ),
             );
             const updatedRiwayat = await getRiwayatPeminjaman();
             setRiwayat(updatedRiwayat);
-            triggerNotification(`Barang "${selectedItem.nama}" telah berhasil dikembalikan!`, "success");
+            triggerNotification(`Barang "${selectedItem.nama}" telah berhasil dikembalikan!`, 'success');
             setIsPinjamOpen(false);
             return;
           }
         }
-        triggerNotification("Gagal memproses pengembalian barang.", "warning");
+        triggerNotification('Gagal memproses pengembalian barang.', 'warning');
       }
     });
   };
 
   const resetFilters = () => {
-    setSearchQuery("");
-    setFilterKategori("all");
-    setFilterKondisi("all");
-    setFilterStatus("all");
+    setSearchQuery('');
+    setFilterKategori('all');
+    setFilterKondisi('all');
+    setFilterStatus('all');
   };
 
   return (
@@ -473,23 +400,20 @@ export function InventarisManager({
       {notification.show && (
         <div
           className={`flex items-center justify-between p-3.5 px-4 rounded-lg border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${
-            notification.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-              : notification.type === "warning"
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-              : "bg-sky-500/10 border-sky-500/30 text-sky-300"
+            notification.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : notification.type === 'warning'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                : 'bg-sky-500/10 border-sky-500/30 text-sky-300'
           }`}
         >
           <div className="flex items-center gap-2.5">
-            {notification.type === "success" && <Check className="h-4 w-4 text-emerald-400" />}
-            {notification.type === "warning" && <AlertTriangle className="h-4 w-4 text-amber-400" />}
-            {notification.type === "info" && <Clock className="h-4 w-4 text-sky-400" />}
+            {notification.type === 'success' && <Check className="h-4 w-4 text-emerald-400" />}
+            {notification.type === 'warning' && <AlertTriangle className="h-4 w-4 text-amber-400" />}
+            {notification.type === 'info' && <Clock className="h-4 w-4 text-sky-400" />}
             <span className="font-medium">{notification.message}</span>
           </div>
-          <button
-            onClick={() => setNotification((prev) => ({ ...prev, show: false }))}
-            className="text-muted-foreground hover:text-foreground text-xs"
-          >
+          <button onClick={() => setNotification((prev) => ({ ...prev, show: false }))} className="text-muted-foreground hover:text-foreground text-xs">
             Tutup
           </button>
         </div>
@@ -499,16 +423,10 @@ export function InventarisManager({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Inventaris & Aset Organisasi</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola data aset, status kepemilikan, kondisi fisik, dan sirkulasi pinjam-pakai barang.
-          </p>
+          <p className="text-sm text-muted-foreground">Kelola data aset, status kepemilikan, kondisi fisik, dan sirkulasi pinjam-pakai barang.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Button
-            size="sm"
-            onClick={handleOpenCreate}
-            className="gap-1.5 shadow-sm font-medium w-full sm:w-auto"
-          >
+          <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 shadow-sm font-medium w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             Tambah Barang
           </Button>
@@ -601,12 +519,7 @@ export function InventarisManager({
               <div className="flex flex-col md:flex-row gap-3">
                 {/* Search */}
                 <div className="relative flex-1">
-                  <Input
-                    placeholder="Cari nama barang, kategori, lokasi, atau peminjam..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9 text-sm"
-                  />
+                  <Input placeholder="Cari nama barang, kategori, lokasi, atau peminjam..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 </div>
 
@@ -664,11 +577,8 @@ export function InventarisManager({
                 <span>
                   Menampilkan <strong className="text-foreground">{filteredItems.length}</strong> dari {items.length} total barang
                 </span>
-                {(searchQuery || filterKategori !== "all" || filterKondisi !== "all" || filterStatus !== "all") && (
-                  <button
-                    onClick={resetFilters}
-                    className="text-primary hover:underline flex items-center gap-1 font-medium"
-                  >
+                {(searchQuery || filterKategori !== 'all' || filterKondisi !== 'all' || filterStatus !== 'all') && (
+                  <button onClick={resetFilters} className="text-primary hover:underline flex items-center gap-1 font-medium">
                     Hapus Semua Filter
                   </button>
                 )}
@@ -685,9 +595,7 @@ export function InventarisManager({
                     <Package className="h-5 w-5 text-primary" />
                     Daftar Inventaris Barang
                   </CardTitle>
-                  <CardDescription>
-                    Daftar lengkap aset fisik karang taruna beserta kondisi dan status peminjaman.
-                  </CardDescription>
+                  <CardDescription>Daftar lengkap aset fisik karang taruna beserta kondisi dan status peminjaman.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -695,12 +603,10 @@ export function InventarisManager({
               {/* Mobile Card List (< md) */}
               <div className="md:hidden divide-y divide-border/60">
                 {filteredItems.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-xs">
-                    Tidak ada data barang yang cocok dengan filter.
-                  </div>
+                  <div className="p-8 text-center text-muted-foreground text-xs">Tidak ada data barang yang cocok dengan filter.</div>
                 ) : (
                   filteredItems.map((item) => (
-                    <div key={item.id} className="p-3.5 space-y-2.5 hover:bg-muted/20 transition-colors">
+                    <div key={item.id} className="p-3.5 space-y-2.5 odd:bg-muted/20 even:bg-background hover:bg-muted/20 transition-colors">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 mb-1">
@@ -708,17 +614,11 @@ export function InventarisManager({
                               {item.kategori}
                             </Badge>
                           </div>
-                          <h4 className="font-semibold text-xs sm:text-sm text-foreground leading-snug break-words">
-                            {item.nama}
-                          </h4>
+                          <h4 className="font-semibold text-xs sm:text-sm text-foreground leading-snug break-words">{item.nama}</h4>
                         </div>
                         <Badge
-                          variant={item.status === "Tersedia" ? "outline" : "default"}
-                          className={`text-[10px] shrink-0 ${
-                            item.status === "Tersedia"
-                              ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
-                              : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                          }`}
+                          variant={item.status === 'Tersedia' ? 'outline' : 'default'}
+                          className={`text-[10px] shrink-0 ${item.status === 'Tersedia' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'}`}
                         >
                           {item.status}
                         </Badge>
@@ -733,21 +633,17 @@ export function InventarisManager({
                         </div>
                         <div>
                           <span className="text-[11px] block">Kondisi:</span>
-                          <span className="capitalize font-medium text-foreground">
-                            {item.kondisi.replace("_", " ")}
-                          </span>
+                          <span className="capitalize font-medium text-foreground">{item.kondisi.replace('_', ' ')}</span>
                         </div>
                       </div>
 
-                      {item.status === "Dipinjam" && item.peminjam && (
+                      {item.status === 'Dipinjam' && item.peminjam && (
                         <div className="p-2 rounded bg-sky-500/5 border border-sky-500/20 text-xs text-sky-300">
                           <div className="flex items-center gap-1 font-medium">
                             <User className="h-3 w-3" />
                             {item.peminjam}
                           </div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
-                            Rencana Kembali: {item.tglKembaliRencana || "-"}
-                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">Rencana Kembali: {item.tglKembaliRencana || '-'}</div>
                         </div>
                       )}
 
@@ -757,38 +653,18 @@ export function InventarisManager({
                           {item.lokasi}
                         </span>
                         <div className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs px-2"
-                            onClick={() => handleOpenPinjam(item)}
-                          >
+                          <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => handleOpenPinjam(item)}>
                             <ArrowRightLeft className="h-3 w-3 mr-1" />
-                            {item.status === "Tersedia" ? "Pinjam" : "Kembali"}
+                            {item.status === 'Tersedia' ? 'Pinjam' : 'Kembali'}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleOpenDetail(item)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDetail(item)}>
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleOpenEdit(item)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEdit(item)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          {(userRole === "admin" || userRole === "ketua") && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive"
-                              onClick={() => handleOpenDelete(item)}
-                            >
+                          {(userRole === 'admin' || userRole === 'ketua') && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleOpenDelete(item)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
@@ -822,15 +698,11 @@ export function InventarisManager({
                       </TableRow>
                     ) : (
                       filteredItems.map((item) => (
-                        <TableRow key={item.id} className="hover:bg-muted/30">
+                        <TableRow key={item.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30">
                           <TableCell>
                             <div className="flex items-center gap-3">
                               {item.fotoUrl ? (
-                                <img
-                                  src={item.fotoUrl}
-                                  alt={item.nama}
-                                  className="h-10 w-10 rounded object-cover border border-border shrink-0"
-                                />
+                                <img src={item.fotoUrl} alt={item.nama} className="h-10 w-10 rounded object-cover border border-border shrink-0" />
                               ) : (
                                 <div className="h-10 w-10 rounded bg-muted/60 border border-border flex items-center justify-center text-muted-foreground shrink-0">
                                   <Package className="h-5 w-5" />
@@ -847,34 +719,20 @@ export function InventarisManager({
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className="font-semibold">{item.jumlah}</span>{" "}
-                            <span className="text-xs text-muted-foreground">{item.satuan}</span>
+                            <span className="font-semibold">{item.jumlah}</span> <span className="text-xs text-muted-foreground">{item.satuan}</span>
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                item.kondisi === "baik"
-                                  ? "success"
-                                  : item.kondisi === "rusak_ringan"
-                                  ? "warning"
-                                  : "destructive"
-                              }
-                              className="text-xs capitalize font-medium"
-                            >
-                              {item.kondisi === "baik" && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                              {item.kondisi === "rusak_ringan" && <AlertTriangle className="h-3 w-3 mr-1" />}
-                              {item.kondisi === "rusak_berat" && <XCircle className="h-3 w-3 mr-1" />}
-                              {item.kondisi.replace("_", " ")}
+                            <Badge variant={item.kondisi === 'baik' ? 'success' : item.kondisi === 'rusak_ringan' ? 'warning' : 'destructive'} className="text-xs capitalize font-medium">
+                              {item.kondisi === 'baik' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                              {item.kondisi === 'rusak_ringan' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                              {item.kondisi === 'rusak_berat' && <XCircle className="h-3 w-3 mr-1" />}
+                              {item.kondisi.replace('_', ' ')}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <Badge
-                              variant={item.status === "Tersedia" ? "outline" : "default"}
-                              className={`text-xs ${
-                                item.status === "Tersedia"
-                                  ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
-                                  : "bg-sky-500/10 text-sky-400 border-sky-500/20"
-                              }`}
+                              variant={item.status === 'Tersedia' ? 'outline' : 'default'}
+                              className={`text-xs ${item.status === 'Tersedia' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}
                             >
                               {item.status}
                             </Badge>
@@ -888,14 +746,14 @@ export function InventarisManager({
                             </div>
                           </TableCell>
                           <TableCell>
-                            {item.status === "Dipinjam" && item.peminjam ? (
+                            {item.status === 'Dipinjam' && item.peminjam ? (
                               <div>
                                 <div className="text-xs font-medium text-foreground line-clamp-1" title={item.peminjam}>
                                   {item.peminjam}
                                 </div>
                                 <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                                   <Clock className="h-3 w-3 text-sky-400" />
-                                  Kembali: {item.tglKembaliRencana || "-"}
+                                  Kembali: {item.tglKembaliRencana || '-'}
                                 </div>
                               </div>
                             ) : (
@@ -907,45 +765,23 @@ export function InventarisManager({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className={`h-8 w-8 ${
-                                  item.status === "Tersedia"
-                                    ? "text-muted-foreground hover:text-sky-400"
-                                    : "text-sky-400 hover:text-emerald-400"
-                                }`}
+                                className={`h-8 w-8 ${item.status === 'Tersedia' ? 'text-muted-foreground hover:text-sky-400' : 'text-sky-400 hover:text-emerald-400'}`}
                                 onClick={() => handleOpenPinjam(item)}
-                                title={item.status === "Tersedia" ? "Pinjamkan Barang Ini" : "Proses Pengembalian"}
+                                title={item.status === 'Tersedia' ? 'Pinjamkan Barang Ini' : 'Proses Pengembalian'}
                               >
                                 <ArrowRightLeft className="h-4 w-4" />
                               </Button>
 
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => handleOpenDetail(item)}
-                                title="Lihat Detail Barang"
-                              >
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handleOpenDetail(item)} title="Lihat Detail Barang">
                                 <Eye className="h-4 w-4" />
                               </Button>
 
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                onClick={() => handleOpenEdit(item)}
-                                title="Edit Data Barang"
-                              >
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleOpenEdit(item)} title="Edit Data Barang">
                                 <Pencil className="h-4 w-4" />
                               </Button>
 
-                              {(userRole === "admin" || userRole === "ketua") && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                  onClick={() => handleOpenDelete(item)}
-                                  title="Hapus Barang"
-                                >
+                              {(userRole === 'admin' || userRole === 'ketua') && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenDelete(item)} title="Hapus Barang">
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}
@@ -969,9 +805,7 @@ export function InventarisManager({
                 <History className="h-5 w-5 text-primary" />
                 Catatan Riwayat Peminjaman & Sirkulasi
               </CardTitle>
-              <CardDescription>
-                Log pencatatan siapa yang meminjam barang, tanggal pinjam, dan status pengembalian fisik.
-              </CardDescription>
+              <CardDescription>Log pencatatan siapa yang meminjam barang, tanggal pinjam, dan status pengembalian fisik.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -996,34 +830,24 @@ export function InventarisManager({
                       </TableRow>
                     ) : (
                       riwayat.map((rec) => (
-                        <TableRow key={rec.id} className="hover:bg-muted/30">
-                          <TableCell className="font-medium text-foreground">
-                            {rec.namaBarang || "Barang Inventaris"}
-                          </TableCell>
+                        <TableRow key={rec.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30">
+                          <TableCell className="font-medium text-foreground">{rec.namaBarang || 'Barang Inventaris'}</TableCell>
                           <TableCell>
                             <div className="font-medium text-foreground">{rec.peminjam}</div>
-                            {rec.keterangan && (
-                              <div className="text-xs text-muted-foreground">{rec.keterangan}</div>
-                            )}
+                            {rec.keterangan && <div className="text-xs text-muted-foreground">{rec.keterangan}</div>}
                           </TableCell>
                           <TableCell>{rec.jumlahPinjam} unit</TableCell>
                           <TableCell className="text-xs">{rec.tanggalPinjam}</TableCell>
                           <TableCell className="text-xs">{rec.tanggalKembaliRencana}</TableCell>
                           <TableCell>
                             <Badge
-                              variant={rec.status === "dipinjam" ? "default" : "outline"}
-                              className={`text-xs ${
-                                rec.status === "dipinjam"
-                                  ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                                  : "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
-                              }`}
+                              variant={rec.status === 'dipinjam' ? 'default' : 'outline'}
+                              className={`text-xs ${rec.status === 'dipinjam' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5'}`}
                             >
-                              {rec.status === "dipinjam" ? "Sedang Dipinjam" : "Sudah Kembali"}
+                              {rec.status === 'dipinjam' ? 'Sedang Dipinjam' : 'Sudah Kembali'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {rec.dibuatOleh || "Pengurus"}
-                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{rec.dibuatOleh || 'Pengurus'}</TableCell>
                         </TableRow>
                       ))
                     )}
@@ -1045,9 +869,7 @@ export function InventarisManager({
               <Package className="h-5 w-5 text-primary" />
               Tambah Aset Barang Baru
             </DialogTitle>
-            <DialogDescription>
-              Isi data detail barang inventaris baru untuk didaftarkan ke database organisasi.
-            </DialogDescription>
+            <DialogDescription>Isi data detail barang inventaris baru untuk didaftarkan ke database organisasi.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreateSubmit} className="space-y-4 py-2">
@@ -1055,13 +877,7 @@ export function InventarisManager({
               <Label htmlFor="create-nama" className="text-xs">
                 Nama Barang <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="create-nama"
-                placeholder="Contoh: Sound System Portable 12 Inch"
-                value={formData.nama}
-                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                required
-              />
+              <Input id="create-nama" placeholder="Contoh: Sound System Portable 12 Inch" value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} required />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1069,12 +885,7 @@ export function InventarisManager({
                 <Label htmlFor="create-kategori" className="text-xs">
                   Kategori
                 </Label>
-                <Select
-                  value={formData.kategori}
-                  onValueChange={(val: KategoriBarang) =>
-                    setFormData({ ...formData, kategori: val })
-                  }
-                >
+                <Select value={formData.kategori} onValueChange={(val: KategoriBarang) => setFormData({ ...formData, kategori: val })}>
                   <SelectTrigger id="create-kategori">
                     <SelectValue placeholder="Pilih Kategori" />
                   </SelectTrigger>
@@ -1093,12 +904,7 @@ export function InventarisManager({
                 <Label htmlFor="create-kondisi" className="text-xs">
                   Kondisi Fisik
                 </Label>
-                <Select
-                  value={formData.kondisi}
-                  onValueChange={(val: KondisiBarang) =>
-                    setFormData({ ...formData, kondisi: val })
-                  }
-                >
+                <Select value={formData.kondisi} onValueChange={(val: KondisiBarang) => setFormData({ ...formData, kondisi: val })}>
                   <SelectTrigger id="create-kondisi">
                     <SelectValue placeholder="Pilih Kondisi" />
                   </SelectTrigger>
@@ -1116,28 +922,14 @@ export function InventarisManager({
                 <Label htmlFor="create-jumlah" className="text-xs">
                   Jumlah
                 </Label>
-                <Input
-                  id="create-jumlah"
-                  type="number"
-                  min="1"
-                  value={formData.jumlah}
-                  onChange={(e) =>
-                    setFormData({ ...formData, jumlah: parseInt(e.target.value) || 1 })
-                  }
-                  required
-                />
+                <Input id="create-jumlah" type="number" min="1" value={formData.jumlah} onChange={(e) => setFormData({ ...formData, jumlah: parseInt(e.target.value) || 1 })} required />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="create-satuan" className="text-xs">
                   Satuan
                 </Label>
-                <Input
-                  id="create-satuan"
-                  placeholder="Unit / Pcs / Set / Roll"
-                  value={formData.satuan}
-                  onChange={(e) => setFormData({ ...formData, satuan: e.target.value })}
-                />
+                <Input id="create-satuan" placeholder="Unit / Pcs / Set / Roll" value={formData.satuan} onChange={(e) => setFormData({ ...formData, satuan: e.target.value })} />
               </div>
             </div>
 
@@ -1145,12 +937,7 @@ export function InventarisManager({
               <Label htmlFor="create-lokasi" className="text-xs">
                 Lokasi Penyimpanan
               </Label>
-              <Input
-                id="create-lokasi"
-                placeholder="Contoh: Ruang Sekretariat Katar / Gudang RW"
-                value={formData.lokasi}
-                onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
-              />
+              <Input id="create-lokasi" placeholder="Contoh: Ruang Sekretariat Katar / Gudang RW" value={formData.lokasi} onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })} />
             </div>
 
             {/* Foto Upload */}
@@ -1159,16 +946,8 @@ export function InventarisManager({
               <div className="flex items-center gap-3">
                 {formData.fotoUrl ? (
                   <div className="relative group">
-                    <img
-                      src={formData.fotoUrl}
-                      alt="Preview"
-                      className="h-16 w-16 rounded-md object-cover border border-border"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, fotoUrl: "" })}
-                      className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs shadow"
-                    >
+                    <img src={formData.fotoUrl} alt="Preview" className="h-16 w-16 rounded-md object-cover border border-border" />
+                    <button type="button" onClick={() => setFormData({ ...formData, fotoUrl: '' })} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs shadow">
                       ✕
                     </button>
                   </div>
@@ -1178,23 +957,10 @@ export function InventarisManager({
                   </div>
                 )}
                 <div className="flex-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="gap-1.5 text-xs"
-                  >
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                  <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="gap-1.5 text-xs">
                     {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                    {isUploading ? "Mengunggah..." : "Unggah Foto"}
+                    {isUploading ? 'Mengunggah...' : 'Unggah Foto'}
                   </Button>
                 </div>
               </div>
@@ -1204,22 +970,11 @@ export function InventarisManager({
               <Label htmlFor="create-keterangan" className="text-xs">
                 Keterangan Tambahan (Opsional)
               </Label>
-              <Textarea
-                id="create-keterangan"
-                placeholder="Catatan kelengkapan, nomor seri, dll..."
-                value={formData.keterangan}
-                onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
-                rows={2}
-              />
+              <Textarea id="create-keterangan" placeholder="Catatan kelengkapan, nomor seri, dll..." value={formData.keterangan} onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })} rows={2} />
             </div>
 
             <DialogFooter className="gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateOpen(false)}
-                disabled={isPending}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isPending}>
                 Batal
               </Button>
               <Button type="submit" disabled={isPending || isUploading}>
@@ -1229,7 +984,7 @@ export function InventarisManager({
                     Menyimpan...
                   </>
                 ) : (
-                  "Simpan ke Inventaris"
+                  'Simpan ke Inventaris'
                 )}
               </Button>
             </DialogFooter>
@@ -1247,9 +1002,7 @@ export function InventarisManager({
               <Pencil className="h-5 w-5 text-primary" />
               Edit Data Barang
             </DialogTitle>
-            <DialogDescription>
-              Perbarui rincian aset inventaris barang.
-            </DialogDescription>
+            <DialogDescription>Perbarui rincian aset inventaris barang.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
@@ -1257,12 +1010,7 @@ export function InventarisManager({
               <Label htmlFor="edit-nama" className="text-xs">
                 Nama Barang <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="edit-nama"
-                value={formData.nama}
-                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                required
-              />
+              <Input id="edit-nama" value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} required />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1270,12 +1018,7 @@ export function InventarisManager({
                 <Label htmlFor="edit-kategori" className="text-xs">
                   Kategori
                 </Label>
-                <Select
-                  value={formData.kategori}
-                  onValueChange={(val: KategoriBarang) =>
-                    setFormData({ ...formData, kategori: val })
-                  }
-                >
+                <Select value={formData.kategori} onValueChange={(val: KategoriBarang) => setFormData({ ...formData, kategori: val })}>
                   <SelectTrigger id="edit-kategori">
                     <SelectValue placeholder="Pilih Kategori" />
                   </SelectTrigger>
@@ -1294,12 +1037,7 @@ export function InventarisManager({
                 <Label htmlFor="edit-kondisi" className="text-xs">
                   Kondisi Fisik
                 </Label>
-                <Select
-                  value={formData.kondisi}
-                  onValueChange={(val: KondisiBarang) =>
-                    setFormData({ ...formData, kondisi: val })
-                  }
-                >
+                <Select value={formData.kondisi} onValueChange={(val: KondisiBarang) => setFormData({ ...formData, kondisi: val })}>
                   <SelectTrigger id="edit-kondisi">
                     <SelectValue placeholder="Pilih Kondisi" />
                   </SelectTrigger>
@@ -1317,27 +1055,14 @@ export function InventarisManager({
                 <Label htmlFor="edit-jumlah" className="text-xs">
                   Jumlah
                 </Label>
-                <Input
-                  id="edit-jumlah"
-                  type="number"
-                  min="1"
-                  value={formData.jumlah}
-                  onChange={(e) =>
-                    setFormData({ ...formData, jumlah: parseInt(e.target.value) || 1 })
-                  }
-                  required
-                />
+                <Input id="edit-jumlah" type="number" min="1" value={formData.jumlah} onChange={(e) => setFormData({ ...formData, jumlah: parseInt(e.target.value) || 1 })} required />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="edit-satuan" className="text-xs">
                   Satuan
                 </Label>
-                <Input
-                  id="edit-satuan"
-                  value={formData.satuan}
-                  onChange={(e) => setFormData({ ...formData, satuan: e.target.value })}
-                />
+                <Input id="edit-satuan" value={formData.satuan} onChange={(e) => setFormData({ ...formData, satuan: e.target.value })} />
               </div>
             </div>
 
@@ -1345,32 +1070,18 @@ export function InventarisManager({
               <Label htmlFor="edit-lokasi" className="text-xs">
                 Lokasi Penyimpanan
               </Label>
-              <Input
-                id="edit-lokasi"
-                value={formData.lokasi}
-                onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
-              />
+              <Input id="edit-lokasi" value={formData.lokasi} onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })} />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="edit-keterangan" className="text-xs">
                 Keterangan Tambahan
               </Label>
-              <Textarea
-                id="edit-keterangan"
-                value={formData.keterangan}
-                onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
-                rows={2}
-              />
+              <Textarea id="edit-keterangan" value={formData.keterangan} onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })} rows={2} />
             </div>
 
             <DialogFooter className="gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditOpen(false)}
-                disabled={isPending}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isPending}>
                 Batal
               </Button>
               <Button type="submit" disabled={isPending}>
@@ -1380,7 +1091,7 @@ export function InventarisManager({
                     Memperbarui...
                   </>
                 ) : (
-                  "Simpan Perubahan"
+                  'Simpan Perubahan'
                 )}
               </Button>
             </DialogFooter>
@@ -1396,29 +1107,25 @@ export function InventarisManager({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowRightLeft className="h-5 w-5 text-sky-400" />
-              {selectedItem?.status === "Tersedia"
-                ? "Form Peminjaman Barang"
-                : "Konfirmasi Pengembalian Barang"}
+              {selectedItem?.status === 'Tersedia' ? 'Form Peminjaman Barang' : 'Konfirmasi Pengembalian Barang'}
             </DialogTitle>
             <DialogDescription>
-              {selectedItem?.status === "Tersedia"
-                ? `Catat rincian warga/panitia yang meminjam "${selectedItem?.nama}".`
-                : `Pastikan barang "${selectedItem?.nama}" telah dikembalikan dalam kondisi fisik yang baik.`}
+              {selectedItem?.status === 'Tersedia' ? `Catat rincian warga/panitia yang meminjam "${selectedItem?.nama}".` : `Pastikan barang "${selectedItem?.nama}" telah dikembalikan dalam kondisi fisik yang baik.`}
             </DialogDescription>
           </DialogHeader>
 
-          {selectedItem && selectedItem.status === "Tersedia" ? (
+          {selectedItem && selectedItem.status === 'Tersedia' ? (
             <form onSubmit={handlePinjamSubmit} className="space-y-4 py-2">
               {settings?.operasional && (
                 <div className="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-xs text-sky-700 dark:text-sky-300 space-y-1">
                   <div className="font-semibold flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5 shrink-0" />
-                    <span>Kebijakan Peminjaman {settings.profil.nama || "Organisasi"}:</span>
+                    <span>Kebijakan Peminjaman {settings.profil.nama || 'Organisasi'}:</span>
                   </div>
-                  <p>• Batas maksimal peminjaman: <strong>{settings.operasional.maxHariPinjamInventaris} hari</strong>.</p>
-                  {settings.operasional.wajibPersetujuanKetua && (
-                    <p>• Peminjaman aset wajib mendapatkan persetujuan / konfirmasi dari Ketua.</p>
-                  )}
+                  <p>
+                    • Batas maksimal peminjaman: <strong>{settings.operasional.maxHariPinjamInventaris} hari</strong>.
+                  </p>
+                  {settings.operasional.wajibPersetujuanKetua && <p>• Peminjaman aset wajib mendapatkan persetujuan / konfirmasi dari Ketua.</p>}
                 </div>
               )}
 
@@ -1426,13 +1133,7 @@ export function InventarisManager({
                 <Label htmlFor="pinjam-nama" className="text-xs">
                   Nama Peminjam / Acara <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  id="pinjam-nama"
-                  placeholder="Contoh: Pak RT 03 / Panitia Acara Senam"
-                  value={pinjamForm.peminjam}
-                  onChange={(e) => setPinjamForm({ ...pinjamForm, peminjam: e.target.value })}
-                  required
-                />
+                <Input id="pinjam-nama" placeholder="Contoh: Pak RT 03 / Panitia Acara Senam" value={pinjamForm.peminjam} onChange={(e) => setPinjamForm({ ...pinjamForm, peminjam: e.target.value })} required />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1440,30 +1141,14 @@ export function InventarisManager({
                   <Label htmlFor="pinjam-tgl-pinjam" className="text-xs">
                     Tanggal Pinjam (Otomatis)
                   </Label>
-                  <Input
-                    id="pinjam-tgl-pinjam"
-                    type="date"
-                    value={pinjamForm.tanggalPinjam}
-                    onChange={(e) =>
-                      setPinjamForm({ ...pinjamForm, tanggalPinjam: e.target.value })
-                    }
-                    required
-                  />
+                  <Input id="pinjam-tgl-pinjam" type="date" value={pinjamForm.tanggalPinjam} onChange={(e) => setPinjamForm({ ...pinjamForm, tanggalPinjam: e.target.value })} required />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="pinjam-tgl-kembali" className="text-xs">
                     Rencana Tanggal Kembali <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    id="pinjam-tgl-kembali"
-                    type="date"
-                    value={pinjamForm.tanggalKembaliRencana}
-                    onChange={(e) =>
-                      setPinjamForm({ ...pinjamForm, tanggalKembaliRencana: e.target.value })
-                    }
-                    required
-                  />
+                  <Input id="pinjam-tgl-kembali" type="date" value={pinjamForm.tanggalKembaliRencana} onChange={(e) => setPinjamForm({ ...pinjamForm, tanggalKembaliRencana: e.target.value })} required />
                 </div>
               </div>
 
@@ -1471,21 +1156,11 @@ export function InventarisManager({
                 <Label htmlFor="pinjam-keterangan" className="text-xs">
                   Keperluan / Catatan
                 </Label>
-                <Input
-                  id="pinjam-keterangan"
-                  placeholder="Contoh: Dipinjam untuk kegiatan syukuran warga"
-                  value={pinjamForm.keterangan}
-                  onChange={(e) => setPinjamForm({ ...pinjamForm, keterangan: e.target.value })}
-                />
+                <Input id="pinjam-keterangan" placeholder="Contoh: Dipinjam untuk kegiatan syukuran warga" value={pinjamForm.keterangan} onChange={(e) => setPinjamForm({ ...pinjamForm, keterangan: e.target.value })} />
               </div>
 
               <DialogFooter className="gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsPinjamOpen(false)}
-                  disabled={isPending}
-                >
+                <Button type="button" variant="outline" onClick={() => setIsPinjamOpen(false)} disabled={isPending}>
                   Batal
                 </Button>
                 <Button type="submit" disabled={isPending} className="bg-sky-600 hover:bg-sky-700">
@@ -1499,33 +1174,23 @@ export function InventarisManager({
               <div className="p-3.5 rounded-lg bg-muted/50 border border-border space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Peminjam:</span>
-                  <span className="font-semibold text-foreground">{selectedItem?.peminjam || "-"}</span>
+                  <span className="font-semibold text-foreground">{selectedItem?.peminjam || '-'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tanggal Pinjam:</span>
-                  <span className="font-medium text-foreground">{selectedItem?.tglPinjam || "-"}</span>
+                  <span className="font-medium text-foreground">{selectedItem?.tglPinjam || '-'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Target Kembali:</span>
-                  <span className="font-medium text-foreground">{selectedItem?.tglKembaliRencana || "-"}</span>
+                  <span className="font-medium text-foreground">{selectedItem?.tglKembaliRencana || '-'}</span>
                 </div>
               </div>
 
               <DialogFooter className="gap-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsPinjamOpen(false)}
-                  disabled={isPending}
-                >
+                <Button type="button" variant="outline" onClick={() => setIsPinjamOpen(false)} disabled={isPending}>
                   Batal
                 </Button>
-                <Button
-                  type="button"
-                  onClick={handlePinjamSubmit}
-                  disabled={isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
+                <Button type="button" onClick={handlePinjamSubmit} disabled={isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
                   Tandai Sudah Kembali
                 </Button>
@@ -1551,11 +1216,7 @@ export function InventarisManager({
             <div className="space-y-4 py-2 text-sm">
               {selectedItem.fotoUrl && (
                 <div className="rounded-lg overflow-hidden border border-border max-h-48">
-                  <img
-                    src={selectedItem.fotoUrl}
-                    alt={selectedItem.nama}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={selectedItem.fotoUrl} alt={selectedItem.nama} className="w-full h-full object-cover" />
                 </div>
               )}
 
@@ -1575,9 +1236,7 @@ export function InventarisManager({
                 </div>
                 <div>
                   <span className="text-muted-foreground block">Kondisi:</span>
-                  <span className="capitalize font-semibold text-foreground text-sm">
-                    {selectedItem.kondisi.replace("_", " ")}
-                  </span>
+                  <span className="capitalize font-semibold text-foreground text-sm">{selectedItem.kondisi.replace('_', ' ')}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block">Lokasi:</span>
@@ -1591,12 +1250,8 @@ export function InventarisManager({
 
               {selectedItem.keterangan && (
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground block mb-1">
-                    Keterangan:
-                  </span>
-                  <p className="text-xs bg-muted/20 p-2.5 rounded border border-border text-muted-foreground">
-                    {selectedItem.keterangan}
-                  </p>
+                  <span className="text-xs font-medium text-muted-foreground block mb-1">Keterangan:</span>
+                  <p className="text-xs bg-muted/20 p-2.5 rounded border border-border text-muted-foreground">{selectedItem.keterangan}</p>
                 </div>
               )}
             </div>
@@ -1626,18 +1281,10 @@ export function InventarisManager({
           </DialogHeader>
 
           <DialogFooter className="gap-2 pt-3">
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteOpen(false)}
-              disabled={isPending}
-            >
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isPending}>
               Batal
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteSubmit}
-              disabled={isPending}
-            >
+            <Button variant="destructive" onClick={handleDeleteSubmit} disabled={isPending}>
               {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
               Hapus Barang
             </Button>

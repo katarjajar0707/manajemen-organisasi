@@ -62,7 +62,6 @@ export function AppSidebar({
           {!isCollapsed && (
             <div className="min-w-0">
               <div className="text-sm font-bold text-foreground truncate">{orgName || "Manajemen Organisasi"}</div>
-              <div className="text-[10px] text-muted-foreground font-mono">v1.0 · Portal Pengurus</div>
             </div>
           )}
         </div>

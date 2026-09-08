@@ -1,34 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useMemo, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useState, useMemo, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   KeyRound,
   ShieldCheck,
@@ -54,16 +34,10 @@ import {
   Layers,
   LayoutGrid,
   X,
-} from "lucide-react";
+} from 'lucide-react';
 
 // Tipe Definisi Role
-export type KatarRole =
-  | "admin"
-  | "ketua"
-  | "sekretaris"
-  | "bendahara"
-  | "koordinator"
-  | "anggota";
+export type KatarRole = 'admin' | 'ketua' | 'sekretaris' | 'bendahara' | 'koordinator' | 'anggota';
 
 export interface RoleInfo {
   id: KatarRole;
@@ -76,79 +50,61 @@ export interface RoleInfo {
 
 export const ROLES_LIST: RoleInfo[] = [
   {
-    id: "admin",
-    name: "Administrator",
-    badge: "Superuser",
-    deskripsi: "Akses penuh ke seluruh sistem, basis data, dan konfigurasi.",
+    id: 'admin',
+    name: 'Administrator',
+    badge: 'Superuser',
+    deskripsi: 'Akses penuh ke seluruh sistem, basis data, dan konfigurasi.',
     userCount: 2,
-    color: "text-primary border-primary/30 bg-primary/10",
+    color: 'text-primary border-primary/30 bg-primary/10',
   },
   {
-    id: "ketua",
-    name: "Ketua & Wakil",
-    badge: "Pimpinan",
-    deskripsi: "Persetujuan kegiatan, evaluasi kas, inventaris, dan surat.",
+    id: 'ketua',
+    name: 'Ketua & Wakil',
+    badge: 'Pimpinan',
+    deskripsi: 'Persetujuan kegiatan, evaluasi kas, inventaris, dan surat.',
     userCount: 2,
-    color: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+    color: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
   },
   {
-    id: "sekretaris",
-    name: "Sekretaris",
-    badge: "Administrasi",
-    deskripsi: "Kelola template surat, arsip dokumen, notulen, dan kegiatan.",
+    id: 'sekretaris',
+    name: 'Sekretaris',
+    badge: 'Administrasi',
+    deskripsi: 'Kelola template surat, arsip dokumen, notulen, dan kegiatan.',
     userCount: 2,
-    color: "text-sky-400 border-sky-500/30 bg-sky-500/10",
+    color: 'text-sky-400 border-sky-500/30 bg-sky-500/10',
   },
   {
-    id: "bendahara",
-    name: "Bendahara",
-    badge: "Keuangan",
-    deskripsi: "Kelola pencatatan kas masuk, kas keluar, dan laporan saldo.",
+    id: 'bendahara',
+    name: 'Bendahara',
+    badge: 'Keuangan',
+    deskripsi: 'Kelola pencatatan kas masuk, kas keluar, dan laporan saldo.',
     userCount: 2,
-    color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+    color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
   },
   {
-    id: "koordinator",
-    name: "Koordinator Seksi",
-    badge: "Divisi / Bagian",
-    deskripsi: "Kelola kegiatan seksi, inventaris seksi, dan catatan bagian.",
+    id: 'koordinator',
+    name: 'Koordinator Seksi',
+    badge: 'Divisi / Bagian',
+    deskripsi: 'Kelola kegiatan seksi, inventaris seksi, dan catatan bagian.',
     userCount: 5,
-    color: "text-purple-400 border-purple-500/30 bg-purple-500/10",
+    color: 'text-purple-400 border-purple-500/30 bg-purple-500/10',
   },
   {
-    id: "anggota",
-    name: "Anggota Aktif",
-    badge: "Umum",
-    deskripsi: "Lihat agenda, papan diskusi, voting, dan pengumuman.",
+    id: 'anggota',
+    name: 'Anggota Aktif',
+    badge: 'Umum',
+    deskripsi: 'Lihat agenda, papan diskusi, voting, dan pengumuman.',
     userCount: 38,
-    color: "text-zinc-400 border-zinc-700 bg-zinc-800/30",
+    color: 'text-zinc-400 border-zinc-700 bg-zinc-800/30',
   },
 ];
 
-function AccessToggle({
-  checked,
-  onCheckedChange,
-}: {
-  checked: boolean;
-  onCheckedChange: () => void;
-}) {
+function AccessToggle({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: () => void }) {
   return (
     <div className="flex items-center gap-2">
-      <Switch
-        checked={checked}
-        onCheckedChange={onCheckedChange}
-        aria-label={checked ? "Nonaktifkan akses" : "Aktifkan akses"}
-        className="h-5 w-9 data-[state=checked]:bg-emerald-500"
-      />
-      <Badge
-        variant={checked ? "default" : "secondary"}
-        className={`min-w-10 justify-center px-1.5 py-0 text-[10px] font-mono ${
-          checked
-            ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/15"
-            : "bg-muted text-muted-foreground"
-        }`}
-      >
-        {checked ? "ON" : "OFF"}
+      <Switch checked={checked} onCheckedChange={onCheckedChange} aria-label={checked ? 'Nonaktifkan akses' : 'Aktifkan akses'} className="h-5 w-9 data-[state=checked]:bg-emerald-500" />
+      <Badge variant={checked ? 'default' : 'secondary'} className={`min-w-10 justify-center px-1.5 py-0 text-[10px] font-mono ${checked ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/15' : 'bg-muted text-muted-foreground'}`}>
+        {checked ? 'ON' : 'OFF'}
       </Badge>
     </div>
   );
@@ -157,7 +113,7 @@ function AccessToggle({
 export interface ModulePermission {
   id: string;
   nama: string;
-  kategori: "Utama" | "Organisasi" | "Administrasi";
+  kategori: 'Utama' | 'Organisasi' | 'Administrasi';
   path: string;
   iconName: string;
   deskripsi: string;
@@ -165,18 +121,18 @@ export interface ModulePermission {
   access: Record<KatarRole, boolean>;
 }
 
-const STORAGE_KEY = "katar_access_permissions_v3";
+const STORAGE_KEY = 'katar_access_permissions_v3';
 
 // Data Lengkap Seluruh Menu & Halaman Website
 export const INITIAL_PERMISSIONS: ModulePermission[] = [
   // ── Kategori: Utama ──
   {
-    id: "dashboard",
-    nama: "Dashboard Utama",
-    kategori: "Utama",
-    path: "/dashboard",
-    iconName: "LayoutDashboard",
-    deskripsi: "Ringkasan statistik metrik, pengumuman terbaru, kas organisasi, dan jadwal kegiatan terdekat.",
+    id: 'dashboard',
+    nama: 'Dashboard Utama',
+    kategori: 'Utama',
+    path: '/dashboard',
+    iconName: 'LayoutDashboard',
+    deskripsi: 'Ringkasan statistik metrik, pengumuman terbaru, kas organisasi, dan jadwal kegiatan terdekat.',
     access: {
       admin: true,
       ketua: true,
@@ -187,12 +143,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "profil",
-    nama: "Profil & Direktori Anggota",
-    kategori: "Utama",
-    path: "/profil",
-    iconName: "User",
-    deskripsi: "Informasi identitas akun terverifikasi dan direktori seluruh anggota organisasi hasil sinkronisasi Manajemen Pengguna.",
+    id: 'profil',
+    nama: 'Profil & Direktori Anggota',
+    kategori: 'Utama',
+    path: '/profil',
+    iconName: 'User',
+    deskripsi: 'Informasi identitas akun terverifikasi dan direktori seluruh anggota organisasi hasil sinkronisasi Manajemen Pengguna.',
     access: {
       admin: true,
       ketua: true,
@@ -203,12 +159,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "transparansi",
-    nama: "Portal Transparansi Publik",
-    kategori: "Utama",
-    path: "/",
-    iconName: "Eye",
-    deskripsi: "Portal transparansi kas keuangan, rekap jumlah anggota aktif, dan kalender kegiatan untuk warga tanpa login.",
+    id: 'transparansi',
+    nama: 'Portal Transparansi Publik',
+    kategori: 'Utama',
+    path: '/',
+    iconName: 'Eye',
+    deskripsi: 'Portal transparansi kas keuangan, rekap jumlah anggota aktif, dan kalender kegiatan untuk warga tanpa login.',
     access: {
       admin: true,
       ketua: true,
@@ -221,12 +177,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
 
   // ── Kategori: Organisasi ──
   {
-    id: "keuangan",
-    nama: "Catatan Kas & Keuangan",
-    kategori: "Organisasi",
-    path: "/bagian/bendahara",
-    iconName: "Wallet",
-    deskripsi: "Buku kas masuk, kas keluar, unggah nota/bukti transaksi pengeluaran, dan rekapitulasi saldo bendahara.",
+    id: 'keuangan',
+    nama: 'Catatan Kas & Keuangan',
+    kategori: 'Organisasi',
+    path: '/bagian/bendahara',
+    iconName: 'Wallet',
+    deskripsi: 'Buku kas masuk, kas keluar, unggah nota/bukti transaksi pengeluaran, dan rekapitulasi saldo bendahara.',
     access: {
       admin: true,
       ketua: true,
@@ -237,12 +193,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "anggota",
-    nama: "Database Keanggotaan",
-    kategori: "Organisasi",
-    path: "/anggota",
-    iconName: "Users",
-    deskripsi: "Daftar keanggotaan pemuda terpusat, domisili RT/RW, penugasan bagian, status aktif, dan kontak WhatsApp.",
+    id: 'anggota',
+    nama: 'Database Keanggotaan',
+    kategori: 'Organisasi',
+    path: '/anggota',
+    iconName: 'Users',
+    deskripsi: 'Daftar keanggotaan pemuda terpusat, domisili RT/RW, penugasan bagian, status aktif, dan kontak WhatsApp.',
     access: {
       admin: true,
       ketua: true,
@@ -253,12 +209,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "struktur",
-    nama: "Struktur Organisasi Multi-Agenda",
-    kategori: "Organisasi",
-    path: "/struktur",
-    iconName: "FolderKanban",
-    deskripsi: "Bagan susunan kepengurusan per agenda organisasi dan periode aktif kepanitiaan.",
+    id: 'struktur',
+    nama: 'Struktur Organisasi Multi-Agenda',
+    kategori: 'Organisasi',
+    path: '/struktur',
+    iconName: 'FolderKanban',
+    deskripsi: 'Bagan susunan kepengurusan per agenda organisasi dan periode aktif kepanitiaan.',
     access: {
       admin: true,
       ketua: true,
@@ -269,12 +225,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "kegiatan",
-    nama: "Kalender Kegiatan & Agenda",
-    kategori: "Organisasi",
-    path: "/kegiatan",
-    iconName: "Calendar",
-    deskripsi: "Jadwal program kerja, rapat panitia, lokasi pelaksanaan, dan penanggung jawab bagian.",
+    id: 'kegiatan',
+    nama: 'Kalender Kegiatan & Agenda',
+    kategori: 'Organisasi',
+    path: '/kegiatan',
+    iconName: 'Calendar',
+    deskripsi: 'Jadwal program kerja, rapat panitia, lokasi pelaksanaan, dan penanggung jawab bagian.',
     access: {
       admin: true,
       ketua: true,
@@ -285,12 +241,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "dokumentasi",
-    nama: "Dokumentasi Foto Kegiatan",
-    kategori: "Organisasi",
-    path: "/kegiatan/[id]/dokumentasi",
-    iconName: "Camera",
-    deskripsi: "Galeri foto dokumentasi per kegiatan, upload multi-gambar, dan pratinjau resolusi tinggi.",
+    id: 'dokumentasi',
+    nama: 'Dokumentasi Foto Kegiatan',
+    kategori: 'Organisasi',
+    path: '/kegiatan/[id]/dokumentasi',
+    iconName: 'Camera',
+    deskripsi: 'Galeri foto dokumentasi per kegiatan, upload multi-gambar, dan pratinjau resolusi tinggi.',
     access: {
       admin: true,
       ketua: true,
@@ -301,12 +257,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "pengumuman",
-    nama: "Broadcast Pengumuman",
-    kategori: "Organisasi",
-    path: "/pengumuman",
-    iconName: "Megaphone",
-    deskripsi: "Pemberitahuan resmi pengurus yang disiarkan satu arah ke seluruh anggota atau bagian tertentu.",
+    id: 'pengumuman',
+    nama: 'Broadcast Pengumuman',
+    kategori: 'Organisasi',
+    path: '/pengumuman',
+    iconName: 'Megaphone',
+    deskripsi: 'Pemberitahuan resmi pengurus yang disiarkan satu arah ke seluruh anggota atau bagian tertentu.',
     access: {
       admin: true,
       ketua: true,
@@ -317,12 +273,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "diskusi",
-    nama: "Papan Diskusi & Usulan",
-    kategori: "Organisasi",
-    path: "/diskusi",
-    iconName: "MessagesSquare",
-    deskripsi: "Forum komunikasi dua arah, catatan umum lintas bagian, dan penandaan @departemen.",
+    id: 'diskusi',
+    nama: 'Papan Diskusi & Usulan',
+    kategori: 'Organisasi',
+    path: '/diskusi',
+    iconName: 'MessagesSquare',
+    deskripsi: 'Forum komunikasi dua arah, catatan umum lintas bagian, dan penandaan @departemen.',
     access: {
       admin: true,
       ketua: true,
@@ -333,12 +289,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "bagian_catatan",
-    nama: "Catatan Internal Divisi / Bagian",
-    kategori: "Organisasi",
-    path: "/bagian/[slug]",
-    iconName: "FileText",
-    deskripsi: "Catatan operasional internal privat masing-masing bagian (Sekretaris, Humas, Acara, dll).",
+    id: 'bagian_catatan',
+    nama: 'Catatan Internal Divisi / Bagian',
+    kategori: 'Organisasi',
+    path: '/bagian/[slug]',
+    iconName: 'FileText',
+    deskripsi: 'Catatan operasional internal privat masing-masing bagian (Sekretaris, Humas, Acara, dll).',
     access: {
       admin: true,
       ketua: true,
@@ -349,12 +305,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "inventaris",
-    nama: "Inventaris & Peminjaman Aset",
-    kategori: "Organisasi",
-    path: "/inventaris",
-    iconName: "Package",
-    deskripsi: "Pencatatan aset fisik organisasi, kontrol kondisi barang, dan form sirkulasi pinjam-pakai.",
+    id: 'inventaris',
+    nama: 'Inventaris & Peminjaman Aset',
+    kategori: 'Organisasi',
+    path: '/inventaris',
+    iconName: 'Package',
+    deskripsi: 'Pencatatan aset fisik organisasi, kontrol kondisi barang, dan form sirkulasi pinjam-pakai.',
     access: {
       admin: true,
       ketua: true,
@@ -367,12 +323,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
 
   // ── Kategori: Administrasi ──
   {
-    id: "surat",
-    nama: "Administrasi & Template Surat",
-    kategori: "Administrasi",
-    path: "/surat",
-    iconName: "FileText",
-    deskripsi: "Pembuatan surat keluar, surat masuk, permohonan izin balai, undangan, dan template proposal.",
+    id: 'surat',
+    nama: 'Administrasi & Template Surat',
+    kategori: 'Administrasi',
+    path: '/surat',
+    iconName: 'FileText',
+    deskripsi: 'Pembuatan surat keluar, surat masuk, permohonan izin balai, undangan, dan template proposal.',
     access: {
       admin: true,
       ketua: true,
@@ -383,12 +339,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "arsip",
-    nama: "Arsip Dokumen SK & LPJ",
-    kategori: "Administrasi",
-    path: "/arsip",
-    iconName: "Archive",
-    deskripsi: "Penyimpanan berkas SK kepengurusan, laporan pertanggungjawaban (LPJ), dan dokumen legalitas.",
+    id: 'arsip',
+    nama: 'Arsip Dokumen SK & LPJ',
+    kategori: 'Administrasi',
+    path: '/arsip',
+    iconName: 'Archive',
+    deskripsi: 'Penyimpanan berkas SK kepengurusan, laporan pertanggungjawaban (LPJ), dan dokumen legalitas.',
     access: {
       admin: true,
       ketua: true,
@@ -399,12 +355,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "bagian",
-    nama: "Kelola Bagian & Seksi",
-    kategori: "Administrasi",
-    path: "/bagian",
-    iconName: "Building2",
-    deskripsi: "Pengaturan master divisi organisasi, slug URL, dan deskripsi tugas pokok seksi.",
+    id: 'bagian',
+    nama: 'Kelola Bagian & Seksi',
+    kategori: 'Administrasi',
+    path: '/bagian',
+    iconName: 'Building2',
+    deskripsi: 'Pengaturan master divisi organisasi, slug URL, dan deskripsi tugas pokok seksi.',
     access: {
       admin: true,
       ketua: true,
@@ -415,12 +371,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "pengguna",
-    nama: "Manajemen Pengguna & Akun",
-    kategori: "Administrasi",
-    path: "/pengguna",
-    iconName: "ShieldCheck",
-    deskripsi: "Pembuatan akun login terpusat, sinkronisasi data anggota, penetapan role, dan reset password.",
+    id: 'pengguna',
+    nama: 'Manajemen Pengguna & Akun',
+    kategori: 'Administrasi',
+    path: '/pengguna',
+    iconName: 'ShieldCheck',
+    deskripsi: 'Pembuatan akun login terpusat, sinkronisasi data anggota, penetapan role, dan reset password.',
     access: {
       admin: true,
       ketua: false,
@@ -431,12 +387,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "akses",
-    nama: "Manajemen Hak Akses (RBAC)",
-    kategori: "Administrasi",
-    path: "/akses",
-    iconName: "KeyRound",
-    deskripsi: "Kontrol matriks perizinan visibilitas On/Off setiap menu dan modul sistem.",
+    id: 'akses',
+    nama: 'Manajemen Hak Akses (RBAC)',
+    kategori: 'Administrasi',
+    path: '/akses',
+    iconName: 'KeyRound',
+    deskripsi: 'Kontrol matriks perizinan visibilitas On/Off setiap menu dan modul sistem.',
     access: {
       admin: true,
       ketua: false,
@@ -447,12 +403,12 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     },
   },
   {
-    id: "pengaturan",
-    nama: "Pengaturan Sistem & Kebijakan",
-    kategori: "Administrasi",
-    path: "/pengaturan",
-    iconName: "Sliders",
-    deskripsi: "Konfigurasi profil organisasi, kebijakan operasional, format nomor surat, dan pencadangan data.",
+    id: 'pengaturan',
+    nama: 'Pengaturan Sistem & Kebijakan',
+    kategori: 'Administrasi',
+    path: '/pengaturan',
+    iconName: 'Sliders',
+    deskripsi: 'Konfigurasi profil organisasi, kebijakan operasional, format nomor surat, dan pencadangan data.',
     access: {
       admin: true,
       ketua: false,
@@ -467,9 +423,9 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
 export function ManajemenAkses() {
   const [permissions, setPermissions] = useState<ModulePermission[]>(INITIAL_PERMISSIONS);
   const [initialSnapshot, setInitialSnapshot] = useState<ModulePermission[]>(INITIAL_PERMISSIONS);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedKategori, setSelectedKategori] = useState<string>("all");
-  const [selectedRoleDetail, setSelectedRoleDetail] = useState<KatarRole>("ketua");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedKategori, setSelectedKategori] = useState<string>('all');
+  const [selectedRoleDetail, setSelectedRoleDetail] = useState<KatarRole>('ketua');
 
   // Load saved permissions from localStorage on mount
   useEffect(() => {
@@ -486,7 +442,7 @@ export function ManajemenAkses() {
         setInitialSnapshot(merged);
       }
     } catch (e) {
-      console.error("Error loading permissions from storage:", e);
+      console.error('Error loading permissions from storage:', e);
     }
   }, []);
 
@@ -494,13 +450,10 @@ export function ManajemenAkses() {
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
-    type: "success" | "info" | "warning";
-  }>({ show: false, message: "", type: "success" });
+    type: 'success' | 'info' | 'warning';
+  }>({ show: false, message: '', type: 'success' });
 
-  const triggerToast = (
-    message: string,
-    type: "success" | "info" | "warning" = "success"
-  ) => {
+  const triggerToast = (message: string, type: 'success' | 'info' | 'warning' = 'success') => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, show: false }));
@@ -532,12 +485,8 @@ export function ManajemenAkses() {
   // Filter Modul
   const filteredPermissions = useMemo(() => {
     return permissions.filter((perm) => {
-      const matchSearch =
-        perm.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        perm.deskripsi.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        perm.path.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchKategori =
-        selectedKategori === "all" || perm.kategori === selectedKategori;
+      const matchSearch = perm.nama.toLowerCase().includes(searchQuery.toLowerCase()) || perm.deskripsi.toLowerCase().includes(searchQuery.toLowerCase()) || perm.path.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchKategori = selectedKategori === 'all' || perm.kategori === selectedKategori;
       return matchSearch && matchKategori;
     });
   }, [permissions, searchQuery, selectedKategori]);
@@ -545,8 +494,8 @@ export function ManajemenAkses() {
   // Handler toggle switch On/Off
   const handleToggleAccess = (moduleId: string, role: KatarRole) => {
     // Admin selalu terkunci ON untuk mencegah lockout sistem
-    if (role === "admin") {
-      triggerToast("Hak akses Administrator terkunci (selalu aktif) untuk mencegah penguncian sistem.", "warning");
+    if (role === 'admin') {
+      triggerToast('Hak akses Administrator terkunci (selalu aktif) untuk mencegah penguncian sistem.', 'warning');
       return;
     }
 
@@ -562,13 +511,13 @@ export function ManajemenAkses() {
           };
         }
         return perm;
-      })
+      }),
     );
   };
 
   // Toggle semua menu untuk role tertentu (On All / Off All)
   const handleToggleAllForRole = (role: KatarRole, state: boolean) => {
-    if (role === "admin") return;
+    if (role === 'admin') return;
     setPermissions((prev) =>
       prev.map((perm) => ({
         ...perm,
@@ -576,12 +525,9 @@ export function ManajemenAkses() {
           ...perm.access,
           [role]: state,
         },
-      }))
+      })),
     );
-    triggerToast(
-      `Semua modul untuk peran ${role.toUpperCase()} telah diubah menjadi ${state ? "AKTIF (ON)" : "NONAKTIF (OFF)"}.`,
-      "info"
-    );
+    triggerToast(`Semua modul untuk peran ${role.toUpperCase()} telah diubah menjadi ${state ? 'AKTIF (ON)' : 'NONAKTIF (OFF)'}.`, 'info');
   };
 
   // Simpan perubahan
@@ -591,15 +537,15 @@ export function ManajemenAkses() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(permissions));
     } catch (e) {
-      console.error("Error saving permissions:", e);
+      console.error('Error saving permissions:', e);
     }
-    triggerToast("Hak akses dan izin menu berhasil diperbarui dan diterapkan ke seluruh pengguna!", "success");
+    triggerToast('Hak akses dan izin menu berhasil diperbarui dan diterapkan ke seluruh pengguna!', 'success');
   };
 
   // Reset perubahan ke snapshot terakhir
   const handleCancelChanges = () => {
     setPermissions(initialSnapshot);
-    triggerToast("Perubahan yang belum disimpan telah dibatalkan.", "info");
+    triggerToast('Perubahan yang belum disimpan telah dibatalkan.', 'info');
   };
 
   // Reset ke Standar Bawaan Karang Taruna
@@ -610,9 +556,9 @@ export function ManajemenAkses() {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {
-      console.error("Error clearing permissions:", e);
+      console.error('Error clearing permissions:', e);
     }
-    triggerToast("Hak akses telah dikembalikan ke konfigurasi standar organisasi.", "success");
+    triggerToast('Hak akses telah dikembalikan ke konfigurasi standar organisasi.', 'success');
   };
 
   return (
@@ -621,23 +567,20 @@ export function ManajemenAkses() {
       {notification.show && (
         <div
           className={`flex items-center justify-between p-3.5 px-4 rounded-lg border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${
-            notification.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-              : notification.type === "warning"
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-              : "bg-sky-500/10 border-sky-500/30 text-sky-300"
+            notification.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : notification.type === 'warning'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                : 'bg-sky-500/10 border-sky-500/30 text-sky-300'
           }`}
         >
           <div className="flex items-center gap-2.5">
-            {notification.type === "success" && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
-            {notification.type === "warning" && <AlertTriangle className="h-4 w-4 text-amber-400" />}
-            {notification.type === "info" && <Info className="h-4 w-4 text-sky-400" />}
+            {notification.type === 'success' && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+            {notification.type === 'warning' && <AlertTriangle className="h-4 w-4 text-amber-400" />}
+            {notification.type === 'info' && <Info className="h-4 w-4 text-sky-400" />}
             <span className="font-medium">{notification.message}</span>
           </div>
-          <button
-            onClick={() => setNotification((prev) => ({ ...prev, show: false }))}
-            className="text-muted-foreground hover:text-foreground text-xs ml-4"
-          >
+          <button onClick={() => setNotification((prev) => ({ ...prev, show: false }))} className="text-muted-foreground hover:text-foreground text-xs ml-4">
             Tutup
           </button>
         </div>
@@ -653,27 +596,16 @@ export function ManajemenAkses() {
               Khusus Administrator
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Atur visibilitas halaman dan izin operasional menu untuk setiap peran pengguna (Ketua, Sekretaris, Bendahara, Koordinator, dan Anggota).
-          </p>
+          <p className="text-sm text-muted-foreground">Atur visibilitas halaman dan izin operasional menu untuk setiap peran pengguna (Ketua, Sekretaris, Bendahara, Koordinator, dan Anggota).</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsResetDialogOpen(true)}
-            className="gap-1.5 h-8 text-xs flex-1 sm:flex-initial"
-          >
+          <Button variant="outline" size="sm" onClick={() => setIsResetDialogOpen(true)} className="gap-1.5 h-8 text-xs flex-1 sm:flex-initial">
             <RotateCcw className="h-3.5 w-3.5" />
             <span>Reset Standar</span>
           </Button>
           {hasChanges && (
-            <Button
-              size="sm"
-              onClick={() => setIsSaveConfirmOpen(true)}
-              className="gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm text-xs font-semibold flex-1 sm:flex-initial"
-            >
+            <Button size="sm" onClick={() => setIsSaveConfirmOpen(true)} className="gap-1.5 h-8 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm text-xs font-semibold flex-1 sm:flex-initial">
               <Save className="h-3.5 w-3.5" />
               <span>Simpan ({changeCount})</span>
             </Button>
@@ -691,19 +623,10 @@ export function ManajemenAkses() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelChanges}
-              className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-transparent"
-            >
+            <Button variant="ghost" size="sm" onClick={handleCancelChanges} className="h-7 text-xs text-muted-foreground hover:text-foreground hover:bg-transparent">
               Batalkan
             </Button>
-            <Button
-              size="sm"
-              onClick={() => setIsSaveConfirmOpen(true)}
-              className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1"
-            >
+            <Button size="sm" onClick={() => setIsSaveConfirmOpen(true)} className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 gap-1">
               <Save className="h-3 w-3" />
               Simpan Sekarang
             </Button>
@@ -720,16 +643,12 @@ export function ManajemenAkses() {
               key={role.id}
               onClick={() => setSelectedRoleDetail(role.id)}
               className={`p-3 rounded-lg border text-left cursor-pointer transition-all duration-150 ${
-                isCurrentSelected
-                  ? "bg-card border-primary ring-1 ring-primary/40 shadow-sm"
-                  : "bg-card/40 border-border/70 hover:border-border hover:bg-card/70"
+                isCurrentSelected ? 'bg-card border-primary ring-1 ring-primary/40 shadow-sm' : 'bg-card/40 border-border/70 hover:border-border hover:bg-card/70'
               }`}
             >
               <div className="flex items-center justify-between gap-1 mb-1">
                 <span className="font-semibold text-xs text-foreground truncate">{role.name}</span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${role.color}`}>
-                  {role.badge}
-                </span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${role.color}`}>{role.badge}</span>
               </div>
               <p className="text-[11px] text-muted-foreground line-clamp-1">{role.deskripsi}</p>
               <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/40 text-[10px] text-muted-foreground">
@@ -737,7 +656,7 @@ export function ManajemenAkses() {
                   <Users className="h-3 w-3" />
                   {role.userCount} User
                 </span>
-                {role.id === "admin" ? (
+                {role.id === 'admin' ? (
                   <span className="text-primary font-medium flex items-center gap-0.5">
                     <Lock className="h-2.5 w-2.5" /> Penuh
                   </span>
@@ -770,28 +689,15 @@ export function ManajemenAkses() {
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full sm:w-auto mt-3 sm:mt-0">
             <div className="relative w-full lg:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                aria-label="Cari modul atau rute"
-                placeholder="Cari modul / rute..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-full pl-9 pr-9 text-xs bg-background/80"
-              />
+              <Input aria-label="Cari modul atau rute" placeholder="Cari modul / rute..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-9 w-full pl-9 pr-9 text-xs bg-background/80" />
               {searchQuery && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Hapus pencarian"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
+                <Button type="button" variant="ghost" size="icon" aria-label="Hapus pencarian" onClick={() => setSearchQuery('')} className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   <X className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
             <div className="flex flex-wrap gap-1 rounded-lg border border-border/50 bg-muted/40 p-1 text-[11px] w-full lg:w-auto">
-              {(["all", "Utama", "Organisasi", "Administrasi"] as const).map((kat) => (
+              {(['all', 'Utama', 'Organisasi', 'Administrasi'] as const).map((kat) => (
                 <Button
                   key={kat}
                   type="button"
@@ -799,12 +705,10 @@ export function ManajemenAkses() {
                   size="sm"
                   onClick={() => setSelectedKategori(kat)}
                   className={`h-7 flex-1 px-2.5 text-center text-[11px] font-normal sm:flex-none sm:min-w-17.5 ${
-                    selectedKategori === kat
-                      ? "bg-background text-foreground font-medium shadow-sm hover:bg-background"
-                      : "text-muted-foreground hover:text-foreground"
+                    selectedKategori === kat ? 'bg-background text-foreground font-medium shadow-sm hover:bg-background' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {kat === "all" ? "Semua" : kat}
+                  {kat === 'all' ? 'Semua' : kat}
                 </Button>
               ))}
             </div>
@@ -823,9 +727,7 @@ export function ManajemenAkses() {
                     <KeyRound className="h-4 w-4 text-primary" />
                     Matriks Perizinan Menu & Halaman
                   </CardTitle>
-                  <CardDescription className="text-xs">
-                    Klik tombol On/Off pada perpotongan baris menu dan kolom peran untuk mengaktifkan atau menonaktifkan hak akses.
-                  </CardDescription>
+                  <CardDescription className="text-xs">Klik tombol On/Off pada perpotongan baris menu dan kolom peran untuk mengaktifkan atau menonaktifkan hak akses.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -845,19 +747,11 @@ export function ManajemenAkses() {
                         <div className="flex flex-col items-center">
                           <span className="font-bold text-amber-400">Ketua</span>
                           <div className="flex gap-1 mt-0.5">
-                            <button
-                              onClick={() => handleToggleAllForRole("ketua", true)}
-                              className="text-[9px] text-muted-foreground hover:text-emerald-400 underline"
-                              title="Aktifkan semua"
-                            >
+                            <button onClick={() => handleToggleAllForRole('ketua', true)} className="text-[9px] text-muted-foreground hover:text-emerald-400 underline" title="Aktifkan semua">
                               All On
                             </button>
                             <span className="text-[9px] text-muted-foreground">·</span>
-                            <button
-                              onClick={() => handleToggleAllForRole("ketua", false)}
-                              className="text-[9px] text-muted-foreground hover:text-destructive underline"
-                              title="Matikan semua"
-                            >
+                            <button onClick={() => handleToggleAllForRole('ketua', false)} className="text-[9px] text-muted-foreground hover:text-destructive underline" title="Matikan semua">
                               Off
                             </button>
                           </div>
@@ -867,17 +761,11 @@ export function ManajemenAkses() {
                         <div className="flex flex-col items-center">
                           <span className="font-bold text-sky-400">Sekretaris</span>
                           <div className="flex gap-1 mt-0.5">
-                            <button
-                              onClick={() => handleToggleAllForRole("sekretaris", true)}
-                              className="text-[9px] text-muted-foreground hover:text-emerald-400 underline"
-                            >
+                            <button onClick={() => handleToggleAllForRole('sekretaris', true)} className="text-[9px] text-muted-foreground hover:text-emerald-400 underline">
                               All On
                             </button>
                             <span className="text-[9px] text-muted-foreground">·</span>
-                            <button
-                              onClick={() => handleToggleAllForRole("sekretaris", false)}
-                              className="text-[9px] text-muted-foreground hover:text-destructive underline"
-                            >
+                            <button onClick={() => handleToggleAllForRole('sekretaris', false)} className="text-[9px] text-muted-foreground hover:text-destructive underline">
                               Off
                             </button>
                           </div>
@@ -887,17 +775,11 @@ export function ManajemenAkses() {
                         <div className="flex flex-col items-center">
                           <span className="font-bold text-emerald-400">Bendahara</span>
                           <div className="flex gap-1 mt-0.5">
-                            <button
-                              onClick={() => handleToggleAllForRole("bendahara", true)}
-                              className="text-[9px] text-muted-foreground hover:text-emerald-400 underline"
-                            >
+                            <button onClick={() => handleToggleAllForRole('bendahara', true)} className="text-[9px] text-muted-foreground hover:text-emerald-400 underline">
                               All On
                             </button>
                             <span className="text-[9px] text-muted-foreground">·</span>
-                            <button
-                              onClick={() => handleToggleAllForRole("bendahara", false)}
-                              className="text-[9px] text-muted-foreground hover:text-destructive underline"
-                            >
+                            <button onClick={() => handleToggleAllForRole('bendahara', false)} className="text-[9px] text-muted-foreground hover:text-destructive underline">
                               Off
                             </button>
                           </div>
@@ -907,17 +789,11 @@ export function ManajemenAkses() {
                         <div className="flex flex-col items-center">
                           <span className="font-bold text-purple-400">Koordinator</span>
                           <div className="flex gap-1 mt-0.5">
-                            <button
-                              onClick={() => handleToggleAllForRole("koordinator", true)}
-                              className="text-[9px] text-muted-foreground hover:text-emerald-400 underline"
-                            >
+                            <button onClick={() => handleToggleAllForRole('koordinator', true)} className="text-[9px] text-muted-foreground hover:text-emerald-400 underline">
                               All On
                             </button>
                             <span className="text-[9px] text-muted-foreground">·</span>
-                            <button
-                              onClick={() => handleToggleAllForRole("koordinator", false)}
-                              className="text-[9px] text-muted-foreground hover:text-destructive underline"
-                            >
+                            <button onClick={() => handleToggleAllForRole('koordinator', false)} className="text-[9px] text-muted-foreground hover:text-destructive underline">
                               Off
                             </button>
                           </div>
@@ -927,17 +803,11 @@ export function ManajemenAkses() {
                         <div className="flex flex-col items-center">
                           <span className="font-bold text-zinc-400">Anggota</span>
                           <div className="flex gap-1 mt-0.5">
-                            <button
-                              onClick={() => handleToggleAllForRole("anggota", true)}
-                              className="text-[9px] text-muted-foreground hover:text-emerald-400 underline"
-                            >
+                            <button onClick={() => handleToggleAllForRole('anggota', true)} className="text-[9px] text-muted-foreground hover:text-emerald-400 underline">
                               All On
                             </button>
                             <span className="text-[9px] text-muted-foreground">·</span>
-                            <button
-                              onClick={() => handleToggleAllForRole("anggota", false)}
-                              className="text-[9px] text-muted-foreground hover:text-destructive underline"
-                            >
+                            <button onClick={() => handleToggleAllForRole('anggota', false)} className="text-[9px] text-muted-foreground hover:text-destructive underline">
                               Off
                             </button>
                           </div>
@@ -954,7 +824,7 @@ export function ManajemenAkses() {
                       </TableRow>
                     ) : (
                       filteredPermissions.map((perm) => (
-                        <TableRow key={perm.id} className="hover:bg-muted/30 transition-colors">
+                        <TableRow key={perm.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30 transition-colors">
                           {/* Nama Modul & Path */}
                           <TableCell>
                             <div>
@@ -964,22 +834,15 @@ export function ManajemenAkses() {
                                   {perm.kategori}
                                 </Badge>
                               </div>
-                              <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                                {perm.path}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-                                {perm.deskripsi}
-                              </div>
+                              <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{perm.path}</div>
+                              <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{perm.deskripsi}</div>
                             </div>
                           </TableCell>
 
                           {/* 1. Admin (Always Locked ON) */}
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center">
-                              <div
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20"
-                                title="Akses Admin Penuh (Terkunci)"
-                              >
+                              <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20" title="Akses Admin Penuh (Terkunci)">
                                 <Lock className="h-3 w-3" />
                                 <span>ON</span>
                               </div>
@@ -989,35 +852,35 @@ export function ManajemenAkses() {
                           {/* 2. Ketua */}
                           <TableCell className="text-center">
                             <div className="flex justify-center">
-                              <AccessToggle checked={perm.access.ketua} onCheckedChange={() => handleToggleAccess(perm.id, "ketua")} />
+                              <AccessToggle checked={perm.access.ketua} onCheckedChange={() => handleToggleAccess(perm.id, 'ketua')} />
                             </div>
                           </TableCell>
 
                           {/* 3. Sekretaris */}
                           <TableCell className="text-center">
                             <div className="flex justify-center">
-                              <AccessToggle checked={perm.access.sekretaris} onCheckedChange={() => handleToggleAccess(perm.id, "sekretaris")} />
+                              <AccessToggle checked={perm.access.sekretaris} onCheckedChange={() => handleToggleAccess(perm.id, 'sekretaris')} />
                             </div>
                           </TableCell>
 
                           {/* 4. Bendahara */}
                           <TableCell className="text-center">
                             <div className="flex justify-center">
-                              <AccessToggle checked={perm.access.bendahara} onCheckedChange={() => handleToggleAccess(perm.id, "bendahara")} />
+                              <AccessToggle checked={perm.access.bendahara} onCheckedChange={() => handleToggleAccess(perm.id, 'bendahara')} />
                             </div>
                           </TableCell>
 
                           {/* 5. Koordinator */}
                           <TableCell className="text-center">
                             <div className="flex justify-center">
-                              <AccessToggle checked={perm.access.koordinator} onCheckedChange={() => handleToggleAccess(perm.id, "koordinator")} />
+                              <AccessToggle checked={perm.access.koordinator} onCheckedChange={() => handleToggleAccess(perm.id, 'koordinator')} />
                             </div>
                           </TableCell>
 
                           {/* 6. Anggota */}
                           <TableCell className="text-center">
                             <div className="flex justify-center">
-                              <AccessToggle checked={perm.access.anggota} onCheckedChange={() => handleToggleAccess(perm.id, "anggota")} />
+                              <AccessToggle checked={perm.access.anggota} onCheckedChange={() => handleToggleAccess(perm.id, 'anggota')} />
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1040,36 +903,21 @@ export function ManajemenAkses() {
                 <div>
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-base">
-                      Izin Akses Peran:{" "}
-                      <span className="text-primary font-bold">
-                        {ROLES_LIST.find((r) => r.id === selectedRoleDetail)?.name}
-                      </span>
+                      Izin Akses Peran: <span className="text-primary font-bold">{ROLES_LIST.find((r) => r.id === selectedRoleDetail)?.name}</span>
                     </CardTitle>
                     <Badge variant="outline" className="text-xs">
                       {ROLES_LIST.find((r) => r.id === selectedRoleDetail)?.userCount} Pengguna Aktif
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs mt-0.5">
-                    {ROLES_LIST.find((r) => r.id === selectedRoleDetail)?.deskripsi}
-                  </CardDescription>
+                  <CardDescription className="text-xs mt-0.5">{ROLES_LIST.find((r) => r.id === selectedRoleDetail)?.deskripsi}</CardDescription>
                 </div>
 
-                {selectedRoleDetail !== "admin" && (
+                {selectedRoleDetail !== 'admin' && (
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
-                      onClick={() => handleToggleAllForRole(selectedRoleDetail, false)}
-                    >
+                    <Button variant="outline" size="sm" className="h-8 text-xs text-destructive hover:bg-destructive/10 border-destructive/30" onClick={() => handleToggleAllForRole(selectedRoleDetail, false)}>
                       Matikan Semua (OFF)
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30"
-                      onClick={() => handleToggleAllForRole(selectedRoleDetail, true)}
-                    >
+                    <Button variant="outline" size="sm" className="h-8 text-xs text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30" onClick={() => handleToggleAllForRole(selectedRoleDetail, true)}>
                       Aktifkan Semua (ON)
                     </Button>
                   </div>
@@ -1080,29 +928,16 @@ export function ManajemenAkses() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {filteredPermissions.map((perm) => {
                   const isAllowed = perm.access[selectedRoleDetail];
-                  const isAdmin = selectedRoleDetail === "admin";
+                  const isAdmin = selectedRoleDetail === 'admin';
 
                   return (
-                    <div
-                      key={perm.id}
-                      className={`p-3.5 rounded-lg border transition-all flex items-center justify-between gap-3 ${
-                        isAllowed
-                          ? "bg-card/90 border-border/90"
-                          : "bg-card/20 border-border/40 opacity-70"
-                      }`}
-                    >
+                    <div key={perm.id} className={`p-3.5 rounded-lg border transition-all flex items-center justify-between gap-3 ${isAllowed ? 'bg-card/90 border-border/90' : 'bg-card/20 border-border/40 opacity-70'}`}>
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-xs text-foreground truncate">
-                            {perm.nama}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground font-mono">
-                            {perm.path}
-                          </span>
+                          <span className="font-semibold text-xs text-foreground truncate">{perm.nama}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{perm.path}</span>
                         </div>
-                        <p className="text-[11px] text-muted-foreground line-clamp-1">
-                          {perm.deskripsi}
-                        </p>
+                        <p className="text-[11px] text-muted-foreground line-clamp-1">{perm.deskripsi}</p>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -1112,10 +947,7 @@ export function ManajemenAkses() {
                             <span>Terkunci ON</span>
                           </div>
                         ) : (
-                          <AccessToggle
-                              checked={isAllowed}
-                              onCheckedChange={() => handleToggleAccess(perm.id, selectedRoleDetail)}
-                          />
+                          <AccessToggle checked={isAllowed} onCheckedChange={() => handleToggleAccess(perm.id, selectedRoleDetail)} />
                         )}
                       </div>
                     </div>
@@ -1169,19 +1001,13 @@ export function ManajemenAkses() {
               <RotateCcw className="h-5 w-5" />
             </div>
             <DialogTitle>Reset ke Konfigurasi Standar?</DialogTitle>
-            <DialogDescription>
-              Tindakan ini akan mengembalikan seluruh matriks hak akses ke standar rekomendasi organisasi Karang Taruna.
-            </DialogDescription>
+            <DialogDescription>Tindakan ini akan mengembalikan seluruh matriks hak akses ke standar rekomendasi organisasi Karang Taruna.</DialogDescription>
           </DialogHeader>
           <DialogFooter className="pt-2 gap-2">
             <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
               Batal
             </Button>
-            <Button
-              variant="default"
-              onClick={handleConfirmResetDefaults}
-              className="bg-amber-600 hover:bg-amber-500 text-white"
-            >
+            <Button variant="default" onClick={handleConfirmResetDefaults} className="bg-amber-600 hover:bg-amber-500 text-white">
               Reset ke Standar
             </Button>
           </DialogFooter>

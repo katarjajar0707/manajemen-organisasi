@@ -1,45 +1,41 @@
-"use server";
+'use server';
 
-import { createClient } from "@/lib/supabase/server";
-import { uploadLampiran } from "./storage";
-import { revalidatePath } from "next/cache";
+import { createClient } from '@/lib/supabase/server';
+import { uploadLampiran } from './storage';
+import { revalidatePath } from 'next/cache';
+import { syncProfilesToAnggota } from '@/lib/sync-anggota';
 
 /**
  * Mengambil profil pengguna yang sedang login beserta relasi bagian & kontak WhatsApp.
  */
 export async function getMyProfile() {
   const supabase = await createClient();
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
   if (userError || !user) {
     return null;
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*, bagian:bagian_id(id, nama, slug)")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from('profiles').select('*, bagian:bagian_id(id, nama, slug)').eq('id', user.id).single();
 
   // Ambil kontak dari tabel anggota untuk memastikan nomor WhatsApp sinkron
-  const { data: anggotaData } = await supabase
-    .from("anggota")
-    .select("kontak")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: anggotaData } = await supabase.from('anggota').select('kontak').eq('id', user.id).maybeSingle();
 
   if (profile) {
     const bagianRaw = profile.bagian;
-    const bagian = Array.isArray(bagianRaw) ? bagianRaw[0] ?? null : bagianRaw ?? null;
-    
-    // Ambil nomor_wa dari kolom profile jika ada, fallback ke anggota.kontak
-    const nomorWaFromDb = (profile as any).nomor_wa || (anggotaData?.kontak && anggotaData.kontak !== "-" ? anggotaData.kontak : "");
+    const bagian = Array.isArray(bagianRaw) ? (bagianRaw[0] ?? null) : (bagianRaw ?? null);
 
-    return { 
-      ...profile, 
-      bagian, 
+    // Ambil nomor_wa dari kolom profile jika ada, fallback ke anggota.kontak
+    const nomorWaFromDb = (profile as any).nomor_wa || (anggotaData?.kontak && anggotaData.kontak !== '-' ? anggotaData.kontak : '');
+
+    return {
+      ...profile,
+      bagian,
       email: user.email,
-      nomor_wa: nomorWaFromDb || "",
+      nomor_wa: nomorWaFromDb || '',
     };
   }
   return null;
@@ -51,65 +47,62 @@ export async function getMyProfile() {
  */
 export async function updateMyProfile(formData: FormData) {
   try {
-    const nama = (formData.get("nama") as string)?.trim();
-    const username = (formData.get("username") as string)?.trim().toLowerCase();
-    const nomorWa = (formData.get("nomor_wa") as string)?.trim() || "";
-    const bio = (formData.get("bio") as string)?.trim() || "";
-    const newPassword = (formData.get("newPassword") as string) || "";
-    const confirmPassword = (formData.get("confirmPassword") as string) || "";
+    const nama = (formData.get('nama') as string)?.trim();
+    const username = (formData.get('username') as string)?.trim().toLowerCase();
+    const nomorWa = (formData.get('nomor_wa') as string)?.trim() || '';
+    const bio = (formData.get('bio') as string)?.trim() || '';
+    const newPassword = (formData.get('newPassword') as string) || '';
+    const confirmPassword = (formData.get('confirmPassword') as string) || '';
 
     // 1. Validasi Nama Lengkap
     if (!nama || nama.length < 2) {
-      return { error: "Nama lengkap wajib diisi minimal 2 karakter." };
+      return { error: 'Nama lengkap wajib diisi minimal 2 karakter.' };
     }
     if (nama.length > 100) {
-      return { error: "Nama lengkap maksimal 100 karakter." };
+      return { error: 'Nama lengkap maksimal 100 karakter.' };
     }
 
     // 2. Validasi Username
     if (!username) {
-      return { error: "Username wajib diisi." };
+      return { error: 'Username wajib diisi.' };
     }
     const usernameRegex = /^[a-zA-Z0-9_.]{3,30}$/;
     if (!usernameRegex.test(username)) {
-      return { error: "Username hanya boleh berisi huruf, angka, underscore, atau titik (3-30 karakter)." };
+      return { error: 'Username hanya boleh berisi huruf, angka, underscore, atau titik (3-30 karakter).' };
     }
 
     // 3. Validasi Nomor WhatsApp (jika diisi)
     if (nomorWa) {
       const phoneRegex = /^[0-9+\s\-]{8,20}$/;
       if (!phoneRegex.test(nomorWa)) {
-        return { error: "Format nomor WhatsApp tidak valid. Gunakan angka, contoh: 08123456789 atau +628123456789." };
+        return { error: 'Format nomor WhatsApp tidak valid. Gunakan angka, contoh: 08123456789 atau +628123456789.' };
       }
     }
 
     // 4. Validasi Kata Sandi Baru (jika diisi)
     if (newPassword) {
       if (newPassword.length < 6) {
-        return { error: "Kata sandi baru minimal 6 karakter." };
+        return { error: 'Kata sandi baru minimal 6 karakter.' };
       }
       if (newPassword !== confirmPassword) {
-        return { error: "Konfirmasi kata sandi baru tidak sesuai." };
+        return { error: 'Konfirmasi kata sandi baru tidak sesuai.' };
       }
     }
 
     // 5. Autentikasi Pengguna yang Sedang Login
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return { error: "Sesi login tidak valid atau telah kedaluwarsa. Silakan login kembali." };
+      return { error: 'Sesi login tidak valid atau telah kedaluwarsa. Silakan login kembali.' };
     }
 
     // 6. Validasi Keunikan Username (tidak boleh dipakai pengguna lain)
-    const { data: existingUser } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("username", username)
-      .neq("id", user.id)
-      .maybeSingle();
+    const { data: existingUser } = await supabase.from('profiles').select('id').eq('username', username).neq('id', user.id).maybeSingle();
 
     if (existingUser) {
-      return { error: "Username @" + username + " sudah digunakan oleh pengguna lain." };
+      return { error: 'Username @' + username + ' sudah digunakan oleh pengguna lain.' };
     }
 
     // 7. Update Tabel profiles (Hanya record milik user.id)
@@ -121,60 +114,29 @@ export async function updateMyProfile(formData: FormData) {
 
     // Coba update dengan kolom nomor_wa
     let { error: updateProfileError } = await supabase
-      .from("profiles")
+      .from('profiles')
       .update({ ...profileUpdateData, nomor_wa: nomorWa || null })
-      .eq("id", user.id);
+      .eq('id', user.id);
 
     // Fallback jika kolom nomor_wa belum dieksekusi di skema Postgres Supabase
-    if (updateProfileError && updateProfileError.message.includes("nomor_wa")) {
-      const fallback = await supabase
-        .from("profiles")
-        .update(profileUpdateData)
-        .eq("id", user.id);
+    if (updateProfileError && updateProfileError.message.includes('nomor_wa')) {
+      const fallback = await supabase.from('profiles').update(profileUpdateData).eq('id', user.id);
       updateProfileError = fallback.error;
     }
 
     if (updateProfileError) {
-      return { error: "Gagal memperbarui profil: " + updateProfileError.message };
+      return { error: 'Gagal memperbarui profil: ' + updateProfileError.message };
     }
 
-    // 8. Sinkronisasi ke Tabel anggota (Data Kontak & Nama Terpadu)
+    // 8. Sinkronisasi ke tabel anggota setelah profil berhasil diperbarui.
     try {
-      const { data: existingAnggota } = await supabase
-        .from("anggota")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (existingAnggota) {
-        await supabase
-          .from("anggota")
-          .update({
-            nama,
-            kontak: nomorWa || "-",
-          })
-          .eq("id", user.id);
-      } else {
-        const { data: myProfile } = await supabase
-          .from("profiles")
-          .select("role, bagian_id")
-          .eq("id", user.id)
-          .single();
-
-        await supabase
-          .from("anggota")
-          .upsert({
-            id: user.id,
-            nama,
-            kontak: nomorWa || "-",
-            rt_rw: "RT 01 / RW 05",
-            jabatan: myProfile?.role === "ketua" ? "Ketua" : myProfile?.role === "admin" ? "Administrator" : "Anggota",
-            bagian_id: myProfile?.bagian_id || null,
-            status: "Aktif",
-          });
-      }
+      await syncProfilesToAnggota();
+      await supabase
+        .from('anggota')
+        .update({ kontak: nomorWa || '-' })
+        .eq('id', user.id);
     } catch (syncErr) {
-      console.warn("Peringatan sinkronisasi kontak anggota:", syncErr);
+      console.warn('Peringatan sinkronisasi profil ke anggota:', syncErr);
     }
 
     // 9. Update Kata Sandi & Metadata di Supabase Auth jika ada perubahan
@@ -191,26 +153,24 @@ export async function updateMyProfile(formData: FormData) {
     }
 
     // 10. Revalidasi seluruh rute cache
-    revalidatePath("/profil");
-    revalidatePath("/dashboard");
-    revalidatePath("/pengguna");
-    revalidatePath("/anggota");
-    revalidatePath("/struktur");
-    revalidatePath("/", "layout");
+    revalidatePath('/profil');
+    revalidatePath('/dashboard');
+    revalidatePath('/pengguna');
+    revalidatePath('/anggota');
+    revalidatePath('/struktur');
+    revalidatePath('/', 'layout');
 
-    return { 
-      success: true, 
-      message: newPassword 
-        ? "Profil dan kata sandi berhasil diperbarui!" 
-        : "Profil akun Anda berhasil diperbarui!",
+    return {
+      success: true,
+      message: newPassword ? 'Profil dan kata sandi berhasil diperbarui!' : 'Profil akun Anda berhasil diperbarui!',
       data: {
         nama,
         username,
         nomor_wa: nomorWa,
-      }
+      },
     };
   } catch (err: any) {
-    return { error: err.message || "Terjadi kesalahan internal saat memperbarui profil." };
+    return { error: err.message || 'Terjadi kesalahan internal saat memperbarui profil.' };
   }
 }
 
@@ -227,26 +187,28 @@ export async function updateProfile(formData: FormData) {
  */
 export async function updateAvatar(formData: FormData) {
   try {
-    const file = formData.get("avatar") as File | null;
+    const file = formData.get('avatar') as File | null;
 
     if (!file || file.size === 0) {
-      return { error: "File foto tidak ditemukan." };
+      return { error: 'File foto tidak ditemukan.' };
     }
 
     // Validasi ukuran (maks 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      return { error: "Ukuran foto maksimal 2MB." };
+      return { error: 'Ukuran foto maksimal 2MB.' };
     }
 
     // Validasi tipe file
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      return { error: "Format foto harus JPEG, PNG, WebP, atau GIF." };
+      return { error: 'Format foto harus JPEG, PNG, WebP, atau GIF.' };
     }
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: "Unauthenticated" };
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: 'Unauthenticated' };
 
     const uploadRes = await uploadLampiran(file, `avatar/${user.id}`);
     if (uploadRes.error) {
@@ -254,30 +216,24 @@ export async function updateAvatar(formData: FormData) {
     }
 
     // Simpan URL ke profiles
-    const { error } = await supabase
-      .from("profiles")
-      .update({ foto_url: uploadRes.url })
-      .eq("id", user.id);
+    const { error } = await supabase.from('profiles').update({ foto_url: uploadRes.url }).eq('id', user.id);
 
     if (error) {
-      console.error("Failed to save avatar URL to DB:", error);
-      return { error: "Gagal menyimpan foto profil ke database." };
+      console.error('Failed to save avatar URL to DB:', error);
+      return { error: 'Gagal menyimpan foto profil ke database.' };
     }
 
     // Sinkronkan juga ke tabel anggota jika user sudah terdaftar
-    await supabase
-      .from("anggota")
-      .update({ foto_url: uploadRes.url })
-      .eq("id", user.id);
+    await supabase.from('anggota').update({ foto_url: uploadRes.url }).eq('id', user.id);
 
-    revalidatePath("/profil");
-    revalidatePath("/anggota");
-    revalidatePath("/struktur");
-    revalidatePath("/dashboard");
-    revalidatePath("/", "layout");
+    revalidatePath('/profil');
+    revalidatePath('/anggota');
+    revalidatePath('/struktur');
+    revalidatePath('/dashboard');
+    revalidatePath('/', 'layout');
     return { success: true, url: uploadRes.url };
   } catch (err: any) {
-    return { error: err.message || "Terjadi kesalahan internal." };
+    return { error: err.message || 'Terjadi kesalahan internal.' };
   }
 }
 
@@ -286,10 +242,10 @@ export async function updateAvatar(formData: FormData) {
  */
 export async function changePassword(formData: FormData) {
   try {
-    const newPassword = formData.get("newPassword") as string;
+    const newPassword = formData.get('newPassword') as string;
 
     if (!newPassword || newPassword.length < 6) {
-      return { error: "Kata sandi baru minimal 6 karakter." };
+      return { error: 'Kata sandi baru minimal 6 karakter.' };
     }
 
     const supabase = await createClient();
@@ -303,6 +259,6 @@ export async function changePassword(formData: FormData) {
 
     return { success: true };
   } catch (err: any) {
-    return { error: err.message || "Terjadi kesalahan internal." };
+    return { error: err.message || 'Terjadi kesalahan internal.' };
   }
 }
