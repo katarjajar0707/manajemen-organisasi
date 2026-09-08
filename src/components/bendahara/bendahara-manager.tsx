@@ -519,7 +519,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
 
         <Card className="bg-emerald-50/70 border-emerald-200 dark:from-emerald-950/40 dark:to-green-950/20 dark:border-emerald-900/40 dark:bg-card shadow-xs">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-slate-900 dark:text-emerald-300 flex items-center gap-2">
+            <CardTitle className="text-xs font-bold text-slate-900 dark:text-emerald-300 flex items-center gap-2 sm:text-sm">
               <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                 <TrendingUp className="h-4 w-4" />
               </span>
@@ -527,16 +527,16 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div suppressHydrationWarning className="text-2xl font-extrabold text-emerald-800 dark:text-emerald-300">
+            <div suppressHydrationWarning className="text-lg font-extrabold text-emerald-800 dark:text-emerald-300 sm:text-2xl">
               {formatRupiah(initialSaldo.masuk)}
             </div>
-            <p className="text-xs text-slate-700 dark:text-emerald-400/80 font-medium mt-1">Akumulasi Dana Masuk</p>
+            <p className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Masuk</p>
           </CardContent>
         </Card>
 
         <Card className="bg-rose-50/70 border-rose-200 dark:from-rose-950/40 dark:to-red-950/20 dark:border-rose-900/40 dark:bg-card shadow-xs">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-slate-900 dark:text-rose-300 flex items-center gap-2">
+            <CardTitle className="text-xs font-bold text-slate-900 dark:text-rose-300 flex items-center gap-2 sm:text-sm">
               <span className="p-1 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400">
                 <TrendingDown className="h-4 w-4" />
               </span>
@@ -544,10 +544,10 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div suppressHydrationWarning className="text-2xl font-extrabold text-rose-800 dark:text-rose-300">
+            <div suppressHydrationWarning className="text-lg font-extrabold text-rose-800 dark:text-rose-300 sm:text-2xl">
               {formatRupiah(initialSaldo.keluar)}
             </div>
-            <p className="text-xs text-slate-700 dark:text-rose-400/80 font-medium mt-1">Akumulasi Dana Keluar</p>
+            <p className="text-[10px] text-slate-700 dark:text-rose-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Keluar</p>
           </CardContent>
         </Card>
       </div>
@@ -624,12 +624,12 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
 
             <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full xl:w-auto">
               {/* Filter Semua, Kas Masuk, Kas Keluar */}
-              <div className="inline-flex items-center p-1 rounded-lg bg-muted/60 border border-border/70 text-xs overflow-x-auto max-w-full">
+              <div className="flex w-full items-center p-1 rounded-lg bg-muted/60 border border-border/70 text-xs sm:w-auto">
                 <button
                   type="button"
                   onClick={() => setFilterJenis('semua')}
                   className={cn(
-                    'px-2.5 sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs cursor-pointer whitespace-nowrap',
+                    'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs cursor-pointer whitespace-nowrap',
                     filterJenis === 'semua' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
@@ -639,7 +639,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                   type="button"
                   onClick={() => setFilterJenis('masuk')}
                   className={cn(
-                    'px-2.5 sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap',
+                    'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap',
                     filterJenis === 'masuk' ? 'bg-emerald-600 text-white shadow-xs' : 'text-muted-foreground hover:text-emerald-600',
                   )}
                 >
@@ -650,7 +650,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                   type="button"
                   onClick={() => setFilterJenis('keluar')}
                   className={cn(
-                    'px-2.5 sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap',
+                    'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap',
                     filterJenis === 'keluar' ? 'bg-rose-600 text-white shadow-xs' : 'text-muted-foreground hover:text-rose-600',
                   )}
                 >
