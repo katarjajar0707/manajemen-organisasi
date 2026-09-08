@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { Shield, Camera, ArrowRight, CheckCircle2, Lock, Mail, KeyRound, AlertCircle, Loader2, Users, Search, Building2, ShieldCheck, Phone, UserPen, Eye } from 'lucide-react';
 import { updateAvatar, changePassword, updateMyProfile } from '@/actions/profil';
 import { useAuthStore } from '@/store/auth-store';
+import { normalizeWhatsAppNumber } from '@/lib/utils';
 
 interface ProfileData {
   id: string;
@@ -347,7 +348,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
 
                 {currentNomorWa ? (
                   <a
-                    href={`https://wa.me/${currentNomorWa.replace(/[^0-9]/g, '')}`}
+                    href={`https://wa.me/${normalizeWhatsAppNumber(currentNomorWa)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium hover:underline"

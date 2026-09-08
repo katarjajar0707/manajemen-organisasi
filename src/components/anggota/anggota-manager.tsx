@@ -10,6 +10,7 @@ import { Search, Phone, Users, Download, ShieldCheck, ArrowRight, Eye } from 'lu
 import Link from 'next/link';
 import { AnggotaDetail } from '@/actions/anggota';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { normalizeWhatsAppNumber } from '@/lib/utils';
 
 interface BagianItem {
   id: string;
@@ -206,7 +207,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                     <span>{m.rt_rw}</span>
                     <div className="flex items-center gap-1.5">
                       {m.kontak && m.kontak !== '-' && (
-                        <a href={`https://wa.me/${m.kontak.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer">
+                        <a href={`https://wa.me/${normalizeWhatsAppNumber(m.kontak)}`} target="_blank" rel="noreferrer">
                           <Button variant="outline" size="sm" className="h-7 text-xs px-2.5 gap-1 text-emerald-600 dark:text-emerald-400">
                             <Phone className="h-3 w-3" />
                             <span>WA</span>
@@ -292,7 +293,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                             <span className="hidden lg:inline">Foto</span>
                           </Button>
                           {m.kontak && m.kontak !== '-' && (
-                            <a href={`https://wa.me/${m.kontak.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer">
+                            <a href={`https://wa.me/${normalizeWhatsAppNumber(m.kontak)}`} target="_blank" rel="noreferrer">
                               <Button variant="outline" size="sm" className="h-7 text-xs px-2 text-emerald-600 dark:text-emerald-400 gap-1">
                                 <Phone className="h-3 w-3" />
                                 <span>WA</span>
@@ -351,7 +352,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
 
                 <div className="flex items-center justify-between gap-2 pt-1">
                   {previewMember.kontak && previewMember.kontak !== '-' ? (
-                    <a href={`https://wa.me/${previewMember.kontak.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="flex-1">
+                    <a href={`https://wa.me/${normalizeWhatsAppNumber(previewMember.kontak)}`} target="_blank" rel="noreferrer" className="flex-1">
                       <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/20">
                         <Phone className="h-3.5 w-3.5" />
                         <span>Hubungi via WhatsApp</span>

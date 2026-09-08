@@ -499,8 +499,8 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
       </div>
 
       {/* Saldo Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="bg-blue-50/70 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/20 dark:border-blue-900/40 dark:bg-card shadow-xs">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <Card className="col-span-2 bg-blue-50/70 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/20 dark:border-blue-900/40 dark:bg-card shadow-xs sm:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-bold text-foreground dark:text-blue-300 flex items-center gap-2">
               <span className="p-1 rounded-md bg-blue-500/10 text-blue-950 dark:text-blue-400">
