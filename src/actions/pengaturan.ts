@@ -1,7 +1,8 @@
 'use server';
 
 import { createClient, createAdminClient, createPublicClient, getProfile } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { SYSTEM_SETTINGS_CACHE_TAG } from '@/lib/cache/tags';
 
 export interface ProfilOrganisasi {
   nama: string;
@@ -199,6 +200,7 @@ export async function updatePengaturanProfil(payload: Partial<ProfilOrganisasi>)
       return { success: false, error: error.message };
     }
 
+    revalidateTag(SYSTEM_SETTINGS_CACHE_TAG, 'max');
     revalidatePath('/pengaturan');
     revalidatePath('/', 'layout');
     revalidatePath('/dashboard');
@@ -262,6 +264,7 @@ export async function updatePengaturanOperasional(payload: Partial<OperasionalKe
       return { success: false, error: error.message };
     }
 
+    revalidateTag(SYSTEM_SETTINGS_CACHE_TAG, 'max');
     revalidatePath('/pengaturan');
     revalidatePath('/', 'layout');
     revalidatePath('/dashboard');
@@ -321,6 +324,7 @@ export async function updatePengaturanKeamanan(payload: Partial<KeamananSistem>)
       return { success: false, error: error.message };
     }
 
+    revalidateTag(SYSTEM_SETTINGS_CACHE_TAG, 'max');
     revalidatePath('/pengaturan');
     revalidatePath('/', 'layout');
     revalidatePath('/dashboard');

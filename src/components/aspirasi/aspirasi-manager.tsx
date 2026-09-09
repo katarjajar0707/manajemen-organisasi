@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -12,31 +13,45 @@ interface AspirasiManagerProps {
   initialAspirasi: AspirasiWargaItem[];
 }
 
+const ASPIRASI_QUERY_KEY = ['aspirasi-warga'] as const;
+
+function parseAspirasi(item: { id: string; judul: string; isi?: string | null; created_at?: string | null }): AspirasiWargaItem | null {
+  if (!item.judul.startsWith('[Aspirasi Warga]')) return null;
+  const match = item.judul.match(/^\[Aspirasi Warga\] dari (.+) \((.+)\)$/);
+  return {
+    id: item.id,
+    nama: match?.[1] || 'Warga',
+    rt: match?.[2] || 'Warga',
+    pesan: item.isi || '-',
+    createdAt: item.created_at || new Date().toISOString(),
+  };
+}
+
+async function fetchAspirasi() {
+  const supabase = createClient();
+  const { data, error } = await supabase.from('diskusi').select('id, judul, isi, created_at').eq('tipe', 'catatan_umum').like('judul', '[Aspirasi Warga]%').order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(parseAspirasi).filter((item): item is AspirasiWargaItem => item !== null);
+}
+
 export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
-  const [aspirasi, setAspirasi] = useState<AspirasiWargaItem[]>(initialAspirasi);
+  const queryClient = useQueryClient();
+  const hasConnectedRef = useRef(false);
+  const { data: aspirasi = initialAspirasi } = useQuery({
+    queryKey: ASPIRASI_QUERY_KEY,
+    queryFn: fetchAspirasi,
+    initialData: initialAspirasi,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const supabase = createClient();
     let active = true;
-
-    const parseAspirasi = (item: { id: string; judul: string; isi?: string | null; created_at?: string | null }): AspirasiWargaItem | null => {
-      if (!item.judul.startsWith('[Aspirasi Warga]')) return null;
-      const match = item.judul.match(/^\[Aspirasi Warga\] dari (.+) \((.+)\)$/);
-      return {
-        id: item.id,
-        nama: match?.[1] || 'Warga',
-        rt: match?.[2] || 'Warga',
-        pesan: item.isi || '-',
-        createdAt: item.created_at || new Date().toISOString(),
-      };
-    };
-
-    const syncAspirasi = async () => {
-      const { data, error } = await supabase.from('diskusi').select('id, judul, isi, created_at').eq('tipe', 'catatan_umum').like('judul', '[Aspirasi Warga]%').order('created_at', { ascending: false });
-      if (!active || error) return;
-      setAspirasi(data.map(parseAspirasi).filter((item): item is AspirasiWargaItem => item !== null));
-    };
 
     const channel = supabase
       .channel('aspirasi-warga-realtime')
@@ -46,17 +61,26 @@ export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
         const newAspirasi = parseAspirasi({ id: item.id, judul: item.judul, isi: item.isi, created_at: item.created_at });
         if (!newAspirasi) return;
 
-        setAspirasi((current) => (current.some((entry) => entry.id === newAspirasi.id) ? current : [newAspirasi, ...current]));
+        queryClient.setQueryData<AspirasiWargaItem[]>(ASPIRASI_QUERY_KEY, (current = []) => (current.some((entry) => entry.id === newAspirasi.id) ? current : [newAspirasi, ...current]));
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') void syncAspirasi();
+        if (!active) return;
+
+        if (status === 'SUBSCRIBED') {
+          if (hasConnectedRef.current) {
+            void queryClient.invalidateQueries({ queryKey: ASPIRASI_QUERY_KEY });
+          }
+          hasConnectedRef.current = true;
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void queryClient.invalidateQueries({ queryKey: ASPIRASI_QUERY_KEY });
+        }
       });
 
     return () => {
       active = false;
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
   const filteredAspirasi = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

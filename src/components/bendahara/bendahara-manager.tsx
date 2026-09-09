@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,12 +38,55 @@ interface Transaksi {
 interface BendaharaManagerProps {
   initialList: any[];
   initialSaldo: { masuk: number; keluar: number; sisa: number };
+  bagianId?: string | null;
   agendaCategories?: string[];
   settings?: PengaturanSistemData;
 }
 
-export function BendaharaManager({ initialList, initialSaldo, agendaCategories = [], settings }: BendaharaManagerProps) {
-  const [transactions, setTransactions] = useState<any[]>(initialList);
+const KEUANGAN_QUERY_KEY = ['keuangan', 'bendahara'] as const;
+
+function normalizeTransaction(item: any) {
+  let kategori = 'Kas General';
+  let displayKeterangan = item.keterangan || '';
+  const match = (item.keterangan || '').match(/^\[Kategori:\s*([^\]]+)\]/i);
+  if (match) {
+    kategori = match[1].trim();
+    displayKeterangan = (item.keterangan || '').replace(/^\[Kategori:\s*[^\]]+\]\s*/i, '').trim();
+  } else if (item.kategori) {
+    kategori = item.kategori;
+  }
+  return { ...item, kategori, displayKeterangan };
+}
+
+async function fetchKeuanganTransactions(initialBagianId: string | null) {
+  const supabase = createClient();
+  let bagianId = initialBagianId;
+
+  if (!bagianId) {
+    const { data: bagian } = await supabase.from('bagian').select('id').eq('slug', 'bendahara').single();
+    bagianId = bagian?.id || null;
+  }
+
+  if (!bagianId) return [];
+
+  const { data, error } = await supabase.from('catatan_keuangan').select('*, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)').eq('bagian_id', bagianId).is('deleted_at', null).order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data || []).map(normalizeTransaction);
+}
+
+export function BendaharaManager({ initialList, initialSaldo, bagianId: initialBagianId = null, agendaCategories = [], settings }: BendaharaManagerProps) {
+  const queryClient = useQueryClient();
+  const { data: transactions = initialList } = useQuery({
+    queryKey: KEUANGAN_QUERY_KEY,
+    queryFn: () => fetchKeuanganTransactions(initialBagianId),
+    initialData: initialList,
+    staleTime: 5000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [filterJenis, setFilterJenis] = useState<'semua' | 'masuk' | 'keluar'>('semua');
   const [isPending, startTransition] = useTransition();
@@ -62,7 +106,6 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
   const [editingLampiranUrl, setEditingLampiranUrl] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const syncTransactionsRef = useRef<(() => Promise<void>) | null>(null);
 
   const allCategories = useMemo(() => {
     const list: string[] = [];
@@ -85,48 +128,10 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let active = true;
-    let bagianId: string | null = null;
-
-    const normalizeTransaction = (item: any) => {
-      let kategori = 'Kas General';
-      let displayKeterangan = item.keterangan || '';
-      const match = (item.keterangan || '').match(/^\[Kategori:\s*([^\]]+)\]/i);
-      if (match) {
-        kategori = match[1].trim();
-        displayKeterangan = (item.keterangan || '').replace(/^\[Kategori:\s*[^\]]+\]\s*/i, '').trim();
-      } else if (item.kategori) {
-        kategori = item.kategori;
-      }
-      return { ...item, kategori, displayKeterangan };
-    };
-
-    const fetchTransactions = async () => {
-      if (!active) return;
-
-      if (!bagianId) {
-        const { data: bagian } = await supabase.from('bagian').select('id').eq('slug', 'bendahara').single();
-        if (!bagian || !active) return;
-        bagianId = bagian.id;
-      }
-
-      const { data, error: fetchError } = await supabase
-        .from('catatan_keuangan')
-        .select('*, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)')
-        .eq('bagian_id', bagianId)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-
-      if (fetchError || !active) {
-        if (fetchError) setRealtimeStatus('error');
-        return;
-      }
-      setTransactions(data.map(normalizeTransaction));
-    };
-
-    syncTransactionsRef.current = fetchTransactions;
+    let bagianId: string | null = initialBagianId;
 
     const subscribe = async () => {
-      const { data: bagian } = await supabase.from('bagian').select('id').eq('slug', 'bendahara').single();
+      const bagian = bagianId ? { id: bagianId } : (await supabase.from('bagian').select('id').eq('slug', 'bendahara').single()).data;
       if (!active || !bagian) {
         if (active) {
           setRealtimeStatus('error');
@@ -140,7 +145,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
         .channel('catatan-keuangan-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'catatan_keuangan', filter: `bagian_id=eq.${bagian.id}` }, async (payload) => {
           if (payload.eventType === 'DELETE') {
-            setTransactions((current) => current.filter((item) => item.id !== payload.old.id));
+            queryClient.setQueryData<any[]>(KEUANGAN_QUERY_KEY, (current = []) => current.filter((item) => item.id !== payload.old.id));
             return;
           }
 
@@ -156,12 +161,12 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             return;
           }
           if (!refreshed) {
-            setTransactions((current) => current.filter((item) => item.id !== payload.new.id));
+            queryClient.setQueryData<any[]>(KEUANGAN_QUERY_KEY, (current = []) => current.filter((item) => item.id !== payload.new.id));
             return;
           }
 
           const normalized = normalizeTransaction(refreshed);
-          setTransactions((current) => {
+          queryClient.setQueryData<any[]>(KEUANGAN_QUERY_KEY, (current = []) => {
             const index = current.findIndex((item) => item.id === normalized.id);
             if (index === -1) return [normalized, ...current];
             const next = [...current];
@@ -177,9 +182,9 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
           // also recovers cleanly after a reconnect.
           if (status === 'SUBSCRIBED') {
             setRealtimeStatus('connected');
-            await fetchTransactions();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             setRealtimeStatus('error');
+            void queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
           }
         });
     };
@@ -187,10 +192,9 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     void subscribe();
     return () => {
       active = false;
-      syncTransactionsRef.current = null;
       if (channel) void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [initialBagianId, queryClient]);
 
   const formatRupiah = (angka: number | string) => {
     const num = Math.round(Number(angka) || 0);
@@ -259,7 +263,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
       } else {
         // Reconcile immediately after the server action succeeds so the
         // submitting browser updates even when the realtime event is delayed.
-        await syncTransactionsRef.current?.();
+        await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
         toast.success(editingId ? 'Transaksi berhasil diperbarui.' : `Transaksi kas ${jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} berhasil disimpan.`);
         setIsDialogOpen(false);
         setEditingId(null);
@@ -274,7 +278,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
         if (res?.error) {
           toast.error('Gagal menghapus: ' + res.error);
         } else {
-          await syncTransactionsRef.current?.();
+          await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
           toast.success('Transaksi berhasil dihapus.');
         }
         setDeleteId(null);

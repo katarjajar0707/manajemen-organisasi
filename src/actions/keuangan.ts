@@ -4,6 +4,7 @@ import { createClient, createAdminClient, getProfile } from '@/lib/supabase/serv
 import { deleteLampiranByUrl, uploadLampiran } from './storage';
 import { revalidatePath } from 'next/cache';
 import { invalidatePublicTransparencyCache } from '@/lib/cache/transparansi';
+import { getCachedBagianBySlug } from '@/lib/cache/bagian';
 
 /**
  * Mengambil daftar kegiatan langsung dari kalender_kegiatan (/kegiatan)
@@ -34,10 +35,10 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
   const supabase = await createClient();
 
   // Get bagian ID
-  const { data: bagian } = await supabase.from('bagian').select('id').eq('slug', bagianSlug).single();
+  const bagian = await getCachedBagianBySlug(bagianSlug);
 
   if (!bagian) {
-    return { list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
+    return { bagianId: null, list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
   }
 
   const { data: list, error } = await supabase
@@ -57,7 +58,7 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
 
   if (error) {
     console.error('Error fetching keuangan:', error);
-    return { list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
+    return { bagianId: bagian.id, list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
   }
 
   // Parse kategori and clean keterangan per transaction
@@ -93,6 +94,7 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
   });
 
   return {
+    bagianId: bagian.id,
     list: parsedList,
     saldo: {
       masuk: totalMasuk,

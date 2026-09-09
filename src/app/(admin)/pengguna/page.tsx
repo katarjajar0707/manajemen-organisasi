@@ -1,25 +1,20 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserFormModal } from "./components/user-form-modal";
-import { DeleteUserButton } from "./components/delete-user-button";
-import { getUsers } from "@/actions/admin-users";
-import { createClient, getProfile } from "@/lib/supabase/server";
-import { ShieldAlert, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { UserFormModal } from './components/user-form-modal';
+import { DeleteUserButton } from './components/delete-user-button';
+import { getUsers } from '@/actions/admin-users';
+import { getProfile } from '@/lib/supabase/server';
+import { getCachedBagianOptions } from '@/lib/cache/bagian';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 export default async function UserManagementPage() {
-  const supabase = await createClient();
+  const [currentProfile, users, bagianList] = await Promise.all([getProfile(), getUsers(), getCachedBagianOptions()]);
 
-  const [currentProfile, users, { data: bagianList }] = await Promise.all([
-    getProfile(),
-    getUsers(),
-    supabase.from("bagian").select("id, nama").order("nama"),
-  ]);
-  
-  if (!currentProfile || currentProfile.role !== "admin") {
+  if (!currentProfile || currentProfile.role !== 'admin') {
     return (
       <div className="py-12 px-4 max-w-md mx-auto text-center">
         <Card className="border shadow-sm p-6 space-y-4">
@@ -29,8 +24,7 @@ export default async function UserManagementPage() {
           <div className="space-y-1">
             <h2 className="text-lg font-bold text-foreground">Akses Khusus Administrator</h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Halaman ini hanya dapat diakses oleh akun dengan peran <strong>Administrator</strong>. 
-              Sebagai pengurus/anggota, Anda dapat mengelola profil akun Anda sendiri melalui halaman Profil.
+              Halaman ini hanya dapat diakses oleh akun dengan peran <strong>Administrator</strong>. Sebagai pengurus/anggota, Anda dapat mengelola profil akun Anda sendiri melalui halaman Profil.
             </p>
           </div>
           <div className="pt-2">
@@ -51,9 +45,7 @@ export default async function UserManagementPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Manajemen Pengguna & Role</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola akun login pengurus, penugasan bagian, dan hak akses (Role: Admin / Ketua / Anggota).
-          </p>
+          <p className="text-sm text-muted-foreground">Kelola akun login pengurus, penugasan bagian, dan hak akses (Role: Admin / Ketua / Anggota).</p>
         </div>
         <UserFormModal bagianList={bagianList || []} />
       </div>
@@ -74,27 +66,16 @@ export default async function UserManagementPage() {
                     <p className="text-xs text-muted-foreground">@{u.username}</p>
                     <p className="text-[10px] text-muted-foreground/70 truncate max-w-[180px]">{u.email}</p>
                   </div>
-                  <Badge
-                    variant={
-                      u.role === "admin"
-                        ? "default"
-                        : u.role === "ketua"
-                        ? "destructive"
-                        : "secondary"
-                    }
-                    className="capitalize text-[10px] py-0 px-2 shrink-0"
-                  >
+                  <Badge variant={u.role === 'admin' ? 'default' : u.role === 'ketua' ? 'destructive' : 'secondary'} className="capitalize text-[10px] py-0 px-2 shrink-0">
                     {u.role}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
-                  <span>Bagian: <strong className="text-foreground">{u.bagian?.nama || "-"}</strong></span>
+                  <span>
+                    Bagian: <strong className="text-foreground">{u.bagian?.nama || '-'}</strong>
+                  </span>
                   <div className="flex items-center gap-1">
-                    <UserFormModal 
-                      bagianList={bagianList || []} 
-                      mode="edit" 
-                      userToEdit={{ id: u.id, nama: u.nama, username: u.username, email: u.email, nomor_wa: u.nomor_wa, role: u.role, bagian_id: u.bagian_id }} 
-                    />
+                    <UserFormModal bagianList={bagianList || []} mode="edit" userToEdit={{ id: u.id, nama: u.nama, username: u.username, email: u.email, nomor_wa: u.nomor_wa, role: u.role, bagian_id: u.bagian_id }} />
                     <DeleteUserButton userId={u.id} userName={u.nama} />
                   </div>
                 </div>
@@ -122,28 +103,15 @@ export default async function UserManagementPage() {
                       <div className="text-xs text-muted-foreground">{u.email}</div>
                       <div className="text-[10px] text-muted-foreground/60">@{u.username}</div>
                     </TableCell>
-                    <TableCell>{u.bagian?.nama || "-"}</TableCell>
+                    <TableCell>{u.bagian?.nama || '-'}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          u.role === "admin"
-                            ? "default"
-                            : u.role === "ketua"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className="capitalize"
-                      >
+                      <Badge variant={u.role === 'admin' ? 'default' : u.role === 'ketua' ? 'destructive' : 'secondary'} className="capitalize">
                         {u.role}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <UserFormModal 
-                          bagianList={bagianList || []} 
-                          mode="edit" 
-                          userToEdit={{ id: u.id, nama: u.nama, username: u.username, email: u.email, nomor_wa: u.nomor_wa, role: u.role, bagian_id: u.bagian_id }} 
-                        />
+                        <UserFormModal bagianList={bagianList || []} mode="edit" userToEdit={{ id: u.id, nama: u.nama, username: u.username, email: u.email, nomor_wa: u.nomor_wa, role: u.role, bagian_id: u.bagian_id }} />
                         <DeleteUserButton userId={u.id} userName={u.nama} />
                       </div>
                     </TableCell>

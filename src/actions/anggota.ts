@@ -5,6 +5,7 @@ import { uploadLampiran } from './storage';
 import { revalidatePath } from 'next/cache';
 import { invalidatePublicTransparencyCache } from '@/lib/cache/transparansi';
 import { syncProfilesToAnggota } from '@/lib/sync-anggota';
+import { getCachedBagianOptions } from '@/lib/cache/bagian';
 
 export interface AnggotaDetail {
   id: string;
@@ -30,11 +31,10 @@ export interface AnggotaDetail {
  * Terbuka untuk semua pengguna.
  */
 export async function getAnggotaList(filters?: { search?: string; rt_rw?: string; status?: string; bagianId?: string; periodeId?: string }): Promise<AnggotaDetail[]> {
-  try {
-    await syncProfilesToAnggota();
-  } catch (error) {
+  // Sinkronisasi pemeliharaan tidak boleh memblokir pembacaan daftar anggota.
+  void syncProfilesToAnggota().catch((error) => {
     console.warn('Peringatan sinkronisasi profiles ke anggota:', error);
-  }
+  });
 
   const supabase = await createClient();
 
@@ -77,7 +77,7 @@ export async function getAnggotaList(filters?: { search?: string; rt_rw?: string
     query = query.eq('bagian_id', filters.bagianId);
   }
 
-  const { data, error } = await query;
+  const [{ data, error }, { data: profileAvatars }] = await Promise.all([query, supabase.from('profiles').select('id, foto_url, nomor_wa')]);
 
   if (error) {
     console.error('Error fetching anggota:', error);
@@ -87,7 +87,6 @@ export async function getAnggotaList(filters?: { search?: string; rt_rw?: string
   if (!data) return [];
 
   // Ambil foto profil dari tabel profiles untuk fallback sinkronisasi
-  const { data: profileAvatars } = await supabase.from('profiles').select('id, foto_url, nomor_wa');
   const avatarMap = new Map<string, string>();
   const whatsappMap = new Map<string, string>();
   if (profileAvatars) {
@@ -139,7 +138,7 @@ export async function getAnggotaFormMeta() {
   const supabase = await createClient();
 
   const [bagianRes, periodeRes] = await Promise.all([
-    supabase.from('bagian').select('id, nama, slug').order('nama'),
+    getCachedBagianOptions(),
     supabase
       .from('periode_kepengurusan')
       .select(
@@ -161,7 +160,7 @@ export async function getAnggotaFormMeta() {
   ]);
 
   return {
-    daftarBagian: bagianRes.data || [],
+    daftarBagian: bagianRes,
     daftarPeriode: (periodeRes.data || []).map((p: any) => {
       const agenda = Array.isArray(p.agenda) ? p.agenda[0] : p.agenda;
       const bagian = agenda ? (Array.isArray(agenda.bagian) ? agenda.bagian[0] : agenda.bagian) : null;

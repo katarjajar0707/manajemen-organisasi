@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useTransition, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,20 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, Plus, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Pencil, Trash2, ArrowRightLeft, Boxes, MapPin, Clock, User, Filter, Check, Loader2, Image as ImageIcon, History, Upload, Calendar } from 'lucide-react';
-import { ItemInventaris, PeminjamanRecord, KondisiBarang, StatusBarang, KategoriBarang, createInventaris, updateInventaris, deleteInventaris, pinjamInventaris, kembalikanInventaris, getRiwayatPeminjaman } from '@/actions/inventaris';
+import {
+  ItemInventaris,
+  PeminjamanRecord,
+  KondisiBarang,
+  StatusBarang,
+  KategoriBarang,
+  createInventaris,
+  updateInventaris,
+  deleteInventaris,
+  pinjamInventaris,
+  kembalikanInventaris,
+  getInventarisList,
+  getRiwayatPeminjaman,
+} from '@/actions/inventaris';
 import { uploadLampiran } from '@/actions/storage';
 import { PreviewImage } from '@/components/common/preview-image';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
@@ -25,9 +39,25 @@ interface InventarisManagerProps {
   settings?: PengaturanSistemData;
 }
 
+const INVENTARIS_ITEMS_QUERY_KEY = ['inventaris', 'items'] as const;
+const INVENTARIS_RIWAYAT_QUERY_KEY = ['inventaris', 'riwayat'] as const;
+
 export function InventarisManager({ initialItems = [], initialRiwayat = [], userRole = 'anggota', currentUserId, settings }: InventarisManagerProps) {
-  const [items, setItems] = useState<ItemInventaris[]>(initialItems);
-  const [riwayat, setRiwayat] = useState<PeminjamanRecord[]>(initialRiwayat);
+  const queryClient = useQueryClient();
+  const { data: items = initialItems } = useQuery({
+    queryKey: INVENTARIS_ITEMS_QUERY_KEY,
+    queryFn: () => getInventarisList(),
+    initialData: initialItems,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+  const { data: riwayat = initialRiwayat } = useQuery({
+    queryKey: INVENTARIS_RIWAYAT_QUERY_KEY,
+    queryFn: () => getRiwayatPeminjaman(),
+    initialData: initialRiwayat,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
   const [activeTab, setActiveTab] = useState<'daftar' | 'riwayat'>('daftar');
   const [isPending, startTransition] = useTransition();
 
@@ -175,7 +205,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
       });
 
       if (res.success && res.data) {
-        setItems((prev) => [res.data!, ...prev]);
+        queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) => [res.data!, ...prev]);
         setIsCreateOpen(false);
         triggerNotification(`Barang "${res.data.nama}" berhasil ditambahkan ke database!`, 'success');
       } else {
@@ -216,7 +246,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
       });
 
       if (res.success) {
-        setItems((prev) =>
+        queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
           prev.map((i) =>
             i.id === selectedItem.id
               ? {
@@ -257,7 +287,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
     startTransition(async () => {
       const res = await deleteInventaris(selectedItem.id);
       if (res.success) {
-        setItems((prev) => prev.filter((i) => i.id !== selectedItem.id));
+        queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) => prev.filter((i) => i.id !== selectedItem.id));
         setIsDeleteOpen(false);
         triggerNotification(`Barang "${selectedItem.nama}" berhasil dihapus dari inventaris.`, 'warning');
         setSelectedItem(null);
@@ -309,7 +339,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
         });
 
         if (res.success) {
-          setItems((prev) =>
+          queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
             prev.map((i) =>
               i.id === selectedItem.id
                 ? {
@@ -322,9 +352,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                 : i,
             ),
           );
-          // Refresh riwayat
-          const updatedRiwayat = await getRiwayatPeminjaman();
-          setRiwayat(updatedRiwayat);
+          await queryClient.invalidateQueries({ queryKey: INVENTARIS_RIWAYAT_QUERY_KEY });
           triggerNotification(`Peminjaman "${selectedItem.nama}" oleh ${pinjamForm.peminjam} berhasil dicatat.`, 'info');
           setIsPinjamOpen(false);
         } else {
@@ -338,7 +366,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
           if (activeRecord) {
             const res = await kembalikanInventaris(activeRecord.id);
             if (res.success) {
-              setItems((prev) =>
+              queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
                 prev.map((i) =>
                   i.id === selectedItem.id
                     ? {
@@ -352,8 +380,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                     : i,
                 ),
               );
-              const updatedRiwayat = await getRiwayatPeminjaman();
-              setRiwayat(updatedRiwayat);
+              await queryClient.invalidateQueries({ queryKey: INVENTARIS_RIWAYAT_QUERY_KEY });
               triggerNotification(`Barang "${selectedItem.nama}" telah berhasil dikembalikan!`, 'success');
               setIsPinjamOpen(false);
               return;
@@ -362,7 +389,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
         } else {
           const res = await kembalikanInventaris(selectedItem.aktifPinjamId);
           if (res.success) {
-            setItems((prev) =>
+            queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
               prev.map((i) =>
                 i.id === selectedItem.id
                   ? {
@@ -376,8 +403,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                   : i,
               ),
             );
-            const updatedRiwayat = await getRiwayatPeminjaman();
-            setRiwayat(updatedRiwayat);
+            await queryClient.invalidateQueries({ queryKey: INVENTARIS_RIWAYAT_QUERY_KEY });
             triggerNotification(`Barang "${selectedItem.nama}" telah berhasil dikembalikan!`, 'success');
             setIsPinjamOpen(false);
             return;
