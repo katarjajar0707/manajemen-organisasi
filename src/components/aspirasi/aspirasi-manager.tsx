@@ -33,12 +33,7 @@ export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
     };
 
     const syncAspirasi = async () => {
-      const { data, error } = await supabase
-        .from('diskusi')
-        .select('id, judul, isi, created_at')
-        .eq('tipe', 'catatan_umum')
-        .like('judul', '[Aspirasi Warga]%')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('diskusi').select('id, judul, isi, created_at').eq('tipe', 'catatan_umum').like('judul', '[Aspirasi Warga]%').order('created_at', { ascending: false });
       if (!active || error) return;
       setAspirasi(data.map(parseAspirasi).filter((item): item is AspirasiWargaItem => item !== null));
     };

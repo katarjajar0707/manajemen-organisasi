@@ -680,7 +680,16 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
               <div className="flex items-center gap-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   Riwayat Transaksi
-                  <span className={cn('inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium', realtimeStatus === 'connected' ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : realtimeStatus === 'error' ? 'border-destructive/25 bg-destructive/10 text-destructive' : 'border-border bg-muted text-muted-foreground')}>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium',
+                      realtimeStatus === 'connected'
+                        ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        : realtimeStatus === 'error'
+                          ? 'border-destructive/25 bg-destructive/10 text-destructive'
+                          : 'border-border bg-muted text-muted-foreground',
+                    )}
+                  >
                     <span className={cn('h-1.5 w-1.5 rounded-full', realtimeStatus === 'connected' ? 'bg-emerald-500' : realtimeStatus === 'error' ? 'bg-destructive' : 'bg-muted-foreground')} />
                     {realtimeStatus === 'connected' ? 'Live' : realtimeStatus === 'error' ? 'Terputus' : 'Menghubungkan'}
                   </span>
