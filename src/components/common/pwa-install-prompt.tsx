@@ -13,8 +13,9 @@ interface BeforeInstallPromptEvent extends Event {
 export function PwaInstallPrompt() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIos, setIsIos] = useState(false);
-  const [isAvailable, setIsAvailable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [showBrowserInstructions, setShowBrowserInstructions] = useState(false);
   const [showIosInstructions, setShowIosInstructions] = useState(false);
   const [installing, setInstalling] = useState(false);
 
@@ -27,18 +28,16 @@ export function PwaInstallPrompt() {
 
     const detectIosTimer = window.setTimeout(() => {
       setIsIos(isIosDevice);
-      if (isIosDevice) setIsAvailable(true);
+      setIsReady(true);
     }, 0);
 
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
-      setIsAvailable(true);
     };
 
     const handleAppInstalled = () => {
       setInstallPrompt(null);
-      setIsAvailable(false);
       setIsInstalled(true);
       setShowIosInstructions(false);
     };
@@ -68,32 +67,55 @@ export function PwaInstallPrompt() {
 
     if (choice.outcome === 'accepted') {
       setInstallPrompt(null);
-      setIsAvailable(false);
       setIsInstalled(true);
     }
   };
 
-  if (!isAvailable || isInstalled) return null;
+  const openInstallFlow = () => {
+    if (isIos) {
+      setShowIosInstructions(true);
+      return;
+    }
+
+    if (installPrompt) {
+      void installApp();
+      return;
+    }
+
+    setShowBrowserInstructions(true);
+  };
+
+  if (!isReady || isInstalled) return null;
 
   return (
     <>
-      <Button type="button" size="sm" variant="outline" onClick={installApp} disabled={installing} className="gap-1.5 text-xs h-8">
+      <Button type="button" size="sm" variant="outline" onClick={openInstallFlow} disabled={installing} className="gap-1.5 text-xs h-8" aria-label="Install PWA">
         <Download className="h-3.5 w-3.5" />
-        {installing ? 'Menyiapkan...' : 'Install'}
+        {installing ? 'Menyiapkan...' : 'Install PWA'}
       </Button>
 
-      {isIos && (
-        <Dialog open={showIosInstructions} onOpenChange={setShowIosInstructions}>
+      {(isIos || showBrowserInstructions) && (
+        <Dialog open={isIos ? showIosInstructions : showBrowserInstructions} onOpenChange={isIos ? setShowIosInstructions : setShowBrowserInstructions}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Install KartaTuju</DialogTitle>
               <DialogDescription>
-                Di Safari, pilih tombol Bagikan lalu pilih <strong>Tambahkan ke Layar Utama</strong>.
+                {isIos ? (
+                  <>
+                    Di Safari, pilih tombol Bagikan lalu pilih <strong>Tambahkan ke Layar Utama</strong>.
+                  </>
+                ) : (
+                  <>
+                    Buka menu browser, lalu pilih <strong>Install KartaTuju</strong> atau <strong>Tambahkan ke layar utama</strong>.
+                  </>
+                )}
               </DialogDescription>
             </DialogHeader>
-            <div className="flex items-center justify-center gap-2 rounded-md bg-muted/50 p-3 text-sm text-foreground">
-              <Share className="h-4 w-4" /> Bagikan <span aria-hidden="true">→</span> <Plus className="h-4 w-4" /> Tambahkan ke Layar Utama
-            </div>
+            {isIos && (
+              <div className="flex items-center justify-center gap-2 rounded-md bg-muted/50 p-3 text-sm text-foreground">
+                <Share className="h-4 w-4" /> Bagikan <span aria-hidden="true">→</span> <Plus className="h-4 w-4" /> Tambahkan ke Layar Utama
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" onClick={() => setShowIosInstructions(false)}>
                 Mengerti

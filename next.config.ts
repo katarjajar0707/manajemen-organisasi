@@ -6,11 +6,15 @@ const withPWA = withPWAInit({
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: false,
 });
 
 const nextConfig: NextConfig = {
   experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
     serverActions: {
       bodySizeLimit: '10mb',
     },

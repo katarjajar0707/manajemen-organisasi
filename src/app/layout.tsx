@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   title: 'KartaTuju',
   description: 'Selasa, 04 Agustus 2026',
   applicationName: 'KartaTuju',
+  appleWebApp: {
+    capable: true,
+    title: 'KartaTuju',
+    statusBarStyle: 'default',
+  },
   authors: [{ name: 'KartaTuju' }],
   creator: 'KartaTuju',
   publisher: 'KartaTuju',

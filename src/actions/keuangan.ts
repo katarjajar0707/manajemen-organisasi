@@ -3,6 +3,7 @@
 import { createClient, createAdminClient, getProfile } from '@/lib/supabase/server';
 import { deleteLampiranByUrl, uploadLampiran } from './storage';
 import { revalidatePath } from 'next/cache';
+import { invalidatePublicTransparencyCache } from '@/lib/cache/transparansi';
 
 /**
  * Mengambil daftar kegiatan langsung dari kalender_kegiatan (/kegiatan)
@@ -182,6 +183,7 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = '
     revalidatePath('/bagian/bendahara');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    invalidatePublicTransparencyCache();
 
     return { success: true };
   } catch (err: unknown) {
@@ -275,6 +277,7 @@ export async function updateTransaksi(id: string, formData: FormData, bagianSlug
     revalidatePath('/bagian/bendahara');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    invalidatePublicTransparencyCache();
 
     return { success: true };
   } catch (err: unknown) {
@@ -318,6 +321,7 @@ export async function deleteTransaksi(id: string, bagianSlug: string = 'bendahar
     revalidatePath('/bagian/bendahara');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    invalidatePublicTransparencyCache();
 
     return { success: true };
   } catch (err: unknown) {

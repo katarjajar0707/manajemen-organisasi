@@ -3,6 +3,7 @@
 import { createClient, getProfile } from '@/lib/supabase/server';
 import { uploadLampiran } from './storage';
 import { revalidatePath } from 'next/cache';
+import { invalidatePublicTransparencyCache } from '@/lib/cache/transparansi';
 import { syncProfilesToAnggota } from '@/lib/sync-anggota';
 
 export interface AnggotaDetail {
@@ -231,6 +232,7 @@ export async function createAnggota(formData: FormData) {
     revalidatePath('/struktur');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    invalidatePublicTransparencyCache();
     return { success: true, anggota: data };
   } catch (err: any) {
     return { error: err.message || 'Terjadi kesalahan sistem.' };
@@ -293,6 +295,7 @@ export async function updateAnggota(id: string, formData: FormData) {
     revalidatePath('/struktur');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    invalidatePublicTransparencyCache();
     return { success: true };
   } catch (err: any) {
     return { error: err.message || 'Terjadi kesalahan sistem.' };
@@ -321,6 +324,7 @@ export async function deleteAnggota(id: string) {
     revalidatePath('/struktur');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    invalidatePublicTransparencyCache();
     return { success: true };
   } catch (err: any) {
     return { error: err.message || 'Terjadi kesalahan sistem.' };
