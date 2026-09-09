@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { useAuthStore } from '@/store/auth-store';
+import { ColorThemeSwitcher } from '@/components/common/color-theme-switcher';
 
 interface AppSidebarProps {
   userRole?: string;
@@ -44,12 +45,11 @@ export function AppSidebar({ userRole: propUserRole, orgLogoUrl, orgName }: AppS
             </div>
           ) : (
             <div
-              className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-lg shrink-0',
-                'bg-gradient-to-br from-primary to-emerald-400',
-                'text-primary-foreground font-extrabold text-sm tracking-tight',
-                'shadow-[0_0_16px_rgba(16,185,129,0.3)]',
-              )}
+              className={cn('flex h-8 w-8 items-center justify-center rounded-lg shrink-0', 'text-primary-foreground font-extrabold text-sm tracking-tight')}
+              style={{
+                backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
+                boxShadow: '0 0 16px var(--primary-glow)',
+              }}
             >
               KT
             </div>
@@ -155,6 +155,8 @@ export function AppSidebar({ userRole: propUserRole, orgLogoUrl, orgName }: AppS
             </div>
           )}
         </div>
+
+        <ColorThemeSwitcher isCollapsed={isCollapsed} />
       </aside>
     </TooltipProvider>
   );

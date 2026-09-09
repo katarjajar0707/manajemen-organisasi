@@ -199,7 +199,12 @@ export function DiskusiDetailManager({
 
       {/* Main Post Card */}
       <Card className="border-primary/20 shadow-sm overflow-hidden">
-        <div className="h-1.5 bg-gradient-to-r from-primary to-emerald-500" />
+        <div
+          className="h-1.5"
+          style={{
+            backgroundImage: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
+          }}
+        />
         <CardHeader className="space-y-3 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">

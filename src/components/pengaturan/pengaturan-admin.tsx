@@ -451,7 +451,15 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
                       </div>
                     ) : (
                       <div className="relative">
-                        <div className="h-20 w-20 rounded-xl bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center text-primary-foreground text-2xl font-black shadow-md border border-primary/30">KT</div>
+                        <div
+                          className="h-20 w-20 rounded-xl flex items-center justify-center text-primary-foreground text-2xl font-black shadow-md border border-primary/30"
+                          style={{
+                            backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
+                            boxShadow: '0 0 16px var(--primary-glow)',
+                          }}
+                        >
+                          KT
+                        </div>
                         <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <Camera className="h-5 w-5 text-white" />
                         </div>

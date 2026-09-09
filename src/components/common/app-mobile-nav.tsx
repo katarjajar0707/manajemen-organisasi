@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ColorThemeSwitcher } from '@/components/common/color-theme-switcher';
 
 interface AppMobileNavProps {
   userRole?: string;
@@ -79,7 +80,15 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
                 <img src={orgLogoUrl} alt={orgName || 'Logo'} className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground font-extrabold text-sm shadow-[0_0_16px_rgba(16,185,129,0.3)]">KT</div>
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-primary-foreground font-extrabold text-sm"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
+                  boxShadow: '0 0 16px var(--primary-glow)',
+                }}
+              >
+                KT
+              </div>
             )}
             <div>
               <div className="text-sm font-bold text-foreground truncate max-w-[170px]">{orgName || 'Manajemen Organisasi'}</div>
@@ -152,6 +161,10 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
               </nav>
             </div>
           )}
+        </div>
+
+        <div className="sticky bottom-0 z-10 border-t border-border/70 bg-background/95 backdrop-blur-sm p-3">
+          <ColorThemeSwitcher />
         </div>
       </aside>
     </div>

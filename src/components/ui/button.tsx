@@ -8,7 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground shadow-[0_0_16px_rgba(16,185,129,0.25)] hover:shadow-[0_0_24px_rgba(16,185,129,0.4)] hover:-translate-y-px',
+        default: 'text-primary-foreground shadow-[0_0_16px_var(--primary-glow)] hover:shadow-[0_0_24px_var(--primary-glow)] hover:-translate-y-px',
         destructive: 'bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20',
         outline: 'border border-border bg-transparent text-foreground hover:bg-secondary hover:border-primary/30',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
@@ -36,9 +36,25 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   loadingText?: string;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, asChild = false, loading = false, loadingText = 'Sabar di Sayang Tuhan', children, disabled, ...props }, ref) => {
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, asChild = false, loading = false, loadingText = 'Sabar di Sayang Tuhan', children, disabled, style, ...props }, ref) => {
+  const isDefaultVariant = variant === 'default';
+
   return (
-    <button className={cn(buttonVariants({ variant, size, className }))} ref={ref} disabled={disabled || loading} aria-busy={loading} {...props}>
+    <button
+      className={cn(buttonVariants({ variant, size, className }))}
+      ref={ref}
+      disabled={disabled || loading}
+      aria-busy={loading}
+      style={
+        isDefaultVariant
+          ? {
+              ...style,
+              backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
+            }
+          : style
+      }
+      {...props}
+    >
       {loading && <Loader2 className="animate-spin" />}
       {loading ? loadingText : children}
     </button>

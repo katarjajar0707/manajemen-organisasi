@@ -73,6 +73,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" suppressHydrationWarning className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} h-full`}>
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const saved = localStorage.getItem('karta-theme-color');
+                const allowed = ['green','blue','orange','pink','red'];
+                const value = allowed.includes(saved || '') ? saved : 'green';
+                document.documentElement.setAttribute('data-color-theme', value);
+              } catch (error) {
+                document.documentElement.setAttribute('data-color-theme', 'green');
+              }
+            `,
+          }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

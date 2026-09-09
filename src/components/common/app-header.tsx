@@ -264,12 +264,17 @@ export function AppHeader({
             <button
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden shrink-0",
-                (!avatarUrl || imgError) && "bg-gradient-to-br from-primary to-emerald-400",
                 "text-primary-foreground font-bold text-xs",
-                "shadow-[0_0_12px_rgba(16,185,129,0.25)]",
-                "hover:shadow-[0_0_18px_rgba(16,185,129,0.4)]",
                 "transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40"
               )}
+              style={
+                (!avatarUrl || imgError)
+                  ? {
+                      backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
+                      boxShadow: '0 0 12px var(--primary-glow)',
+                    }
+                  : undefined
+              }
             >
               {avatarUrl && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element

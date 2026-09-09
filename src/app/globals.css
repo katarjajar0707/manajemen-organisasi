@@ -14,8 +14,11 @@
     --popover: 0 0% 8%; /* #141414 */
     --popover-foreground: 0 0% 94%;
 
-    --primary: 160 84% 39%; /* emerald — tidak berubah */
+    --primary: 158 74% 42%; /* emerald premium — default */
     --primary-foreground: 0 0% 5%;
+    --primary-soft: 158 65% 52%;
+    --primary-strong: 158 80% 32%;
+    --primary-glow: rgba(16, 185, 129, 0.2);
 
     --secondary: 0 0% 14%; /* #242424 */
     --secondary-foreground: 0 0% 88%;
@@ -23,7 +26,7 @@
     --muted: 0 0% 14%; /* #242424 */
     --muted-foreground: 0 0% 52%; /* abu-abu sedang */
 
-    --accent: 237 74% 73%; /* indigo accent — tidak berubah */
+    --accent: 224 86% 74%; /* indigo premium — default */
     --accent-foreground: 0 0% 5%;
 
     --destructive: 350 89% 60%;
@@ -31,28 +34,28 @@
 
     --border: 0 0% 18%; /* #2e2e2e */
     --input: 0 0% 12%; /* #1f1f1f */
-    --ring: 160 84% 39%;
+    --ring: 158 74% 42%;
 
     --radius: 0.75rem;
 
-    /* Emerald glow custom tokens */
-    --emerald: 160 84% 39%;
-    --emerald-glow: rgba(16, 185, 129, 0.18);
-    --violet: 238 76% 68%;
+    /* Brand glow custom tokens */
+    --emerald: 158 74% 42%;
+    --emerald-glow: rgba(16, 185, 129, 0.2);
+    --violet: 236 76% 68%;
     --sky-accent: 199 89% 60%;
     --amber-accent: 38 92% 50%;
 
     --sidebar-background: 0 0% 4%; /* #0a0a0a — lebih gelap dari bg */
     --sidebar-foreground: 0 0% 52%;
-    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary: 158 74% 42%;
     --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-primary-soft: 158 65% 52%;
     --sidebar-accent: 0 0% 11%; /* #1c1c1c */
     --sidebar-accent-foreground: 0 0% 88%;
     --sidebar-border: 0 0% 15%; /* #262626 */
-    --sidebar-ring: 160 84% 39%;
+    --sidebar-ring: 158 74% 42%;
   }
 
-  /* Light mode fallback (tidak digunakan secara default, tapi disediakan) */
   .light {
     --background: 0 0% 98%;
     --foreground: 222.2 84% 4.9%;
@@ -60,27 +63,201 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 160 84% 35%;
+    --primary: 158 72% 38%;
     --primary-foreground: 0 0% 98%;
+    --primary-soft: 158 64% 50%;
+    --primary-strong: 158 78% 28%;
+    --primary-glow: rgba(16, 185, 129, 0.14);
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 237 74% 60%;
+    --accent: 224 78% 66%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 160 84% 35%;
+    --ring: 158 72% 38%;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 160 84% 35%;
+    --sidebar-primary: 158 72% 38%;
     --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary-soft: 158 64% 50%;
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 160 84% 35%;
+    --sidebar-ring: 158 72% 38%;
+  }
+
+  html[data-color-theme='green'],
+  html[data-color-theme='green'] .light,
+  html[data-color-theme='green'] .dark {
+    --primary: 158 74% 42%;
+    --primary-foreground: 0 0% 5%;
+    --primary-soft: 158 66% 52%;
+    --primary-strong: 158 80% 32%;
+    --primary-glow: rgba(16, 185, 129, 0.2);
+    --ring: 158 74% 42%;
+    --accent: 224 86% 74%;
+    --accent-foreground: 0 0% 5%;
+    --sidebar-primary: 158 74% 42%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-primary-soft: 158 66% 52%;
+    --sidebar-ring: 158 74% 42%;
+    --emerald: 158 74% 42%;
+    --emerald-glow: rgba(16, 185, 129, 0.2);
+  }
+
+  html[data-color-theme='blue'],
+  html[data-color-theme='blue'] .light,
+  html[data-color-theme='blue'] .dark {
+    --primary: 214 96% 58%;
+    --primary-foreground: 220 90% 98%;
+    --primary-soft: 214 94% 72%;
+    --primary-strong: 216 85% 48%;
+    --primary-glow: rgba(59, 130, 246, 0.2);
+    --ring: 214 96% 58%;
+    --accent: 206 96% 68%;
+    --accent-foreground: 220 90% 98%;
+    --sidebar-primary: 214 96% 58%;
+    --sidebar-primary-foreground: 220 90% 98%;
+    --sidebar-primary-soft: 214 94% 72%;
+    --sidebar-ring: 214 96% 58%;
+    --emerald: 214 96% 58%;
+    --emerald-glow: rgba(59, 130, 246, 0.2);
+  }
+
+  html[data-color-theme='orange'],
+  html[data-color-theme='orange'] .light,
+  html[data-color-theme='orange'] .dark {
+    --primary: 28 96% 56%;
+    --primary-foreground: 28 80% 98%;
+    --primary-soft: 32 100% 68%;
+    --primary-strong: 22 82% 45%;
+    --primary-glow: rgba(249, 115, 22, 0.2);
+    --ring: 28 96% 56%;
+    --accent: 36 100% 66%;
+    --accent-foreground: 28 80% 98%;
+    --sidebar-primary: 28 96% 56%;
+    --sidebar-primary-foreground: 28 80% 98%;
+    --sidebar-primary-soft: 32 100% 68%;
+    --sidebar-ring: 28 96% 56%;
+    --emerald: 28 96% 56%;
+    --emerald-glow: rgba(249, 115, 22, 0.2);
+  }
+
+  html[data-color-theme='pink'],
+  html[data-color-theme='pink'] .light,
+  html[data-color-theme='pink'] .dark {
+    --primary: 336 79% 58%;
+    --primary-foreground: 330 50% 98%;
+    --primary-soft: 333 87% 68%;
+    --primary-strong: 330 76% 40%;
+    --primary-glow: rgba(244, 114, 182, 0.2);
+    --ring: 336 79% 58%;
+    --accent: 316 82% 72%;
+    --accent-foreground: 330 50% 98%;
+    --sidebar-primary: 336 79% 58%;
+    --sidebar-primary-foreground: 330 50% 98%;
+    --sidebar-primary-soft: 333 87% 68%;
+    --sidebar-ring: 336 79% 58%;
+    --emerald: 336 79% 58%;
+    --emerald-glow: rgba(244, 114, 182, 0.2);
+  }
+
+  html[data-color-theme='red'],
+  html[data-color-theme='red'] .light,
+  html[data-color-theme='red'] .dark {
+    --primary: 350 82% 60%;
+    --primary-foreground: 0 0% 98%;
+    --primary-soft: 354 85% 70%;
+    --primary-strong: 344 80% 45%;
+    --primary-glow: rgba(239, 68, 68, 0.2);
+    --ring: 350 82% 60%;
+    --accent: 8 90% 68%;
+    --accent-foreground: 0 0% 98%;
+    --sidebar-primary: 350 82% 60%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary-soft: 354 85% 70%;
+    --sidebar-ring: 350 82% 60%;
+    --emerald: 350 82% 60%;
+    --emerald-glow: rgba(239, 68, 68, 0.2);
+  }
+
+  .light[data-color-theme='green'] {
+    --primary: 158 72% 38%;
+    --primary-foreground: 0 0% 98%;
+    --primary-soft: 158 64% 50%;
+    --primary-strong: 158 78% 28%;
+    --primary-glow: rgba(16, 185, 129, 0.14);
+    --ring: 158 72% 38%;
+    --accent: 224 78% 66%;
+    --accent-foreground: 0 0% 98%;
+    --sidebar-primary: 158 72% 38%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary-soft: 158 64% 50%;
+    --sidebar-ring: 158 72% 38%;
+  }
+
+  .light[data-color-theme='blue'] {
+    --primary: 214 96% 58%;
+    --primary-foreground: 0 0% 98%;
+    --primary-soft: 214 94% 72%;
+    --primary-strong: 216 85% 48%;
+    --primary-glow: rgba(59, 130, 246, 0.14);
+    --ring: 214 96% 58%;
+    --accent: 206 96% 68%;
+    --accent-foreground: 0 0% 98%;
+    --sidebar-primary: 214 96% 58%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary-soft: 214 94% 72%;
+    --sidebar-ring: 214 96% 58%;
+  }
+
+  .light[data-color-theme='orange'] {
+    --primary: 28 96% 56%;
+    --primary-foreground: 28 80% 98%;
+    --primary-soft: 32 100% 68%;
+    --primary-strong: 22 82% 45%;
+    --primary-glow: rgba(249, 115, 22, 0.14);
+    --ring: 28 96% 56%;
+    --accent: 36 100% 66%;
+    --accent-foreground: 28 80% 98%;
+    --sidebar-primary: 28 96% 56%;
+    --sidebar-primary-foreground: 28 80% 98%;
+    --sidebar-primary-soft: 32 100% 68%;
+    --sidebar-ring: 28 96% 56%;
+  }
+
+  .light[data-color-theme='pink'] {
+    --primary: 336 79% 58%;
+    --primary-foreground: 330 50% 98%;
+    --primary-soft: 333 87% 68%;
+    --primary-strong: 330 76% 40%;
+    --primary-glow: rgba(244, 114, 182, 0.14);
+    --ring: 336 79% 58%;
+    --accent: 316 82% 72%;
+    --accent-foreground: 330 50% 98%;
+    --sidebar-primary: 336 79% 58%;
+    --sidebar-primary-foreground: 330 50% 98%;
+    --sidebar-primary-soft: 333 87% 68%;
+    --sidebar-ring: 336 79% 58%;
+  }
+
+  .light[data-color-theme='red'] {
+    --primary: 350 82% 60%;
+    --primary-foreground: 0 0% 98%;
+    --primary-soft: 354 85% 70%;
+    --primary-strong: 344 80% 45%;
+    --primary-glow: rgba(239, 68, 68, 0.14);
+    --ring: 350 82% 60%;
+    --accent: 8 90% 68%;
+    --accent-foreground: 0 0% 98%;
+    --sidebar-primary: 350 82% 60%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary-soft: 354 85% 70%;
+    --sidebar-ring: 350 82% 60%;
   }
 }
 
