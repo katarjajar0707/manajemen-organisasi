@@ -9,7 +9,6 @@ import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
 import { AdminDashboard } from '@/components/dashboard/admin-dashboard';
 import { KetuaDashboard } from '@/components/dashboard/ketua-dashboard';
 import { AnggotaDashboard } from '@/components/dashboard/anggota-dashboard';
-import { PwaInstallPrompt } from '@/components/common/pwa-install-prompt';
 
 export default async function DashboardPage() {
   const [profile, diskusis, announcements, summaryData, settings] = await Promise.all([getProfile(), getDiskusis(), getPengumumanList(), getPublicTransparencyData(), getCachedPengaturanSistem()]);
@@ -23,7 +22,6 @@ export default async function DashboardPage() {
 
     return (
       <>
-        <PwaInstallPrompt />
         <AdminDashboard profile={profile} summaryData={summaryData} announcements={announcements} diskusis={diskusis} totalUsers={users.length} totalBagian={bagianList.length} settings={settings} />
       </>
     );
@@ -32,7 +30,6 @@ export default async function DashboardPage() {
   if (profile.role === 'ketua') {
     return (
       <>
-        <PwaInstallPrompt />
         <KetuaDashboard profile={profile} summaryData={summaryData} announcements={announcements} diskusis={diskusis} settings={settings} />
       </>
     );
@@ -40,7 +37,6 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PwaInstallPrompt />
       <AnggotaDashboard profile={profile} summaryData={summaryData} announcements={announcements} diskusis={diskusis} settings={settings} />
     </>
   );

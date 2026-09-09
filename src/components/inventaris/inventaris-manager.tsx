@@ -957,7 +957,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                   </div>
                 )}
                 <div className="flex-1">
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                  <input ref={fileInputRef} type="file" accept="image/*,.heic,.heif" onChange={handleFileUpload} className="hidden" />
                   <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="gap-1.5 text-xs">
                     {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                     {isUploading ? 'Mengunggah...' : 'Unggah Foto'}

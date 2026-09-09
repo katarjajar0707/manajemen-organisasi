@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Home,
   User,
   Users,
   Building2,
@@ -79,6 +80,20 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     title: "Arsip Dokumen",
     href: "/arsip",
     icon: Archive,
+  },
+];
+
+export const HOME_NAV_ITEMS: NavItem[] = [
+  {
+    title: "Beranda",
+    href: "/",
+    icon: Home,
+  },
+  {
+    title: "Kanal Aspirasi Warga",
+    href: "/aspirasi",
+    icon: MessagesSquare,
+    roles: ["admin", "ketua"],
   },
 ];
 

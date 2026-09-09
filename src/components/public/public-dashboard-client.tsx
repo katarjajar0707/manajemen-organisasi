@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/common/theme-toggle";
+import { PwaInstallPrompt } from "@/components/common/pwa-install-prompt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -185,6 +186,7 @@ export function PublicDashboardClient({
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <PwaInstallPrompt />
           <Link href="/login">
             <Button size="sm" className="gap-1.5 shadow-xs bg-primary hover:bg-primary/90 text-xs h-8">
               <span>Masuk Portal Pengurus</span>

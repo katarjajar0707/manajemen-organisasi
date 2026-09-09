@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MAIN_NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/constants/navigation';
+import { HOME_NAV_ITEMS, MAIN_NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/constants/navigation';
 import { useSidebarStore } from '@/store/sidebar-store';
 import { useAuthStore } from '@/store/auth-store';
 import { cn } from '@/lib/utils';
@@ -93,7 +93,7 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
         </div>
 
         {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-5 pb-8">
+        <div className="app-scroll-container min-h-0 flex-1 overflow-y-auto p-3 space-y-5 pb-8">
           {/* Menu Utama */}
           <div>
             <p className="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">Menu Utama</p>
@@ -101,6 +101,25 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
               {MAIN_NAV_ITEMS.filter((item) => isAuthorized(item.roles)).map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+
+                return (
+                  <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={navItemClass(isActive)}>
+                    <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
+                    <span className="truncate flex-1">{item.title}</span>
+                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Beranda */}
+          <div>
+            <p className="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">Beranda</p>
+            <nav className="space-y-1">
+              {HOME_NAV_ITEMS.filter((item) => isAuthorized(item.roles)).map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
 
                 return (
                   <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={navItemClass(isActive)}>

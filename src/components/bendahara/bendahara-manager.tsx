@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, AlertCircle, Paperclip, ExternalLink, FileText, FileDown, Eye, ImageIcon, Layers, Calendar, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, isImageFile, isImageUrl } from '@/lib/utils';
 import { createTransaksi, deleteTransaksi, updateTransaksi } from '@/actions/keuangan';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 
@@ -57,6 +57,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
   const [file, setFile] = useState<File | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingLampiranUrl, setEditingLampiranUrl] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -81,6 +82,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
 
   const handleOpenCreate = (tJenis: 'masuk' | 'keluar') => {
     setEditingId(null);
+    setEditingLampiranUrl(null);
     setJenis(tJenis);
     setJudul('');
     setKeterangan('');
@@ -98,6 +100,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
 
   const handleOpenEdit = (trx: Transaksi) => {
     setEditingId(trx.id);
+    setEditingLampiranUrl(trx.lampiran_url);
     setJenis(trx.jenis);
     setJudul(trx.judul || '');
     setKeterangan(trx.displayKeterangan || trx.keterangan || '');
@@ -241,16 +244,18 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
           <tr>
             <td style="text-align: center;">${idx + 1}</td>
             <td style="white-space: nowrap;">${tgl}</td>
-            <td>
-              <div style="font-weight: 600; color: #0f172a;">
-                ${trx.judul}
-                ${trx.kategori && trx.kategori !== 'Kas General' ? `<span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 10px; background-color: #e0f2fe; color: #0369a1; font-weight: normal;">[${trx.kategori}]</span>` : ''}
-              </div>
-              ${cleanDesc ? `<div style="color: #64748b; font-size: 11px; margin-top: 2px;">${cleanDesc}</div>` : ''}
-            </td>
-            <td style="text-align: center;">
+                <div className="flex items-start gap-3">
+                  {editingId && editingLampiranUrl && isImageUrl(editingLampiranUrl) && (
+                    <button type="button" className="h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-muted" onClick={() => setPreviewUrl(editingLampiranUrl)} title="Lihat lampiran tersimpan">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={editingLampiranUrl} alt="Preview lampiran tersimpan" className="h-full w-full object-cover" />
+                    </button>
+                  )}
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <Label className="text-xs">Lampiran (Nota/Bukti) {jenis === 'keluar' && <span className="text-destructive">* Wajib</span>}</Label>
+                    <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-xs" accept="image/*,.heic,.heif,.pdf" required={jenis === 'keluar' && !editingId} />
+                  </div>
               <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background-color: ${trx.jenis === 'masuk' ? '#d1fae5' : '#fee2e2'}; color: ${trx.jenis === 'masuk' ? '#065f46' : '#991b1b'};">
-                ${jenisLabel}
               </span>
             </td>
             <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${nominalColor};">
@@ -734,7 +739,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                             className="group relative inline-flex items-center justify-center h-12 w-12 rounded-lg overflow-hidden border border-border/80 hover:border-primary/60 cursor-pointer shadow-xs bg-muted/40 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/40"
                             title="Klik untuk melihat bukti transaksi"
                           >
-                            {trx.lampiran_url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) || !trx.lampiran_url.toLowerCase().includes('.pdf') ? (
+                            {isImageUrl(trx.lampiran_url) ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={trx.lampiran_url} alt={trx.judul || 'Bukti Lampiran'} className="h-full w-full object-cover" />
                             ) : (
@@ -868,9 +873,17 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                 })()}
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Lampiran (Nota/Bukti) {jenis === 'keluar' && <span className="text-destructive">* Wajib</span>}</Label>
-                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-xs" accept="image/*,.pdf" required={jenis === 'keluar' && !editingId} />
-                {file && file.type.startsWith('image/') && (
+                <div className="flex items-center gap-2">
+                  {editingId && editingLampiranUrl && isImageUrl(editingLampiranUrl) && (
+                    <button type="button" className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted" onClick={() => setPreviewUrl(editingLampiranUrl)} title="Lihat lampiran tersimpan">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={editingLampiranUrl} alt="Preview lampiran tersimpan" className="h-full w-full object-cover" />
+                    </button>
+                  )}
+                  <Label className="text-xs">Lampiran (Nota/Bukti) {jenis === 'keluar' && <span className="text-destructive">* Wajib</span>}</Label>
+                </div>
+                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-xs" accept="image/*,.heic,.heif,.pdf" required={jenis === 'keluar' && !editingId} />
+                {file && isImageFile(file) && (
                   <div className="flex items-center gap-2.5 mt-2 p-2 bg-muted/40 border rounded-lg">
                     <div className="h-12 w-12 rounded-md overflow-hidden border bg-background shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -926,7 +939,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
           </DialogHeader>
           <div className="p-4 flex items-center justify-center min-h-[40vh] bg-muted/20 rounded-md">
             {previewUrl &&
-              (previewUrl.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) || !previewUrl.toLowerCase().includes('.pdf') ? (
+              (isImageUrl(previewUrl) ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={previewUrl} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain rounded" />
               ) : (

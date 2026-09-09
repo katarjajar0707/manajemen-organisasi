@@ -1,40 +1,15 @@
-"use client";
+'use client';
 
-import { useState, useTransition, useRef } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useState, useTransition, useRef } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   Archive,
   Upload,
@@ -60,15 +35,10 @@ import {
   Plus,
   ImageIcon,
   Link as LinkIcon,
-} from "lucide-react";
-import {
-  ArsipItem,
-  KategoriArsip,
-  createArsip,
-  updateArsip,
-  deleteArsip,
-} from "@/actions/arsip";
-import { uploadLampiran } from "@/actions/storage";
+} from 'lucide-react';
+import { ArsipItem, KategoriArsip, createArsip, updateArsip, deleteArsip } from '@/actions/arsip';
+import { uploadLampiran } from '@/actions/storage';
+import { isImageFile } from '@/lib/utils';
 
 interface ArsipManagerProps {
   initialArchives?: ArsipItem[];
@@ -77,29 +47,21 @@ interface ArsipManagerProps {
   currentUserId?: string;
 }
 
-export function ArsipManager({
-  initialArchives = [],
-  agendaList = [],
-  userRole = "anggota",
-  currentUserId,
-}: ArsipManagerProps) {
+export function ArsipManager({ initialArchives = [], agendaList = [], userRole = 'anggota', currentUserId }: ArsipManagerProps) {
   const [archives, setArchives] = useState<ArsipItem[]>(initialArchives);
-  const [activeCategory, setActiveCategory] = useState<string>("semua");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterAgenda, setFilterAgenda] = useState("all");
+  const [activeCategory, setActiveCategory] = useState<string>('semua');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterAgenda, setFilterAgenda] = useState('all');
   const [isPending, startTransition] = useTransition();
 
   // Toast Notification
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
-    type: "success" | "info" | "warning";
-  }>({ show: false, message: "", type: "success" });
+    type: 'success' | 'info' | 'warning';
+  }>({ show: false, message: '', type: 'success' });
 
-  const triggerNotification = (
-    message: string,
-    type: "success" | "info" | "warning" = "success"
-  ) => {
+  const triggerNotification = (message: string, type: 'success' | 'info' | 'warning' = 'success') => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
       setNotification((prev) => ({ ...prev, show: false }));
@@ -114,17 +76,17 @@ export function ArsipManager({
   const [isUploading, setIsUploading] = useState(false);
 
   // Form Fields
-  const [judul, setJudul] = useState("");
-  const [deskripsi, setDeskripsi] = useState("");
-  const [driveUrl, setDriveUrl] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [nomorSurat, setNomorSurat] = useState("");
-  const [kategori, setKategori] = useState<KategoriArsip>("lainnya");
-  const [fileUrl, setFileUrl] = useState("");
-  const [fileType, setFileType] = useState("PDF");
-  const [fileSize, setFileSize] = useState("1 MB");
-  const [agendaId, setAgendaId] = useState<string>("none");
-  const [selectedFileName, setSelectedFileName] = useState("");
+  const [judul, setJudul] = useState('');
+  const [deskripsi, setDeskripsi] = useState('');
+  const [driveUrl, setDriveUrl] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [nomorSurat, setNomorSurat] = useState('');
+  const [kategori, setKategori] = useState<KategoriArsip>('lainnya');
+  const [fileUrl, setFileUrl] = useState('');
+  const [fileType, setFileType] = useState('PDF');
+  const [fileSize, setFileSize] = useState('1 MB');
+  const [agendaId, setAgendaId] = useState<string>('none');
+  const [selectedFileName, setSelectedFileName] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -142,20 +104,20 @@ export function ArsipManager({
       setFileSize(sizeStr);
 
       // Extract type
-      let ext = file.name.split(".").pop()?.toUpperCase() || "IMG";
-      if (file.type.startsWith("image/")) ext = "IMG";
+      let ext = file.name.split('.').pop()?.toUpperCase() || 'IMG';
+      if (isImageFile(file)) ext = 'IMG';
       setFileType(ext);
 
-      const res = await uploadLampiran(file, "arsip");
+      const res = await uploadLampiran(file, 'arsip');
       if (res.error || !res.url) {
-        triggerNotification(res.error || "Gagal mengunggah gambar.", "warning");
+        triggerNotification(res.error || 'Gagal mengunggah gambar.', 'warning');
       } else {
         setImageUrl(res.url);
         setFileUrl(res.url);
-        triggerNotification("Gambar berhasil diunggah ke storage!", "success");
+        triggerNotification('Gambar berhasil diunggah ke storage!', 'success');
       }
     } catch (err: any) {
-      triggerNotification(err.message || "Gagal mengunggah gambar.", "warning");
+      triggerNotification(err.message || 'Gagal mengunggah gambar.', 'warning');
     } finally {
       setIsUploading(false);
     }
@@ -163,15 +125,15 @@ export function ArsipManager({
 
   const handleOpenUpload = () => {
     setEditingArsip(null);
-    setJudul("");
-    setDeskripsi("");
-    setDriveUrl("");
-    setImageUrl("");
-    setFileUrl("");
-    setNomorSurat("");
-    setKategori("lainnya");
-    setAgendaId("none");
-    setSelectedFileName("");
+    setJudul('');
+    setDeskripsi('');
+    setDriveUrl('');
+    setImageUrl('');
+    setFileUrl('');
+    setNomorSurat('');
+    setKategori('lainnya');
+    setAgendaId('none');
+    setSelectedFileName('');
     setIsUploadOpen(true);
   };
 
@@ -179,29 +141,29 @@ export function ArsipManager({
     setEditingArsip(item);
     setJudul(item.judul);
     setDeskripsi(item.deskripsi);
-    setDriveUrl(item.driveUrl || "");
-    setImageUrl(item.imageUrl || (item.fileType === "IMG" ? item.fileUrl : ""));
+    setDriveUrl(item.driveUrl || '');
+    setImageUrl(item.imageUrl || (item.fileType === 'IMG' ? item.fileUrl : ''));
     setFileUrl(item.fileUrl);
-    setNomorSurat(item.nomorSurat === "-" ? "" : item.nomorSurat);
+    setNomorSurat(item.nomorSurat === '-' ? '' : item.nomorSurat);
     setKategori(item.kategori);
-    setAgendaId(item.agendaOrganisasiId || "none");
-    setSelectedFileName(item.imageUrl ? "Gambar Terlampir" : "");
+    setAgendaId(item.agendaOrganisasiId || 'none');
+    setSelectedFileName(item.imageUrl ? 'Gambar Terlampir' : '');
     setIsUploadOpen(true);
   };
 
   const handleSave = () => {
     if (!judul.trim()) {
-      triggerNotification("Judul Dokument wajib diisi.", "warning");
+      triggerNotification('Judul Dokument wajib diisi.', 'warning');
       return;
     }
 
     let cleanDriveUrl = driveUrl.trim();
-    if (cleanDriveUrl && !cleanDriveUrl.startsWith("http://") && !cleanDriveUrl.startsWith("https://")) {
+    if (cleanDriveUrl && !cleanDriveUrl.startsWith('http://') && !cleanDriveUrl.startsWith('https://')) {
       cleanDriveUrl = `https://${cleanDriveUrl}`;
     }
 
     startTransition(async () => {
-      const selectedAgendaId = agendaId === "none" ? null : agendaId;
+      const selectedAgendaId = agendaId === 'none' ? null : agendaId;
 
       if (editingArsip) {
         const res = await updateArsip(editingArsip.id, {
@@ -225,17 +187,17 @@ export function ArsipManager({
                     driveUrl: cleanDriveUrl || null,
                     imageUrl: imageUrl || null,
                     fileUrl: imageUrl || cleanDriveUrl || a.fileUrl,
-                    fileType: imageUrl ? "IMG" : cleanDriveUrl ? "LINK" : a.fileType,
+                    fileType: imageUrl ? 'IMG' : cleanDriveUrl ? 'LINK' : a.fileType,
                     agendaOrganisasiId: selectedAgendaId,
-                    agendaTerkait: agendaObj?.nama || "Umum / Organisasi",
+                    agendaTerkait: agendaObj?.nama || 'Umum / Organisasi',
                   }
-                : a
-            )
+                : a,
+            ),
           );
           setIsUploadOpen(false);
-          triggerNotification("Data berkas arsip berhasil diperbarui!", "success");
+          triggerNotification('Data berkas arsip berhasil diperbarui!', 'success');
         } else {
-          triggerNotification(res.error || "Gagal memperbarui arsip.", "warning");
+          triggerNotification(res.error || 'Gagal memperbarui arsip.', 'warning');
         }
       } else {
         const res = await createArsip({
@@ -244,15 +206,15 @@ export function ArsipManager({
           driveUrl: cleanDriveUrl || null,
           imageUrl: imageUrl || null,
           agendaOrganisasiId: selectedAgendaId,
-          kategori: "lainnya",
+          kategori: 'lainnya',
         });
 
         if (res.success && res.data) {
           setArchives([res.data, ...archives]);
           setIsUploadOpen(false);
-          triggerNotification("Berkas arsip berhasil ditambahkan!", "success");
+          triggerNotification('Berkas arsip berhasil ditambahkan!', 'success');
         } else {
-          triggerNotification(res.error || "Gagal menambahkan berkas arsip.", "warning");
+          triggerNotification(res.error || 'Gagal menambahkan berkas arsip.', 'warning');
         }
       }
     });
@@ -266,25 +228,25 @@ export function ArsipManager({
       if (res.success) {
         setArchives((prev) => prev.filter((a) => a.id !== deleteId));
         setDeleteId(null);
-        triggerNotification("Arsip dokumen berhasil dihapus.", "info");
+        triggerNotification('Arsip dokumen berhasil dihapus.', 'info');
       } else {
-        triggerNotification(res.error || "Gagal menghapus arsip.", "warning");
+        triggerNotification(res.error || 'Gagal menghapus arsip.', 'warning');
       }
     });
   };
 
   const handleDownload = (item: ArsipItem) => {
     if (item.fileUrl) {
-      window.open(item.fileUrl, "_blank");
+      window.open(item.fileUrl, '_blank');
     }
   };
 
   const filteredArchives = archives.filter((item) => {
-    if (activeCategory === "drive" && !item.driveUrl) return false;
-    if (activeCategory === "gambar" && !item.imageUrl) return false;
-    if (activeCategory === "agenda" && !item.agendaOrganisasiId) return false;
+    if (activeCategory === 'drive' && !item.driveUrl) return false;
+    if (activeCategory === 'gambar' && !item.imageUrl) return false;
+    if (activeCategory === 'agenda' && !item.agendaOrganisasiId) return false;
 
-    if (filterAgenda !== "all" && item.agendaOrganisasiId !== filterAgenda) return false;
+    if (filterAgenda !== 'all' && item.agendaOrganisasiId !== filterAgenda) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -299,23 +261,23 @@ export function ArsipManager({
   });
 
   const getFileIcon = (type: string) => {
-    if (type === "LINK") return <ExternalLink className="h-5 w-5 text-blue-500" />;
-    if (type === "IMG") return <ImageIcon className="h-5 w-5 text-emerald-500" />;
-    if (type === "PDF") return <FileCheck className="h-5 w-5 text-rose-500" />;
-    if (type === "DOCX" || type === "DOC") return <FileText className="h-5 w-5 text-blue-500" />;
-    if (type === "XLSX" || type === "XLS" || type === "CSV") return <FileSpreadsheet className="h-5 w-5 text-emerald-500" />;
+    if (type === 'LINK') return <ExternalLink className="h-5 w-5 text-blue-500" />;
+    if (type === 'IMG') return <ImageIcon className="h-5 w-5 text-emerald-500" />;
+    if (type === 'PDF') return <FileCheck className="h-5 w-5 text-rose-500" />;
+    if (type === 'DOCX' || type === 'DOC') return <FileText className="h-5 w-5 text-blue-500" />;
+    if (type === 'XLSX' || type === 'XLS' || type === 'CSV') return <FileSpreadsheet className="h-5 w-5 text-emerald-500" />;
     return <File className="h-5 w-5 text-purple-500" />;
   };
 
   const getKategoriBadge = (kat: string) => {
     switch (kat) {
-      case "sk":
+      case 'sk':
         return <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 text-[10px] uppercase font-bold">SK Resmi</Badge>;
-      case "lpj":
+      case 'lpj':
         return <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] uppercase font-bold">LPJ</Badge>;
-      case "proposal":
+      case 'proposal':
         return <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 text-[10px] uppercase font-bold">Proposal</Badge>;
-      case "notulensi":
+      case 'notulensi':
         return <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] uppercase font-bold">Notulensi</Badge>;
       default:
         return null;
@@ -328,22 +290,19 @@ export function ArsipManager({
       {notification.show && (
         <div
           className={`flex items-center justify-between p-3.5 px-4 rounded-lg border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${
-            notification.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-              : notification.type === "warning"
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-              : "bg-sky-500/10 border-sky-500/30 text-sky-300"
+            notification.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : notification.type === 'warning'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                : 'bg-sky-500/10 border-sky-500/30 text-sky-300'
           }`}
         >
           <div className="flex items-center gap-2.5">
-            {notification.type === "success" && <Check className="h-4 w-4 text-emerald-400" />}
-            {notification.type === "warning" && <AlertTriangle className="h-4 w-4 text-amber-400" />}
+            {notification.type === 'success' && <Check className="h-4 w-4 text-emerald-400" />}
+            {notification.type === 'warning' && <AlertTriangle className="h-4 w-4 text-amber-400" />}
             <span className="font-medium">{notification.message}</span>
           </div>
-          <button
-            onClick={() => setNotification((prev) => ({ ...prev, show: false }))}
-            className="text-muted-foreground hover:text-foreground text-xs"
-          >
+          <button onClick={() => setNotification((prev) => ({ ...prev, show: false }))} className="text-muted-foreground hover:text-foreground text-xs">
             Tutup
           </button>
         </div>
@@ -353,16 +312,10 @@ export function ArsipManager({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Arsip Dokumen Organisasi</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Penyimpanan digital terpusat untuk berkas arsip, link Google Drive, dan dokumentasi gambar organisasi.
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Penyimpanan digital terpusat untuk berkas arsip, link Google Drive, dan dokumentasi gambar organisasi.</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button
-            size="sm"
-            className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-xs h-8 w-full sm:w-auto"
-            onClick={handleOpenUpload}
-          >
+          <Button size="sm" className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-xs h-8 w-full sm:w-auto" onClick={handleOpenUpload}>
             <Plus className="h-4 w-4" />
             <span>Tambah Berkas Arsip</span>
           </Button>
@@ -388,9 +341,7 @@ export function ArsipManager({
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground font-medium">Tautan Cloud / Drive</p>
-              <h3 className="text-2xl font-bold mt-0.5">
-                {archives.filter((a) => !!a.driveUrl).length} Dokumen
-              </h3>
+              <h3 className="text-2xl font-bold mt-0.5">{archives.filter((a) => !!a.driveUrl).length} Dokumen</h3>
               <p className="text-[11px] text-blue-500 font-medium mt-0.5">Google Drive & Tautan Web</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
@@ -403,9 +354,7 @@ export function ArsipManager({
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground font-medium">Lampiran Foto & Gambar</p>
-              <h3 className="text-2xl font-bold mt-0.5">
-                {archives.filter((a) => !!a.imageUrl).length} Dokumen
-              </h3>
+              <h3 className="text-2xl font-bold mt-0.5">{archives.filter((a) => !!a.imageUrl).length} Dokumen</h3>
               <p className="text-[11px] text-emerald-500 font-medium mt-0.5">Foto & Scan Dokumen</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
@@ -420,30 +369,20 @@ export function ArsipManager({
         {/* Kategori Tabs Baru */}
         <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 md:pb-0">
           {[
-            { id: "semua", label: "Semua Berkas", count: archives.length },
-            { id: "drive", label: "Link Drive", count: archives.filter((a) => !!a.driveUrl).length },
-            { id: "gambar", label: "Foto & Gambar", count: archives.filter((a) => !!a.imageUrl).length },
-            { id: "agenda", label: "Terkait Agenda", count: archives.filter((a) => !!a.agendaOrganisasiId).length },
+            { id: 'semua', label: 'Semua Berkas', count: archives.length },
+            { id: 'drive', label: 'Link Drive', count: archives.filter((a) => !!a.driveUrl).length },
+            { id: 'gambar', label: 'Foto & Gambar', count: archives.filter((a) => !!a.imageUrl).length },
+            { id: 'agenda', label: 'Terkait Agenda', count: archives.filter((a) => !!a.agendaOrganisasiId).length },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveCategory(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all whitespace-nowrap shrink-0 ${
-                activeCategory === tab.id
-                  ? "bg-background text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                activeCategory === tab.id ? 'bg-background text-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
               <span>{tab.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
-                  activeCategory === tab.id
-                    ? "bg-primary/10 text-primary font-bold"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {tab.count}
-              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${activeCategory === tab.id ? 'bg-primary/10 text-primary font-bold' : 'bg-muted text-muted-foreground'}`}>{tab.count}</span>
             </button>
           ))}
         </div>
@@ -468,16 +407,10 @@ export function ArsipManager({
 
           <div className="relative w-full sm:w-56 flex-1">
             <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Cari judul / deskripsi / link..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-xs bg-background w-full"
-            />
+            <Input placeholder="Cari judul / deskripsi / link..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8 h-8 text-xs bg-background w-full" />
           </div>
         </div>
       </div>
-
 
       {/* Grid Arsip Card */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -486,17 +419,11 @@ export function ArsipManager({
             <CardHeader className="p-4 pb-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-muted/60 border group-hover:bg-primary/5 transition-colors">
-                    {getFileIcon(item.fileType)}
-                  </div>
-                  {(getKategoriBadge(item.kategori) || (item.nomorSurat && item.nomorSurat !== "-")) && (
+                  <div className="p-2 rounded-lg bg-muted/60 border group-hover:bg-primary/5 transition-colors">{getFileIcon(item.fileType)}</div>
+                  {(getKategoriBadge(item.kategori) || (item.nomorSurat && item.nomorSurat !== '-')) && (
                     <div>
                       {getKategoriBadge(item.kategori)}
-                      {item.nomorSurat && item.nomorSurat !== "-" && (
-                        <span className="text-[11px] font-mono text-muted-foreground block mt-0.5">
-                          No: {item.nomorSurat}
-                        </span>
-                      )}
+                      {item.nomorSurat && item.nomorSurat !== '-' && <span className="text-[11px] font-mono text-muted-foreground block mt-0.5">No: {item.nomorSurat}</span>}
                     </div>
                   )}
                 </div>
@@ -520,11 +447,8 @@ export function ArsipManager({
                       <Edit className="h-3.5 w-3.5" />
                       Edit Info
                     </DropdownMenuItem>
-                    {(userRole === "admin" || userRole === "ketua") && (
-                      <DropdownMenuItem
-                        onClick={() => setDeleteId(item.id)}
-                        className="gap-2 text-destructive cursor-pointer"
-                      >
+                    {(userRole === 'admin' || userRole === 'ketua') && (
+                      <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="gap-2 text-destructive cursor-pointer">
                         <Trash2 className="h-3.5 w-3.5" />
                         Hapus Arsip
                       </DropdownMenuItem>
@@ -533,28 +457,15 @@ export function ArsipManager({
                 </DropdownMenu>
               </div>
 
-              <CardTitle className="text-sm font-semibold leading-snug mt-2 line-clamp-2">
-                {item.judul}
-              </CardTitle>
-              {item.deskripsi && (
-                <CardDescription className="text-xs line-clamp-2 mt-1">
-                  {item.deskripsi}
-                </CardDescription>
-              )}
+              <CardTitle className="text-sm font-semibold leading-snug mt-2 line-clamp-2">{item.judul}</CardTitle>
+              {item.deskripsi && <CardDescription className="text-xs line-clamp-2 mt-1">{item.deskripsi}</CardDescription>}
             </CardHeader>
 
             <CardContent className="p-4 pt-1 space-y-2.5">
               {/* Gambar jika ada */}
               {item.imageUrl && (
-                <div
-                  className="relative h-28 w-full rounded-lg overflow-hidden border bg-muted/40 cursor-pointer group/img"
-                  onClick={() => setPreviewArsip(item)}
-                >
-                  <img
-                    src={item.imageUrl}
-                    alt={item.judul}
-                    className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300"
-                  />
+                <div className="relative h-28 w-full rounded-lg overflow-hidden border bg-muted/40 cursor-pointer group/img" onClick={() => setPreviewArsip(item)}>
+                  <img src={item.imageUrl} alt={item.judul} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" />
                   <div className="absolute inset-0 bg-black/25 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1.5">
                     <Eye className="h-4 w-4" />
                     <span>Lihat Gambar</span>
@@ -576,9 +487,7 @@ export function ArsipManager({
                       <ExternalLink className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0 group-hover/link:scale-110 transition-transform" />
                       <span className="truncate">Buka Link Drive / Tautan</span>
                     </span>
-                    <span className="text-[10px] text-blue-600 dark:text-blue-400 underline shrink-0 font-normal">
-                      Buka ↗
-                    </span>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 underline shrink-0 font-normal">Buka ↗</span>
                   </a>
                 </div>
               )}
@@ -595,30 +504,19 @@ export function ArsipManager({
             </CardContent>
 
             <CardFooter className="p-4 pt-0 flex items-center justify-between border-t border-border/40 text-[11px] text-muted-foreground mt-2">
-              <span>Oleh: <strong className="text-foreground">{item.uploader}</strong></span>
+              <span>
+                Oleh: <strong className="text-foreground">{item.uploader}</strong>
+              </span>
               <div className="flex items-center gap-1">
                 {item.driveUrl ? (
-                  <a
-                    href={item.driveUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-500/10 px-2 font-medium"
-                    >
+                  <a href={item.driveUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-500/10 px-2 font-medium">
                       <ExternalLink className="h-3.5 w-3.5" />
                       <span>Buka Drive</span>
                     </Button>
                   </a>
-                ) : item.fileUrl && item.fileUrl !== "#" ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDownload(item)}
-                    className="h-7 text-xs gap-1 hover:text-primary px-2"
-                  >
+                ) : item.fileUrl && item.fileUrl !== '#' ? (
+                  <Button variant="ghost" size="sm" onClick={() => handleDownload(item)} className="h-7 text-xs gap-1 hover:text-primary px-2">
                     <Download className="h-3.5 w-3.5" />
                     <span>Buka</span>
                   </Button>
@@ -633,9 +531,7 @@ export function ArsipManager({
         <div className="text-center py-12 border border-dashed rounded-xl bg-card/30">
           <FolderArchive className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
           <h3 className="text-sm font-semibold">Tidak ada arsip dokumen ditemukan</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Silakan unggah dokumen atau sesuaikan filter pencarian.
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Silakan unggah dokumen atau sesuaikan filter pencarian.</p>
         </div>
       )}
 
@@ -647,50 +543,34 @@ export function ArsipManager({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FolderArchive className="h-5 w-5 text-primary" />
-              <span>{editingArsip ? "Edit Berkas Arsip" : "Tambah Berkas Arsip"}</span>
+              <span>{editingArsip ? 'Edit Berkas Arsip' : 'Tambah Berkas Arsip'}</span>
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              Simpan dokumen atau arsip digital dengan tautan Google Drive / cloud dan unggahan gambar dokumen.
-            </DialogDescription>
+            <DialogDescription className="text-xs">Simpan dokumen atau arsip digital dengan tautan Google Drive / cloud dan unggahan gambar dokumen.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3.5 py-2">
             {/* 1. Judul Dokument */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Judul Dokument <span className="text-destructive">*</span></Label>
-              <Input
-                placeholder="Contoh: SK Kepengurusan 2026 / Notulensi Rapat Pleno"
-                value={judul}
-                onChange={(e) => setJudul(e.target.value)}
-                className="text-xs"
-              />
+              <Label className="text-xs font-semibold">
+                Judul Dokument <span className="text-destructive">*</span>
+              </Label>
+              <Input placeholder="Contoh: SK Kepengurusan 2026 / Notulensi Rapat Pleno" value={judul} onChange={(e) => setJudul(e.target.value)} className="text-xs" />
             </div>
 
             {/* 2. Deskripsi */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Deskripsi</Label>
-              <Textarea
-                rows={3}
-                placeholder="Jelaskan rincian atau keterangan dokumen arsip ini..."
-                value={deskripsi}
-                onChange={(e) => setDeskripsi(e.target.value)}
-                className="text-xs resize-none"
-              />
+              <Textarea rows={3} placeholder="Jelaskan rincian atau keterangan dokumen arsip ini..." value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} className="text-xs resize-none" />
             </div>
 
             {/* 3. Input Link Drive/link lainnya (jika ada) */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Input Link Drive/link lainnya (jika ada)</Label>
               <div className="relative">
-                <Input
-                  placeholder="https://drive.google.com/... atau link cloud lainnya"
-                  value={driveUrl}
-                  onChange={(e) => setDriveUrl(e.target.value)}
-                  className="text-xs pr-8"
-                />
+                <Input placeholder="https://drive.google.com/... atau link cloud lainnya" value={driveUrl} onChange={(e) => setDriveUrl(e.target.value)} className="text-xs pr-8" />
                 {driveUrl && (
                   <a
-                    href={driveUrl.startsWith("http") ? driveUrl : `https://${driveUrl}`}
+                    href={driveUrl.startsWith('http') ? driveUrl : `https://${driveUrl}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-primary transition-colors"
@@ -700,25 +580,14 @@ export function ArsipManager({
                   </a>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Tautan Google Drive, Dropbox, OneDrive, atau link dokumen pendukung lainnya.
-              </p>
+              <p className="text-[11px] text-muted-foreground">Tautan Google Drive, Dropbox, OneDrive, atau link dokumen pendukung lainnya.</p>
             </div>
 
             {/* 4. Upload gambar (jika ada) */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Upload gambar (jika ada)</Label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-4 text-center cursor-pointer transition-colors bg-muted/20"
-              >
+              <input ref={fileInputRef} type="file" accept="image/*,.heic,.heif" onChange={handleFileChange} className="hidden" />
+              <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-border/80 hover:border-primary/60 rounded-xl p-4 text-center cursor-pointer transition-colors bg-muted/20">
                 {isUploading ? (
                   <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -731,7 +600,7 @@ export function ArsipManager({
                     </div>
                     <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-500 font-medium">
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span>{selectedFileName || "Gambar berhasil dipilih"}</span>
+                      <span>{selectedFileName || 'Gambar berhasil dipilih'}</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">Klik untuk mengganti gambar</p>
                   </div>
@@ -739,7 +608,7 @@ export function ArsipManager({
                   <div className="space-y-1.5 py-1">
                     <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
                     <p className="text-xs font-medium">Klik untuk memilih gambar / foto arsip</p>
-                    <p className="text-[11px] text-muted-foreground">Format JPG, PNG, WEBP (Opsional)</p>
+                    <p className="text-[11px] text-muted-foreground">Semua format gambar (Opsional)</p>
                   </div>
                 )}
               </div>
@@ -752,7 +621,7 @@ export function ArsipManager({
             </Button>
             <Button size="sm" className="text-xs gap-1.5" onClick={handleSave} disabled={isPending || isUploading}>
               {isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-              <span>{editingArsip ? "Simpan Perubahan" : "Simpan Berkas Arsip"}</span>
+              <span>{editingArsip ? 'Simpan Perubahan' : 'Simpan Berkas Arsip'}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -776,9 +645,7 @@ export function ArsipManager({
                 <h4 className="font-bold text-sm text-foreground">{previewArsip.judul}</h4>
                 <div className="flex items-center gap-2">
                   {getKategoriBadge(previewArsip.kategori)}
-                  {previewArsip.nomorSurat && previewArsip.nomorSurat !== "-" && (
-                    <span className="font-mono text-muted-foreground">No: {previewArsip.nomorSurat}</span>
-                  )}
+                  {previewArsip.nomorSurat && previewArsip.nomorSurat !== '-' && <span className="font-mono text-muted-foreground">No: {previewArsip.nomorSurat}</span>}
                 </div>
               </div>
 
@@ -789,9 +656,7 @@ export function ArsipManager({
                     <ExternalLink className="h-4 w-4 text-blue-600" />
                     Link Drive / Tautan Berkas:
                   </span>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 break-all font-mono">
-                    {previewArsip.driveUrl}
-                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 break-all font-mono">{previewArsip.driveUrl}</p>
                   <div>
                     <a
                       href={previewArsip.driveUrl}
@@ -811,11 +676,7 @@ export function ArsipManager({
                 <div className="space-y-1.5">
                   <span className="text-[11px] font-semibold text-muted-foreground">Lampiran Gambar:</span>
                   <div className="rounded-lg overflow-hidden border max-h-64 bg-black/5">
-                    <img
-                      src={previewArsip.imageUrl}
-                      alt={previewArsip.judul}
-                      className="w-full h-full object-contain mx-auto"
-                    />
+                    <img src={previewArsip.imageUrl} alt={previewArsip.judul} className="w-full h-full object-contain mx-auto" />
                   </div>
                 </div>
               )}
@@ -839,17 +700,13 @@ export function ArsipManager({
               Tutup
             </Button>
             {previewArsip?.driveUrl ? (
-              <a
-                href={previewArsip.driveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={previewArsip.driveUrl} target="_blank" rel="noopener noreferrer">
                 <Button className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
                   <ExternalLink className="h-3.5 w-3.5" />
                   Buka Link Drive
                 </Button>
               </a>
-            ) : previewArsip?.fileUrl && previewArsip.fileUrl !== "#" ? (
+            ) : previewArsip?.fileUrl && previewArsip.fileUrl !== '#' ? (
               <Button onClick={() => handleDownload(previewArsip)} className="gap-1.5">
                 <Download className="h-3.5 w-3.5" />
                 Buka / Download File
@@ -869,9 +726,7 @@ export function ArsipManager({
               <Trash2 className="h-5 w-5" />
               Hapus Berkas Arsip?
             </DialogTitle>
-            <DialogDescription>
-              Apakah Anda yakin ingin menghapus arsip dokumen ini dari repositori?
-            </DialogDescription>
+            <DialogDescription>Apakah Anda yakin ingin menghapus arsip dokumen ini dari repositori?</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 pt-3">
             <Button variant="outline" onClick={() => setDeleteId(null)} disabled={isPending}>

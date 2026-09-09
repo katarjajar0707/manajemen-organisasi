@@ -1,51 +1,17 @@
-"use client";
+'use client';
 
-import { useState, useTransition, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  ArrowLeft,
-  Camera,
-  Upload,
-  X,
-  Pencil,
-  Trash2,
-  ZoomIn,
-  ImageOff,
-  Plus,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Calendar,
-  MapPin,
-  AlertCircle,
-  ExternalLink,
-} from "lucide-react";
-import Link from "next/link";
-import {
-  uploadDokumentasi,
-  updateCaptionDokumentasi,
-  deleteDokumentasi,
-} from "@/actions/dokumentasi";
+import { useState, useTransition, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { isImageFile } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArrowLeft, Camera, Upload, X, Pencil, Trash2, ZoomIn, ImageOff, Plus, Download, ChevronLeft, ChevronRight, Loader2, Calendar, MapPin, AlertCircle, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { uploadDokumentasi, updateCaptionDokumentasi, deleteDokumentasi } from '@/actions/dokumentasi';
 
 export interface FotoItem {
   id: string;
@@ -63,24 +29,20 @@ interface DokumentasiManagerProps {
   userRole?: string;
 }
 
-export function DokumentasiManager({
-  kegiatan,
-  initialFotos = [],
-  userRole = "anggota",
-}: DokumentasiManagerProps) {
+export function DokumentasiManager({ kegiatan, initialFotos = [], userRole = 'anggota' }: DokumentasiManagerProps) {
   const [fotos, setFotos] = useState<FotoItem[]>(initialFotos);
   const [preview, setPreview] = useState<FotoItem | null>(null);
 
   // Edit State
   const [editFoto, setEditFoto] = useState<FotoItem | null>(null);
-  const [editCaption, setEditCaption] = useState("");
+  const [editCaption, setEditCaption] = useState('');
 
   // Delete State
   const [deleteItem, setDeleteItem] = useState<FotoItem | null>(null);
 
   // Upload State
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [newCaption, setNewCaption] = useState("");
+  const [newCaption, setNewCaption] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +50,7 @@ export function DokumentasiManager({
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const getFotoUrl = (f: FotoItem) => f.foto_url || f.url || "";
+  const getFotoUrl = (f: FotoItem) => f.foto_url || f.url || '';
 
   const openPreview = (f: FotoItem) => setPreview(f);
   const openEdit = (f: FotoItem) => {
@@ -106,7 +68,7 @@ export function DokumentasiManager({
     const newPreviewsList: string[] = [];
 
     Array.from(files).forEach((file) => {
-      if (file.type.startsWith("image/")) {
+      if (isImageFile(file)) {
         newFilesList.push(file);
         newPreviewsList.push(URL.createObjectURL(file));
       }
@@ -123,16 +85,16 @@ export function DokumentasiManager({
 
   const handleUpload = () => {
     if (selectedFiles.length === 0) {
-      setErrorMessage("Pilih setidaknya satu file foto.");
+      setErrorMessage('Pilih setidaknya satu file foto.');
       return;
     }
 
     setErrorMessage(null);
     startTransition(async () => {
       const formData = new FormData();
-      formData.set("caption", newCaption || `Dokumentasi ${kegiatan.judul}`);
+      formData.set('caption', newCaption || `Dokumentasi ${kegiatan.judul}`);
       selectedFiles.forEach((file) => {
-        formData.append("foto", file);
+        formData.append('foto', file);
       });
 
       const res = await uploadDokumentasi(kegiatan.id, formData);
@@ -146,15 +108,15 @@ export function DokumentasiManager({
         id: `temp-${Date.now()}-${idx}`,
         foto_url: filePreviews[idx],
         caption: newCaption || `Dokumentasi ${kegiatan.judul}`,
-        uploadedBy: "Anda (Baru saja)",
+        uploadedBy: 'Anda (Baru saja)',
         created_at: new Date().toISOString(),
-        tanggal: "Baru saja",
+        tanggal: 'Baru saja',
       }));
 
       setFotos((prev) => [...newItems, ...prev]);
       setSelectedFiles([]);
       setFilePreviews([]);
-      setNewCaption("");
+      setNewCaption('');
       setUploadOpen(false);
     });
   };
@@ -169,9 +131,7 @@ export function DokumentasiManager({
         return;
       }
 
-      setFotos((prev) =>
-        prev.map((f) => (f.id === editFoto.id ? { ...f, caption: editCaption } : f))
-      );
+      setFotos((prev) => prev.map((f) => (f.id === editFoto.id ? { ...f, caption: editCaption } : f)));
       setEditFoto(null);
     });
   };
@@ -199,9 +159,9 @@ export function DokumentasiManager({
   const goNext = () => previewIdx < fotos.length - 1 && setPreview(fotos[previewIdx + 1]);
 
   const handleDownload = (url: string, filename?: string) => {
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
-    link.target = "_blank";
+    link.target = '_blank';
     link.download = filename || `dokumentasi_${kegiatan.id}_foto.jpg`;
     document.body.appendChild(link);
     link.click();
@@ -223,11 +183,9 @@ export function DokumentasiManager({
               <Badge variant="outline" className="text-xs">
                 Dokumentasi Acara
               </Badge>
-              <span className="text-xs text-muted-foreground">• {kegiatan.bagian?.nama || "Semua Bagian"}</span>
+              <span className="text-xs text-muted-foreground">• {kegiatan.bagian?.nama || 'Semua Bagian'}</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight mt-0.5">
-              {kegiatan.judul}
-            </h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight mt-0.5">{kegiatan.judul}</h1>
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
@@ -235,7 +193,7 @@ export function DokumentasiManager({
               </span>
               <span className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
-                {kegiatan.lokasi || "Balai Warga"}
+                {kegiatan.lokasi || 'Balai Warga'}
               </span>
             </p>
           </div>
@@ -260,9 +218,7 @@ export function DokumentasiManager({
           <Camera className="h-4 w-4 text-primary" />
           <strong className="text-foreground">{fotos.length}</strong> foto tersimpan untuk kegiatan ini
         </span>
-        <span className="text-[11px]">
-          Klik foto untuk memperbesar, melihat keterangan, atau mengunduh.
-        </span>
+        <span className="text-[11px]">Klik foto untuk memperbesar, melihat keterangan, atau mengunduh.</span>
       </div>
 
       {/* Gallery Grid */}
@@ -271,14 +227,8 @@ export function DokumentasiManager({
           <CardContent className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <ImageOff className="h-12 w-12 opacity-30" />
             <p className="font-semibold text-sm">Belum ada foto dokumentasi untuk acara ini</p>
-            <p className="text-xs max-w-sm text-center">
-              Unggah foto-foto pelaksanaan kegiatan untuk dokumentasi organisasi dan laporan pertanggungjawaban warga.
-            </p>
-            <Button
-              size="sm"
-              className="gap-2 mt-2 bg-primary hover:bg-primary/90 text-xs"
-              onClick={() => setUploadOpen(true)}
-            >
+            <p className="text-xs max-w-sm text-center">Unggah foto-foto pelaksanaan kegiatan untuk dokumentasi organisasi dan laporan pertanggungjawaban warga.</p>
+            <Button size="sm" className="gap-2 mt-2 bg-primary hover:bg-primary/90 text-xs" onClick={() => setUploadOpen(true)}>
               <Plus className="h-4 w-4" />
               <span>Upload Foto Pertama</span>
             </Button>
@@ -289,17 +239,9 @@ export function DokumentasiManager({
           {fotos.map((foto) => {
             const url = getFotoUrl(foto);
             return (
-              <div
-                key={foto.id}
-                className="group relative rounded-xl overflow-hidden border bg-muted aspect-square cursor-pointer shadow-xs hover:shadow-md transition-all"
-                onClick={() => openPreview(foto)}
-              >
+              <div key={foto.id} className="group relative rounded-xl overflow-hidden border bg-muted aspect-square cursor-pointer shadow-xs hover:shadow-md transition-all" onClick={() => openPreview(foto)}>
                 {url ? (
-                  <img
-                    src={url}
-                    alt={foto.caption}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  <img src={url} alt={foto.caption} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-muted">
                     <Camera className="h-8 w-8 text-muted-foreground opacity-40" />
@@ -337,15 +279,13 @@ export function DokumentasiManager({
                   </div>
 
                   <div>
-                    <p className="text-white text-xs font-medium leading-tight line-clamp-2">
-                      {foto.caption}
-                    </p>
+                    <p className="text-white text-xs font-medium leading-tight line-clamp-2">{foto.caption}</p>
                     {foto.created_at && (
                       <p className="text-white/70 text-[10px] mt-1">
-                        {new Date(foto.created_at).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
+                        {new Date(foto.created_at).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
                         })}
                       </p>
                     )}
@@ -369,12 +309,7 @@ export function DokumentasiManager({
             </div>
             <div className="flex items-center gap-2">
               {preview && getFotoUrl(preview) && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs gap-1.5"
-                  onClick={() => handleDownload(getFotoUrl(preview))}
-                >
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => handleDownload(getFotoUrl(preview))}>
                   <Download className="h-3.5 w-3.5" />
                   <span>Unduh Foto</span>
                 </Button>
@@ -385,11 +320,7 @@ export function DokumentasiManager({
           {/* Photo Display Area with Prev/Next Controls */}
           <div className="relative bg-black flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden">
             {preview && getFotoUrl(preview) ? (
-              <img
-                src={getFotoUrl(preview)}
-                alt={preview.caption}
-                className="max-h-[70vh] max-w-full object-contain"
-              />
+              <img src={getFotoUrl(preview)} alt={preview.caption} className="max-h-[70vh] max-w-full object-contain" />
             ) : (
               <div className="p-12 text-center text-white/50">
                 <ImageOff className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -399,22 +330,12 @@ export function DokumentasiManager({
 
             {/* Navigation Buttons */}
             {previewIdx > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 text-white"
-                onClick={goPrev}
-              >
+              <Button variant="ghost" size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 text-white" onClick={goPrev}>
                 <ChevronLeft className="h-5 w-5" />
               </Button>
             )}
             {previewIdx < fotos.length - 1 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 text-white"
-                onClick={goNext}
-              >
+              <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 text-white" onClick={goNext}>
                 <ChevronRight className="h-5 w-5" />
               </Button>
             )}
@@ -425,16 +346,11 @@ export function DokumentasiManager({
             <div className="space-y-0.5">
               <p className="font-medium text-foreground">{preview?.caption}</p>
               <p className="text-muted-foreground text-[11px]">
-                {kegiatan.judul} • Diunggah pada {preview?.tanggal || preview?.created_at?.split("T")[0]}
+                {kegiatan.judul} • Diunggah pada {preview?.tanggal || preview?.created_at?.split('T')[0]}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={() => setPreview(null)}
-              >
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setPreview(null)}>
                 Tutup
               </Button>
             </div>
@@ -450,9 +366,7 @@ export function DokumentasiManager({
               <Upload className="h-5 w-5 text-primary" />
               <span>Unggah Foto Dokumentasi</span>
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              Pilih satu atau beberapa foto kegiatan sekaligus untuk diunggah ke galeri resmi.
-            </DialogDescription>
+            <DialogDescription className="text-xs">Pilih satu atau beberapa foto kegiatan sekaligus untuk diunggah ke galeri resmi.</DialogDescription>
           </DialogHeader>
 
           {errorMessage && (
@@ -464,34 +378,18 @@ export function DokumentasiManager({
 
           <div className="space-y-4 py-2">
             {/* File Drop / Select Area */}
-            <div
-              className="border-2 border-dashed rounded-xl p-6 text-center hover:bg-muted/20 transition-colors cursor-pointer"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                multiple
-                onChange={handleFilesSelected}
-                className="hidden"
-              />
+            <div className="border-2 border-dashed rounded-xl p-6 text-center hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <input type="file" ref={fileInputRef} accept="image/*,.heic,.heif" multiple onChange={handleFilesSelected} className="hidden" />
               <Camera className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
-              <p className="text-xs font-semibold text-foreground">
-                Klik untuk memilih foto dokumentasi
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Mendukung banyak file foto sekaligus (JPG, PNG, WebP)
-              </p>
+              <p className="text-xs font-semibold text-foreground">Klik untuk memilih foto dokumentasi</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Mendukung banyak file gambar sekaligus</p>
             </div>
 
             {/* Selected Files Thumbnails */}
             {selectedFiles.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-foreground">
-                    {selectedFiles.length} foto dipilih
-                  </span>
+                  <span className="font-semibold text-foreground">{selectedFiles.length} foto dipilih</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -527,34 +425,17 @@ export function DokumentasiManager({
             {/* Caption Input */}
             <div className="space-y-1.5">
               <Label className="text-xs">Keterangan / Caption Foto</Label>
-              <Textarea
-                value={newCaption}
-                onChange={(e) => setNewCaption(e.target.value)}
-                placeholder={`Contoh: Sesi kerja bakti gotong royong warga...`}
-                rows={2}
-                className="text-xs resize-none"
-              />
+              <Textarea value={newCaption} onChange={(e) => setNewCaption(e.target.value)} placeholder={`Contoh: Sesi kerja bakti gotong royong warga...`} rows={2} className="text-xs resize-none" />
             </div>
           </div>
 
           <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={() => setUploadOpen(false)}
-              disabled={isPending}
-            >
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => setUploadOpen(false)} disabled={isPending}>
               Batal
             </Button>
-            <Button
-              size="sm"
-              className="text-xs bg-primary hover:bg-primary/90 gap-1.5"
-              onClick={handleUpload}
-              disabled={isPending || selectedFiles.length === 0}
-            >
+            <Button size="sm" className="text-xs bg-primary hover:bg-primary/90 gap-1.5" onClick={handleUpload} disabled={isPending || selectedFiles.length === 0}>
               {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              <span>Unggah {selectedFiles.length > 0 ? `(${selectedFiles.length} Foto)` : ""}</span>
+              <span>Unggah {selectedFiles.length > 0 ? `(${selectedFiles.length} Foto)` : ''}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -568,12 +449,7 @@ export function DokumentasiManager({
           </DialogHeader>
           <div className="py-2 space-y-2">
             <Label className="text-xs">Caption Foto</Label>
-            <Textarea
-              value={editCaption}
-              onChange={(e) => setEditCaption(e.target.value)}
-              rows={3}
-              className="text-xs resize-none"
-            />
+            <Textarea value={editCaption} onChange={(e) => setEditCaption(e.target.value)} rows={3} className="text-xs resize-none" />
           </div>
           <DialogFooter className="gap-2 mt-2">
             <Button variant="outline" size="sm" className="text-xs" onClick={() => setEditFoto(null)} disabled={isPending}>
@@ -592,9 +468,7 @@ export function DokumentasiManager({
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-destructive text-base">Hapus Foto Dokumentasi?</DialogTitle>
-            <DialogDescription className="text-xs">
-              Foto ini akan dihapus permanen dari galeri dokumentasi kegiatan. Tindakan ini tidak dapat dibatalkan.
-            </DialogDescription>
+            <DialogDescription className="text-xs">Foto ini akan dihapus permanen dari galeri dokumentasi kegiatan. Tindakan ini tidak dapat dibatalkan.</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 mt-3">
             <Button variant="outline" size="sm" className="text-xs" onClick={() => setDeleteItem(null)} disabled={isPending}>

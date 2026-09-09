@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     // Fullscreen container — no overflow at root level
-    <div className="h-screen flex overflow-hidden bg-background">
+    <div className="h-screen min-h-0 flex overflow-hidden bg-background">
       {/* SIDEBAR — sticky full height, split into header + scrollable menu (Desktop) */}
       <AppSidebar
         userRole={profile?.role}
@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       />
 
       {/* RIGHT COLUMN — takes remaining width, scrolls independently */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col min-w-0 overflow-hidden">
         {/* APP HEADER — spans only the right column */}
         <AppHeader
           userName={profile?.nama}
@@ -39,7 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         />
 
         {/* MAIN CONTENT — scrollable, mobile-optimized padding */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 min-w-0 max-w-full">
+        <main className="app-scroll-container flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 min-w-0 max-w-full">
           <div className="max-w-7xl mx-auto w-full min-w-0">{children}</div>
         </main>
       </div>

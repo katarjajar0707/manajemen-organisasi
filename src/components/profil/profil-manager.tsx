@@ -13,10 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Shield, Camera, ArrowRight, CheckCircle2, Lock, Mail, KeyRound, AlertCircle, Loader2, Users, Search, Building2, ShieldCheck, Phone, UserPen, Eye } from 'lucide-react';
-import { updateAvatar, changePassword, updateMyProfile } from '@/actions/profil';
+import { Shield, Camera, ArrowRight, CheckCircle2, Lock, Mail, KeyRound, AlertCircle, Loader2, Users, Search, Building2, ShieldCheck, Phone, UserPen, Eye, Upload, Trash2 } from 'lucide-react';
+import { removeAvatar, updateAvatar, changePassword, updateMyProfile } from '@/actions/profil';
 import { useAuthStore } from '@/store/auth-store';
-import { normalizeWhatsAppNumber } from '@/lib/utils';
+import { isImageFile, normalizeWhatsAppNumber } from '@/lib/utils';
 
 interface ProfileData {
   id: string;
@@ -80,6 +80,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
   const [filterBagian, setFilterBagian] = useState<string>('semua');
   const [filterRole, setFilterRole] = useState<string>('semua');
   const [previewMember, setPreviewMember] = useState<UserItem | null>(null);
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
 
   // Edit Profile Modal states
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -104,6 +105,10 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!isImageFile(file)) return;
+
+    setIsAvatarMenuOpen(false);
 
     const localUrl = URL.createObjectURL(file);
     setAvatarUrl(localUrl);
@@ -133,6 +138,27 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
         router.refresh();
         setFeedback({ type: 'success', message: 'Foto profil berhasil diperbarui!' });
       }
+      clearFeedback();
+    });
+  };
+
+  const handleRemoveAvatar = () => {
+    setIsAvatarMenuOpen(false);
+    startTransition(async () => {
+      const res = await removeAvatar();
+      if (res?.error) {
+        setFeedback({ type: 'error', message: res.error });
+        clearFeedback();
+        return;
+      }
+
+      setAvatarUrl(null);
+      setStoreAvatarUrl(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('user-avatar-updated', { detail: { url: null } }));
+      }
+      router.refresh();
+      setFeedback({ type: 'success', message: 'Foto profil berhasil dihapus.' });
       clearFeedback();
     });
   };
@@ -311,10 +337,11 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
                   <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">{currentNama.slice(0, 2).toUpperCase()}</AvatarFallback>
                 )}
               </Avatar>
-              <label htmlFor="photo-upload" className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-colors cursor-pointer" title="Perbarui Foto Profil">
+              <button type="button" className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-colors cursor-pointer" title="Kelola Foto Profil" onClick={() => setIsAvatarMenuOpen(true)} disabled={isPending}>
                 {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-                <input id="photo-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarChange} disabled={isPending} />
-              </label>
+              </button>
+              <input id="photo-camera" type="file" accept="image/*,.heic,.heif" capture="environment" className="hidden" onChange={handleAvatarChange} disabled={isPending} />
+              <input id="photo-upload" type="file" accept="image/*,.heic,.heif" className="hidden" onChange={handleAvatarChange} disabled={isPending} />
             </div>
 
             {/* Info detail */}
@@ -382,6 +409,31 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isAvatarMenuOpen} onOpenChange={setIsAvatarMenuOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Kelola Foto Profil</DialogTitle>
+            <DialogDescription>Pilih cara untuk memperbarui foto profil Anda.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            <label htmlFor="photo-camera" className="flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm cursor-pointer hover:bg-muted">
+              <Camera className="h-4 w-4" />
+              Ambil foto
+            </label>
+            <label htmlFor="photo-upload" className="flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm cursor-pointer hover:bg-muted">
+              <Upload className="h-4 w-4" />
+              Upload foto
+            </label>
+            {avatarUrl && (
+              <Button type="button" variant="outline" className="justify-start gap-3 text-destructive hover:text-destructive" onClick={handleRemoveAvatar} disabled={isPending}>
+                <Trash2 className="h-4 w-4" />
+                Hapus foto
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Main Table Section: Synchronized Members Table (Read-Only untuk Ketua & Anggota) */}
       <Card className="border shadow-xs overflow-hidden">

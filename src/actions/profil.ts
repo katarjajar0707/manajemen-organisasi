@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { uploadLampiran } from './storage';
 import { revalidatePath } from 'next/cache';
 import { syncProfilesToAnggota } from '@/lib/sync-anggota';
+import { isImageFile } from '@/lib/utils';
 
 /**
  * Mengambil profil pengguna yang sedang login beserta relasi bagian & kontak WhatsApp.
@@ -199,9 +200,8 @@ export async function updateAvatar(formData: FormData) {
     }
 
     // Validasi tipe file
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      return { error: 'Format foto harus JPEG, PNG, WebP, atau GIF.' };
+    if (!isImageFile(file)) {
+      return { error: 'File profil harus berupa gambar.' };
     }
 
     const supabase = await createClient();
@@ -232,6 +232,33 @@ export async function updateAvatar(formData: FormData) {
     revalidatePath('/dashboard');
     revalidatePath('/', 'layout');
     return { success: true, url: uploadRes.url };
+  } catch (err: any) {
+    return { error: err.message || 'Terjadi kesalahan internal.' };
+  }
+}
+
+export async function removeAvatar() {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: 'Unauthenticated' };
+
+    const { error } = await supabase.from('profiles').update({ foto_url: null }).eq('id', user.id);
+    if (error) {
+      console.error('Failed to remove avatar URL from DB:', error);
+      return { error: 'Gagal menghapus foto profil.' };
+    }
+
+    await supabase.from('anggota').update({ foto_url: null }).eq('id', user.id);
+
+    revalidatePath('/profil');
+    revalidatePath('/anggota');
+    revalidatePath('/struktur');
+    revalidatePath('/dashboard');
+    revalidatePath('/', 'layout');
+    return { success: true };
   } catch (err: any) {
     return { error: err.message || 'Terjadi kesalahan internal.' };
   }

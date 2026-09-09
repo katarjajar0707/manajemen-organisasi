@@ -196,3 +196,48 @@ export async function kirimAspirasiWarga(payload: {
     return { success: true }; // Graceful fallback
   }
 }
+
+export interface AspirasiWargaItem {
+  id: string;
+  nama: string;
+  rt: string;
+  pesan: string;
+  createdAt: string;
+}
+
+export async function getAspirasiWarga(): Promise<AspirasiWargaItem[]> {
+  try {
+    const supabase = await createClient();
+    const { data: profile } = await supabase.auth.getUser();
+    if (!profile.user) return [];
+
+    const { data: currentProfile } = await supabase.from("profiles").select("role").eq("id", profile.user.id).single();
+    if (!currentProfile || !["admin", "ketua"].includes(currentProfile.role)) return [];
+
+    const { data, error } = await supabase
+      .from("diskusi")
+      .select("id, judul, isi, created_at")
+      .eq("tipe", "catatan_umum")
+      .like("judul", "[Aspirasi Warga]%")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching aspirasi warga:", error);
+      return [];
+    }
+
+    return (data || []).map((item) => {
+      const match = item.judul.match(/^\[Aspirasi Warga\] dari (.+) \((.+)\)$/);
+      return {
+        id: item.id,
+        nama: match?.[1] || "Warga",
+        rt: match?.[2] || "Warga",
+        pesan: item.isi || "-",
+        createdAt: item.created_at,
+      };
+    });
+  } catch (error) {
+    console.error("Error loading aspirasi warga:", error);
+    return [];
+  }
+}

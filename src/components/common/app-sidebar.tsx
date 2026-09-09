@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MAIN_NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/constants/navigation';
+import { HOME_NAV_ITEMS, MAIN_NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/constants/navigation';
 import { useSidebarStore } from '@/store/sidebar-store';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -39,7 +39,7 @@ export function AppSidebar({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className={cn('hidden lg:flex flex-col h-screen border-r border-border/60 bg-sidebar shrink-0', 'transition-[width] duration-200 ease-in-out', isCollapsed ? 'w-[60px]' : 'w-60')}>
+      <aside className={cn('hidden lg:flex flex-col h-screen min-h-0 border-r border-border/60 bg-sidebar shrink-0', 'transition-[width] duration-200 ease-in-out', isCollapsed ? 'w-[60px]' : 'w-60')}>
         {/* ── PART 1: SIDEBAR HEADER (h-14, sejajar AppHeader) ── */}
         <div className={cn('flex h-14 items-center border-b border-border/60 shrink-0', isCollapsed ? 'justify-center px-0' : 'gap-3 px-4')}>
           {orgLogoUrl ? (
@@ -67,7 +67,7 @@ export function AppSidebar({
         </div>
 
         {/* ── PART 2: SIDEBAR MENU (scrollable) ── */}
-        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-5">
+        <div className="app-scroll-container min-h-0 flex-1 overflow-y-auto px-2 py-3 space-y-5">
           {/* Menu Utama */}
           <div>
             {!isCollapsed && <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Menu Utama</p>}
@@ -75,6 +75,36 @@ export function AppSidebar({
               {MAIN_NAV_ITEMS.filter((item) => isAuthorized(item.roles)).map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+
+                return isCollapsed ? (
+                  <Tooltip key={item.href}>
+                    <TooltipTrigger asChild>
+                      <Link href={item.href} className={navItemClass(isActive)}>
+                        <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium">
+                      {item.title}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Link key={item.href} href={item.href} className={navItemClass(isActive)}>
+                    <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
+                    <span className="truncate">{item.title}</span>
+                    {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Beranda */}
+          <div>
+            {!isCollapsed && <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Beranda</p>}
+            <nav className={cn('space-y-0.5', isCollapsed && 'px-1.5')}>
+              {HOME_NAV_ITEMS.filter((item) => isAuthorized(item.roles)).map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
 
                 return isCollapsed ? (
                   <Tooltip key={item.href}>

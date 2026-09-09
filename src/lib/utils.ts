@@ -5,6 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const IMAGE_FILE_EXTENSIONS = /\.(apng|avif|bmp|gif|heic|heif|ico|jfi|jfif|jif|jp2|j2k|jpf|jpx|jpeg|jpg|jxl|png|svg|tif|tiff|webp)$/i;
+
+export function isImageFile(file: File): boolean {
+  return file.type.startsWith('image/') || IMAGE_FILE_EXTENSIONS.test(file.name);
+}
+
+export function isImageUrl(url: string): boolean {
+  return IMAGE_FILE_EXTENSIONS.test(url.split(/[?#]/)[0]);
+}
+
 export function normalizeWhatsAppNumber(value: string): string {
   let digits = value.replace(/\D/g, '');
 
