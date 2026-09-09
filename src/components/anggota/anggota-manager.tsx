@@ -207,8 +207,8 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
                     <span>{m.rt_rw}</span>
                     <div className="flex items-center gap-1.5">
-                      {m.kontak && m.kontak !== '-' && (
-                        <a href={`https://wa.me/${normalizeWhatsAppNumber(m.kontak)}`} target="_blank" rel="noreferrer">
+                      {m.nomor_wa && m.nomor_wa !== '-' && (
+                        <a href={`https://wa.me/${normalizeWhatsAppNumber(m.nomor_wa)}`} target="_blank" rel="noreferrer">
                           <Button variant="outline" size="sm" className="h-7 text-xs px-2.5 gap-1 text-emerald-600 dark:text-emerald-400">
                             <Phone className="h-3 w-3" />
                             <span>WA</span>
@@ -289,18 +289,18 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground gap-1" onClick={() => setPreviewMember(m)} title="Lihat Foto & Detail Anggota">
-                            <Eye className="h-3.5 w-3.5 text-primary" />
-                            <span className="hidden lg:inline">Foto</span>
-                          </Button>
-                          {m.kontak && m.kontak !== '-' && (
-                            <a href={`https://wa.me/${normalizeWhatsAppNumber(m.kontak)}`} target="_blank" rel="noreferrer">
+                          {m.nomor_wa && m.nomor_wa !== '-' && (
+                            <a href={`https://wa.me/${normalizeWhatsAppNumber(m.nomor_wa)}`} target="_blank" rel="noreferrer">
                               <Button variant="outline" size="sm" className="h-7 text-xs px-2 text-emerald-600 dark:text-emerald-400 gap-1">
                                 <Phone className="h-3 w-3" />
                                 <span>WA</span>
                               </Button>
                             </a>
                           )}
+                          <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground gap-1" onClick={() => setPreviewMember(m)} title="Lihat Foto & Detail Anggota">
+                            <Eye className="h-3.5 w-3.5 text-primary" />
+                            <span className="hidden lg:inline">Foto</span>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -352,8 +352,8 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                 </div>
 
                 <div className="flex items-center justify-between gap-2 pt-1">
-                  {previewMember.kontak && previewMember.kontak !== '-' ? (
-                    <a href={`https://wa.me/${normalizeWhatsAppNumber(previewMember.kontak)}`} target="_blank" rel="noreferrer" className="flex-1">
+                  {previewMember.nomor_wa && previewMember.nomor_wa !== '-' ? (
+                    <a href={`https://wa.me/${normalizeWhatsAppNumber(previewMember.nomor_wa)}`} target="_blank" rel="noreferrer" className="flex-1">
                       <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/20">
                         <Phone className="h-3.5 w-3.5" />
                         <span>Hubungi via WhatsApp</span>

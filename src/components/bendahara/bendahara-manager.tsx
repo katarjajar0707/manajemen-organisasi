@@ -10,8 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, AlertCircle, Paperclip, ExternalLink, FileText, FileDown, Eye, ImageIcon, Layers, Calendar, Pencil } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, AlertCircle, Paperclip, ExternalLink, FileText, FileDown, Eye, ImageIcon, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn, isImageFile, isImageUrl } from '@/lib/utils';
 import { PreviewImage } from '@/components/common/preview-image';
@@ -44,7 +43,6 @@ interface BendaharaManagerProps {
 export function BendaharaManager({ initialList, initialSaldo, agendaCategories = [], settings }: BendaharaManagerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterJenis, setFilterJenis] = useState<'semua' | 'masuk' | 'keluar'>('semua');
-  const [activeCategory, setActiveCategory] = useState<string>('Semua');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +60,6 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Kategori menu bar sinkron 1:1 langsung dari data kegiatan di /kegiatan
   const allCategories = useMemo(() => {
     const list: string[] = [];
     (agendaCategories || []).forEach((c) => {
@@ -73,8 +70,6 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     });
     return list;
   }, [agendaCategories]);
-
-  const categoryTabs = ['Semua', ...allCategories];
 
   const formatRupiah = (angka: number | string) => {
     const num = Math.round(Number(angka) || 0);
@@ -90,12 +85,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     setJumlah('');
     setFile(null);
     setError(null);
-    // Jika sedang memilih tab agenda tertentu, otomatis jadikan agenda tersebut sebagai default kategori
-    if (activeCategory !== 'Semua') {
-      setSelectedKategori(activeCategory);
-    } else {
-      setSelectedKategori('Kas General');
-    }
+    setSelectedKategori('Kas General');
     setIsDialogOpen(true);
   };
 
@@ -153,22 +143,6 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     });
   };
 
-  // Subtotal per kategori terpilih untuk transparansi mutasi per agenda acara
-  const categorySubtotal = useMemo(() => {
-    if (activeCategory === 'Semua') return null;
-    const catItems = initialList.filter((item: any) => {
-      return (item.kategori || '').toLowerCase() === activeCategory.toLowerCase();
-    });
-    const masuk = catItems.filter((i) => i.jenis === 'masuk').reduce((acc, c) => acc + Number(c.jumlah), 0);
-    const keluar = catItems.filter((i) => i.jenis === 'keluar').reduce((acc, c) => acc + Number(c.jumlah), 0);
-    return {
-      masuk,
-      keluar,
-      sisa: masuk - keluar,
-      count: catItems.length,
-    };
-  }, [activeCategory, initialList]);
-
   const handleDelete = () => {
     if (deleteId) {
       startTransition(async () => {
@@ -184,19 +158,12 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
   };
 
   const filteredList = initialList.filter((item: any) => {
-    // 1. Filter Kategori (Menu Bar: Semua, Agenda 1, Agenda 2, dst)
-    if (activeCategory !== 'Semua') {
-      if ((item.kategori || '').toLowerCase() !== activeCategory.toLowerCase()) {
-        return false;
-      }
-    }
-
-    // 2. Filter Jenis Transaksi (Masuk / Keluar)
+    // Filter Jenis Transaksi (Masuk / Keluar)
     if (filterJenis !== 'semua' && item.jenis !== filterJenis) {
       return false;
     }
 
-    // 3. Search Query
+    // Search Query
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -220,15 +187,21 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
       return;
     }
 
-    const filterText = [activeCategory !== 'Semua' ? `Kategori: ${activeCategory}` : 'Kategori: Semua Agenda', filterJenis === 'masuk' ? 'Kas Masuk (Pemasukan)' : filterJenis === 'keluar' ? 'Kas Keluar (Pengeluaran)' : 'Semua Mutasi'].join(
-      ' | ',
-    );
+    const filterText = [filterJenis === 'masuk' ? 'Kas Masuk (Pemasukan)' : filterJenis === 'keluar' ? 'Kas Keluar (Pengeluaran)' : 'Semua Mutasi'].join(' | ');
 
     const totalMasukFiltered = filteredList.filter((t: any) => t.jenis === 'masuk').reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
 
     const totalKeluarFiltered = filteredList.filter((t: any) => t.jenis === 'keluar').reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
 
     const saldoFiltered = totalMasukFiltered - totalKeluarFiltered;
+
+    const escapeHtml = (value: unknown) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 
     const rowsHtml = filteredList
       .map((trx: any, idx: number) => {
@@ -240,11 +213,18 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
         const jenisLabel = trx.jenis === 'masuk' ? 'Pemasukan' : 'Pengeluaran';
         const nominalColor = trx.jenis === 'masuk' ? '#047857' : '#b91c1c';
         const cleanDesc = trx.displayKeterangan || trx.keterangan || '';
+        const title = escapeHtml(trx.judul || 'Transaksi');
+        const description = escapeHtml(cleanDesc);
+        const author = escapeHtml(trx.author?.nama || 'Admin');
 
         return `
           <tr>
             <td style="text-align: center;">${idx + 1}</td>
             <td style="white-space: nowrap;">${tgl}</td>
+            <td style="vertical-align: top;">
+              <strong>${title}</strong>
+              ${description ? `<div class="description">${description}</div>` : ''}
+            </td>
             <td style="text-align: center;">
               <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background-color: ${trx.jenis === 'masuk' ? '#d1fae5' : '#fee2e2'}; color: ${trx.jenis === 'masuk' ? '#065f46' : '#991b1b'};">
                 ${jenisLabel}
@@ -253,7 +233,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${nominalColor};">
               ${formatRupiah(trx.jumlah)}
             </td>
-            <td style="font-size: 11px; color: #475569;">${trx.author?.nama || 'Admin'}</td>
+            <td style="font-size: 11px; color: #475569;">${author}</td>
           </tr>
         `;
       })
@@ -345,6 +325,16 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
               width: 100%;
               border-collapse: collapse;
               margin-bottom: 25px;
+              table-layout: fixed;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tfoot {
+              display: table-footer-group;
+            }
+            tr {
+              page-break-inside: avoid;
             }
             th {
               background-color: #f1f5f9;
@@ -359,6 +349,14 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
               border: 1px solid #cbd5e1;
               padding: 8px;
               font-size: 12px;
+              overflow-wrap: anywhere;
+              vertical-align: top;
+            }
+            td .description {
+              margin-top: 3px;
+              color: #64748b;
+              font-size: 10px;
+              line-height: 1.35;
             }
             .tanda-tangan {
               display: flex;
@@ -547,63 +545,6 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             <p className="text-[10px] text-slate-700 dark:text-rose-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Keluar</p>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Menu Bar Kategori Catatan Keuangan (Sinkron Data Kegiatan /kegiatan) */}
-      <div className="bg-card border rounded-xl p-4 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-          <div className="flex items-center gap-2">
-            <Layers className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold tracking-tight text-foreground">Menu Kategori Keuangan (Data Kegiatan)</h3>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{allCategories.length} kegiatan aktif dari kalender</span>
-            <span>•</span>
-            <Link href="/kegiatan" className="text-primary hover:underline font-medium inline-flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>Kelola di /kegiatan</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Menu Bar Tabs: Semua, Agenda 1, Agenda 2, ... */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-          {categoryTabs.map((cat) => {
-            const isSelected = activeCategory === cat;
-            const count = cat === 'Semua' ? initialList.length : initialList.filter((i: any) => (i.kategori || '').toLowerCase() === cat.toLowerCase()).length;
-
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setActiveCategory(cat)}
-                className={cn(
-                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border',
-                  isSelected ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-background text-muted-foreground hover:text-foreground hover:bg-muted border-border',
-                )}
-              >
-                <span>{cat}</span>
-                <span className={cn('px-1.5 py-0.2 rounded-full text-[10px] font-mono', isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground')}>{count}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {categorySubtotal && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2.5 border-t text-xs bg-muted/20 px-3 py-2 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs font-medium bg-primary/10 text-primary border-primary/20">
-                Kategori: {activeCategory}
-              </Badge>
-              <span className="text-muted-foreground text-xs">({categorySubtotal.count} transaksi)</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs font-mono font-medium">
-              <span className="text-emerald-600 dark:text-emerald-400">Masuk: {formatRupiah(categorySubtotal.masuk)}</span>
-              <span className="text-rose-600 dark:text-rose-400">Keluar: {formatRupiah(categorySubtotal.keluar)}</span>
-              <span className={cn('font-bold', categorySubtotal.sisa >= 0 ? 'text-primary' : 'text-rose-600')}>Saldo: {formatRupiah(categorySubtotal.sisa)}</span>
-            </div>
-          </div>
-        )}
       </div>
 
       <Card>
@@ -908,7 +849,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
               <Button type="button" variant="outline" size="sm" onClick={() => setIsDialogOpen(false)} disabled={isPending}>
                 Batal
               </Button>
-              <Button type="submit" size="sm" loading={isPending} disabled={!judul || !jumlah || (jenis === 'keluar' && !file && !editingLampiranUrl)}>
+              <Button type="submit" size="sm" loading={isPending} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={!judul || !jumlah || (jenis === 'keluar' && !file && !editingLampiranUrl)}>
                 {editingId ? 'Simpan Perubahan' : 'Simpan Transaksi'}
               </Button>
             </DialogFooter>

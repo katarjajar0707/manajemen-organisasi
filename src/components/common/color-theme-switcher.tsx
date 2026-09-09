@@ -10,11 +10,11 @@ export type ColorTheme = 'green' | 'blue' | 'orange' | 'pink' | 'red';
 const COLOR_THEME_STORAGE_KEY = 'karta-theme-color';
 
 export const colorThemeOptions: Array<{ id: ColorTheme; label: string; swatch: string; accent: string }> = [
-  { id: 'green', label: 'Green', swatch: '#10b981', accent: '#34d399' },
-  { id: 'blue', label: 'Blue', swatch: '#3b82f6', accent: '#60a5fa' },
-  { id: 'orange', label: 'Orange', swatch: '#f59e0b', accent: '#fb923c' },
-  { id: 'pink', label: 'Pink', swatch: '#ec4899', accent: '#f472b6' },
-  { id: 'red', label: 'Red', swatch: '#ef4444', accent: '#f87171' },
+  { id: 'green', label: 'Nature', swatch: '#10b981', accent: '#34d399' },
+  { id: 'blue', label: 'Calm', swatch: '#3b82f6', accent: '#60a5fa' },
+  { id: 'orange', label: 'Energy', swatch: '#f59e0b', accent: '#fb923c' },
+  { id: 'pink', label: 'Playful', swatch: '#ec4899', accent: '#f472b6' },
+  { id: 'red', label: 'Bold', swatch: '#ef4444', accent: '#f87171' },
 ];
 
 function getStoredColorTheme(): ColorTheme {

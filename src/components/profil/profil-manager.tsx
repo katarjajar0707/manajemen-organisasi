@@ -82,6 +82,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
   const [filterRole, setFilterRole] = useState<string>('semua');
   const [previewMember, setPreviewMember] = useState<UserItem | null>(null);
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
 
   // Edit Profile Modal states
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -424,6 +425,12 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
             <DialogDescription>Pilih cara untuk memperbarui foto profil Anda.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 py-2">
+            {avatarUrl && (
+              <Button type="button" variant="outline" className="justify-start gap-3" onClick={() => { setIsAvatarMenuOpen(false); setIsAvatarPreviewOpen(true); }}>
+                <Eye className="h-4 w-4 text-primary" />
+                Lihat foto
+              </Button>
+            )}
             <label htmlFor="photo-camera" className="flex items-center gap-3 rounded-md border px-3 py-2.5 text-sm cursor-pointer hover:bg-muted">
               <Camera className="h-4 w-4" />
               Ambil foto
@@ -439,6 +446,20 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
               </Button>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAvatarPreviewOpen} onOpenChange={setIsAvatarPreviewOpen}>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-6xl border-0 bg-black/95 p-2 sm:p-4">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Preview Foto Profil</DialogTitle>
+            <DialogDescription>Foto profil dalam tampilan penuh.</DialogDescription>
+          </DialogHeader>
+          {avatarUrl && (
+            <div className="flex min-h-[70vh] items-center justify-center">
+              <PreviewImage src={avatarUrl} alt="Foto Profil" className="max-h-[85vh] max-w-full rounded-lg object-contain" />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

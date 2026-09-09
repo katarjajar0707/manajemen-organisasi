@@ -13,6 +13,7 @@ export interface AnggotaDetail {
   bagianId: string | null;
   rt_rw: string;
   kontak: string;
+  nomor_wa: string;
   status: 'Aktif' | 'Alumni' | 'Cuti';
   foto_url: string | null;
   periode: string;
@@ -85,11 +86,13 @@ export async function getAnggotaList(filters?: { search?: string; rt_rw?: string
   if (!data) return [];
 
   // Ambil foto profil dari tabel profiles untuk fallback sinkronisasi
-  const { data: profileAvatars } = await supabase.from('profiles').select('id, foto_url');
+  const { data: profileAvatars } = await supabase.from('profiles').select('id, foto_url, nomor_wa');
   const avatarMap = new Map<string, string>();
+  const whatsappMap = new Map<string, string>();
   if (profileAvatars) {
     for (const p of profileAvatars) {
       if (p.foto_url) avatarMap.set(p.id, p.foto_url);
+      if (p.nomor_wa) whatsappMap.set(p.id, p.nomor_wa);
     }
   }
 
@@ -115,6 +118,7 @@ export async function getAnggotaList(filters?: { search?: string; rt_rw?: string
       bagianId: finalBagianId,
       rt_rw: m.rt_rw,
       kontak: m.kontak,
+      nomor_wa: whatsappMap.get(m.id) || '',
       status: (m.status as any) || 'Aktif',
       foto_url: m.foto_url || avatarMap.get(m.id) || null,
       periode: periodeObj ? periodeObj.nama_periode : 'Anggota Umum',

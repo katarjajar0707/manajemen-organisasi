@@ -427,7 +427,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
           <p className="text-sm text-muted-foreground">Kelola data aset, status kepemilikan, kondisi fisik, dan sirkulasi pinjam-pakai barang.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 shadow-sm font-medium w-full sm:w-auto">
+          <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 shadow-sm font-medium w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
             <Plus className="h-4 w-4" />
             Tambah Barang
           </Button>

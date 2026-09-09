@@ -78,6 +78,7 @@ export async function createUser(formData: FormData) {
   const nama = (formData.get('nama') as string)?.trim();
   const role = formData.get('role') as string;
   const bagian_id = (formData.get('bagian_id') as string)?.trim() || null;
+  const nomor_wa = (formData.get('nomor_wa') as string)?.trim() || '';
   const kontak = (formData.get('kontak') as string)?.trim() || '-';
   const rt_rw = (formData.get('rt_rw') as string)?.trim() || 'RT 01 / RW 05';
   const jabatanInput = (formData.get('jabatan') as string)?.trim();
@@ -112,6 +113,7 @@ export async function createUser(formData: FormData) {
       .update({
         role: role,
         bagian_id: bagian_id || null,
+        nomor_wa,
       })
       .eq('id', userId);
 

@@ -76,7 +76,6 @@ export const HOME_NAV_ITEMS: NavItem[] = [
     title: 'Kanal Aspirasi Warga',
     href: '/aspirasi',
     icon: MessagesSquare,
-    roles: ['admin', 'ketua'],
   },
 ];
 

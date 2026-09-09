@@ -183,7 +183,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             {isKasPublik && (
-              <Button size="sm" className="gap-2 h-9 px-5 shadow-sm" onClick={() => setIsDownloadOpen(true)}>
+              <Button size="sm" className="gap-2 h-9 px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsDownloadOpen(true)}>
                 <Download className="h-4 w-4" />
                 <span>Lihat Ringkasan Kas Resmi</span>
               </Button>
@@ -459,7 +459,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
                   <Textarea rows={4} value={pesanAspirasi} onChange={(e) => setPesanAspirasi(e.target.value)} placeholder="Tuliskan aspirasi, usulan program, atau kebutuhan warga secara detail..." className="text-xs" required />
                 </div>
 
-                <Button type="submit" loading={isPending} className="w-full gap-2 text-xs">
+                <Button type="submit" loading={isPending} className="w-full gap-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
                   <span>Kirimkan Aspirasi Sekarang</span>
                 </Button>
               </form>

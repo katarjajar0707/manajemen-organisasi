@@ -178,7 +178,7 @@ export function PengumumanManager({ initialAnnouncements, bagianList, currentUse
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Pengumuman & Broadcast Internal</h1>
           <p className="text-sm text-muted-foreground mt-1">Pemberitahuan resmi satu arah untuk seluruh pengurus atau divisi tertentu.</p>
         </div>
-        <Button size="sm" className="gap-2 w-full sm:w-auto text-xs h-8" onClick={handleOpenCreate}>
+        <Button size="sm" className="gap-2 w-full sm:w-auto text-xs h-8 bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleOpenCreate}>
           <Plus className="h-4 w-4" />
           <span>Buat Pengumuman</span>
         </Button>
@@ -216,7 +216,7 @@ export function PengumumanManager({ initialAnnouncements, bagianList, currentUse
               </div>
               <p className="text-base font-semibold">Belum Ada Pengumuman</p>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">Buat siaran informasi baru untuk memberi kabar penting ke seluruh anggota atau seksi organisasi.</p>
-              <Button size="sm" onClick={handleOpenCreate} className="mt-2 text-xs">
+              <Button size="sm" onClick={handleOpenCreate} className="mt-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
                 Buat Pengumuman Sekarang
               </Button>
             </CardContent>
