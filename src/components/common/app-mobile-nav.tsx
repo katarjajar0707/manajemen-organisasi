@@ -60,7 +60,7 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
   const navItemClass = (isActive: boolean) =>
     cn(
       'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
-      isActive ? ['bg-primary/10 text-primary font-semibold', 'border border-primary/20', 'shadow-[0_0_12px_rgba(16,185,129,0.15)]'] : 'text-foreground/80 hover:bg-accent hover:text-foreground active:scale-[0.99]',
+      isActive ? ['bg-primary/10 text-primary font-semibold', 'border border-primary/20', 'theme-shadow'] : 'text-foreground/80 hover:bg-accent hover:text-foreground active:scale-[0.99]',
     );
 
   if (!isMobileOpen) return null;
@@ -115,7 +115,7 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
                   <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={navItemClass(isActive)}>
                     <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                     <span className="truncate flex-1">{item.title}</span>
-                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />}
+                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary theme-drop-shadow" />}
                   </Link>
                 );
               })}
@@ -134,7 +134,7 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
                   <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={navItemClass(isActive)}>
                     <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                     <span className="truncate flex-1">{item.title}</span>
-                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />}
+                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary theme-drop-shadow" />}
                   </Link>
                 );
               })}
@@ -154,7 +154,7 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
                     <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={navItemClass(isActive)}>
                       <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                       <span className="truncate flex-1">{item.title}</span>
-                      {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />}
+                      {isActive && <span className="h-1.5 w-1.5 rounded-full bg-primary theme-drop-shadow" />}
                     </Link>
                   );
                 })}
@@ -164,7 +164,7 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
         </div>
 
         <div className="sticky bottom-0 z-10 border-t border-border/70 bg-background/95 backdrop-blur-sm p-3">
-          <ColorThemeSwitcher />
+          <ColorThemeSwitcher showDivider={false} />
         </div>
       </aside>
     </div>

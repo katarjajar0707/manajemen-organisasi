@@ -31,7 +31,7 @@ export function AppSidebar({ userRole: propUserRole, orgLogoUrl, orgName }: AppS
     cn(
       'flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
       isCollapsed ? 'justify-center w-10 mx-auto px-0' : 'gap-3',
-      isActive ? ['bg-primary/10 text-primary', 'border border-primary/20', 'shadow-[0_0_12px_rgba(16,185,129,0.12)]'] : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+      isActive ? ['bg-primary/10 text-primary', 'border border-primary/20', 'theme-shadow'] : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
     );
 
   return (
@@ -87,7 +87,7 @@ export function AppSidebar({ userRole: propUserRole, orgLogoUrl, orgName }: AppS
                   <Link key={item.href} href={item.href} className={navItemClass(isActive)}>
                     <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                     <span className="truncate">{item.title}</span>
-                    {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />}
+                    {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary theme-drop-shadow" />}
                   </Link>
                 );
               })}
@@ -117,7 +117,7 @@ export function AppSidebar({ userRole: propUserRole, orgLogoUrl, orgName }: AppS
                   <Link key={item.href} href={item.href} className={navItemClass(isActive)}>
                     <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                     <span className="truncate">{item.title}</span>
-                    {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(16,185,129,0.8)]" />}
+                    {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary theme-drop-shadow" />}
                   </Link>
                 );
               })}

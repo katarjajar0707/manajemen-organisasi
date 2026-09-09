@@ -1,0 +1,6 @@
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export default function DiskusiDetailLoading() {
+  return <div className="mx-auto w-full max-w-4xl space-y-5 animate-in fade-in duration-300"><Card className="border-border/50 bg-card/60"><CardHeader className="space-y-3"><Skeleton className="h-5 w-24 rounded-full bg-muted/50" /><Skeleton className="h-7 w-4/5 bg-muted/70" /><Skeleton className="h-3.5 w-56 bg-muted/40" /></CardHeader><CardContent className="space-y-3"><Skeleton className="h-4 w-full bg-muted/45" /><Skeleton className="h-4 w-11/12 bg-muted/45" /><Skeleton className="h-4 w-3/5 bg-muted/40" /></CardContent></Card><Card className="border-border/50 bg-card/60"><CardHeader><Skeleton className="h-5 w-32 bg-muted/60" /></CardHeader><CardContent className="space-y-4">{[1, 2, 3].map((item) => <div key={item} className="flex gap-3 border-b border-border/50 pb-4 last:border-0"><Skeleton className="h-9 w-9 shrink-0 rounded-full bg-muted/55" /><div className="min-w-0 flex-1 space-y-2"><Skeleton className="h-3.5 w-32 bg-muted/55" /><Skeleton className="h-3.5 w-full bg-muted/40" /><Skeleton className="h-3.5 w-2/3 bg-muted/35" /></div></div>)}</CardContent></Card></div>;
+}

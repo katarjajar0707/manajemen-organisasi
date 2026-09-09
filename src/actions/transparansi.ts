@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient, createPublicClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient, createPublicClient } from '@/lib/supabase/server';
 
 export interface PublicTransparencyData {
   keuangan: {
@@ -154,7 +154,7 @@ export async function getPublicTransparencyData(): Promise<PublicTransparencyDat
  */
 export async function kirimAspirasiWarga(payload: { nama: string; rt: string; pesan: string }): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     if (!payload.nama?.trim() || !payload.pesan?.trim()) {
       return { success: false, error: 'Nama dan pesan aspirasi wajib diisi.' };
@@ -163,20 +163,22 @@ export async function kirimAspirasiWarga(payload: { nama: string; rt: string; pe
     // Cari user admin / sistem untuk author jika ada
     const { data: adminProfile } = await supabase.from('profiles').select('id').eq('role', 'admin').limit(1).single();
 
-    if (adminProfile) {
-      // Simpan sebagai catatan umum / diskusi publik
-      await supabase.from('diskusi').insert({
-        tipe: 'catatan_umum',
-        judul: `[Aspirasi Warga] dari ${payload.nama.trim()} (${payload.rt.trim() || 'Warga'})`,
-        isi: payload.pesan.trim(),
-        dibuat_oleh: adminProfile.id,
-      });
-    }
+    if (!adminProfile) return { success: false, error: 'Profil admin untuk penerima aspirasi belum tersedia.' };
+
+    // Simpan sebagai catatan umum / diskusi publik agar ikut dipantau Realtime.
+    const { error: insertError } = await supabase.from('diskusi').insert({
+      tipe: 'catatan_umum',
+      judul: `[Aspirasi Warga] dari ${payload.nama.trim()} (${payload.rt.trim() || 'Warga'})`,
+      isi: payload.pesan.trim(),
+      dibuat_oleh: adminProfile.id,
+    });
+
+    if (insertError) return { success: false, error: 'Gagal menyimpan aspirasi warga.' };
 
     return { success: true };
   } catch (err: any) {
     console.error('Error saving aspirasi warga:', err);
-    return { success: true }; // Graceful fallback
+    return { success: false, error: 'Gagal menyimpan aspirasi warga.' };
   }
 }
 

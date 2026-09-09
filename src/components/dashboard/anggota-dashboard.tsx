@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, Calendar, Megaphone, MessagesSquare, ArrowRight, MessageCircle, User, Clock, MapPin, Building2, Sparkles, ChevronRight } from 'lucide-react';
+import { Users, Calendar, Megaphone, MessagesSquare, ArrowRight, MessageCircle, User, Clock, MapPin, Building2, Sparkles } from 'lucide-react';
 import { LogoutButton } from '@/components/common/logout-button';
 import { DashboardAnnouncementBanner } from '@/components/dashboard/dashboard-announcement-banner';
 import { PengumumanItem } from '@/actions/pengumuman';
@@ -60,49 +60,45 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
   const kegiatanMendatang = summaryData.kegiatan.jadwalMendatang.slice(0, 4);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* ── Header / Greeting ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-sm shrink-0">
-            {profile.foto_url ? <AvatarImage src={profile.foto_url} alt={profile.nama} /> : null}
-            <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">{getInitials(profile.nama)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-xs sm:text-sm text-muted-foreground">{getGreeting()}</p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{profile.nama}!</h1>
-              <Badge variant="outline" className="text-xs px-2 py-0.5 border-primary/30 text-primary">
-                Anggota
-              </Badge>
-              {settings?.operasional.periodeAktif && (
-                <Badge variant="secondary" className="text-xs px-2 py-0.5 text-muted-foreground">
-                  Periode {settings.operasional.periodeAktif}
+      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-linear-to-br from-primary/10 via-card to-card p-4 shadow-sm sm:p-6">
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Avatar className="h-14 w-14 shrink-0 border-2 border-background shadow-md sm:h-16 sm:w-16">
+              {profile.foto_url ? <AvatarImage src={profile.foto_url} alt={profile.nama} /> : null}
+              <AvatarFallback className="bg-primary/15 text-primary text-base font-bold sm:text-lg">{getInitials(profile.nama)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-primary sm:text-sm">{getGreeting()}, selamat datang kembali</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{profile.nama}</h1>
+                <Badge variant="outline" className="border-primary/30 bg-background/50 px-2 py-0.5 text-xs text-primary">
+                  Anggota
                 </Badge>
-              )}
-            </div>
-            {profile.bagian && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Building2 className="h-3 w-3" />
-                {profile.bagian.nama}
+              </div>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <span className="truncate">{profile.bagian?.nama || 'Anggota organisasi'}</span>
+                {settings?.operasional.periodeAktif && <span className="hidden sm:inline">· Periode {settings.operasional.periodeAktif}</span>}
               </p>
-            )}
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Link href="/diskusi" className="flex-1 sm:flex-initial">
-            <Button size="sm" variant="outline" className="gap-2 w-full">
-              <MessagesSquare className="h-4 w-4" />
-              <span>Diskusi</span>
-            </Button>
-          </Link>
-          <Link href="/kegiatan" className="flex-1 sm:flex-initial">
-            <Button size="sm" className="gap-2 w-full">
-              <Calendar className="h-4 w-4" />
-              <span>Kegiatan</span>
-            </Button>
-          </Link>
-          <LogoutButton variant="outline" size="sm" className="flex-1 sm:flex-initial" />
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <Link href="/diskusi" className="min-w-0">
+              <Button size="sm" variant="outline" className="w-full gap-1.5 bg-background/60 px-2 text-xs sm:w-auto sm:gap-2 sm:px-3">
+                <MessagesSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span>Diskusi</span>
+              </Button>
+            </Link>
+            <Link href="/kegiatan" className="min-w-0">
+              <Button size="sm" className="w-full gap-1.5 px-2 text-xs sm:w-auto sm:gap-2 sm:px-3">
+                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span>Kegiatan</span>
+              </Button>
+            </Link>
+            <LogoutButton variant="outline" size="sm" className="w-full px-2 text-xs sm:w-auto sm:px-3" />
+          </div>
         </div>
       </div>
 
@@ -111,16 +107,21 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
 
       {/* ── Stat Cards ── */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Informasi Organisasi</p>
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">Ringkasan organisasi</p>
+            <p className="mt-1 text-sm text-muted-foreground">Pantau informasi yang paling relevan untukmu.</p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
           <Link href="/anggota" className="block">
-            <Card className="hover:border-indigo-500/40 transition-all duration-200 hover:shadow-md h-full">
+            <Card className="h-full border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
               <CardContent className="flex items-center gap-4 p-4 sm:p-5">
-                <div className="rounded-xl bg-indigo-100 dark:bg-indigo-900/30 p-3 shrink-0">
-                  <Users className="h-5 w-5 text-indigo-600" />
+                <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-primary">
+                  <Users className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{summaryData.anggota.totalAktif}</div>
+                  <div className="text-2xl font-bold tracking-tight">{summaryData.anggota.totalAktif}</div>
                   <p className="text-xs text-muted-foreground">Anggota aktif dari {summaryData.anggota.totalSemua} terdaftar</p>
                 </div>
               </CardContent>
@@ -128,13 +129,13 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
           </Link>
 
           <Link href="/kegiatan" className="block">
-            <Card className="hover:border-orange-500/40 transition-all duration-200 hover:shadow-md h-full">
+            <Card className="h-full border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
               <CardContent className="flex items-center gap-4 p-4 sm:p-5">
-                <div className="rounded-xl bg-orange-100 dark:bg-orange-900/30 p-3 shrink-0">
-                  <Calendar className="h-5 w-5 text-orange-600" />
+                <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-primary">
+                  <Calendar className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{summaryData.kegiatan.totalProgram}</div>
+                  <div className="text-2xl font-bold tracking-tight">{summaryData.kegiatan.totalProgram}</div>
                   <p className="text-xs text-muted-foreground">Total program, {summaryData.kegiatan.kegiatanTerlaksana} telah terlaksana</p>
                 </div>
               </CardContent>
@@ -142,13 +143,13 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
           </Link>
 
           <Link href="/pengumuman" className="block">
-            <Card className="hover:border-amber-500/40 transition-all duration-200 hover:shadow-md h-full">
+            <Card className="h-full border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
               <CardContent className="flex items-center gap-4 p-4 sm:p-5">
-                <div className="rounded-xl bg-amber-100 dark:bg-amber-900/30 p-3 shrink-0">
-                  <Megaphone className="h-5 w-5 text-amber-600" />
+                <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-primary">
+                  <Megaphone className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{announcements.length}</div>
+                  <div className="text-2xl font-bold tracking-tight">{announcements.length}</div>
                   <p className="text-xs text-muted-foreground">{announcements.length > 0 ? 'Pengumuman aktif untukmu' : 'Belum ada pengumuman'}</p>
                 </div>
               </CardContent>
@@ -158,20 +159,22 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
       </div>
 
       {/* ── Grid: Profil + Kegiatan ── */}
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
         {/* Info Profil Saya */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
+        <Card className="border-border/70 shadow-sm lg:col-span-2">
+          <CardHeader className="border-b border-border/60 pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
-              <User className="h-4 w-4 text-primary" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <User className="h-4 w-4" />
+              </span>
               Profil Saya
             </CardTitle>
-            <CardDescription className="text-xs">Informasi akun dan posisi kamu di organisasi</CardDescription>
+            <CardDescription className="pl-10 text-xs">Informasi akun dan posisi kamu di organisasi</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5 pt-5">
             {/* Avatar + Name */}
             <div className="flex items-center gap-3">
-              <Avatar className="h-14 w-14 border-2 border-primary/20">
+              <Avatar className="h-14 w-14 border-2 border-primary/20 shadow-sm">
                 {profile.foto_url ? <AvatarImage src={profile.foto_url} alt={profile.nama} /> : null}
                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">{getInitials(profile.nama)}</AvatarFallback>
               </Avatar>
@@ -183,16 +186,16 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
             </div>
 
             {/* Detail */}
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between py-1.5 border-b border-border/50">
+            <div className="space-y-0 rounded-xl border border-border/60 bg-muted/20 px-3">
+              <div className="flex items-center justify-between gap-3 border-b border-border/50 py-2.5">
                 <span className="text-muted-foreground text-xs">Divisi / Bagian</span>
                 <span className="font-medium text-xs text-right">{profile.bagian?.nama || '—'}</span>
               </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-border/50">
+              <div className="flex items-center justify-between gap-3 border-b border-border/50 py-2.5">
                 <span className="text-muted-foreground text-xs">Username</span>
                 <span className="font-mono text-xs">@{profile.username}</span>
               </div>
-              <div className="flex items-center justify-between py-1.5">
+              <div className="flex items-center justify-between gap-3 py-2.5">
                 <span className="text-muted-foreground text-xs">Bergabung</span>
                 <span className="text-xs">
                   {new Date(profile.created_at).toLocaleDateString('id-ID', {
@@ -207,7 +210,7 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
             {profile.bio && <p className="text-xs text-muted-foreground italic border-l-2 border-primary/30 pl-3 py-1">&ldquo;{profile.bio}&rdquo;</p>}
 
             {settings?.profil.alamat && (
-              <div className="pt-2.5 border-t text-[11px] text-muted-foreground space-y-1">
+              <div className="space-y-1 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
                 <span className="font-semibold text-foreground flex items-center gap-1">
                   <MapPin className="h-3 w-3 text-primary shrink-0" /> Sekretariat:
                 </span>
@@ -226,33 +229,36 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
         </Card>
 
         {/* Jadwal Kegiatan */}
-        <Card className="lg:col-span-3">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <Card className="border-border/70 shadow-sm lg:col-span-3">
+          <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-border/60 pb-4">
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Sparkles className="h-4 w-4 text-orange-500" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Sparkles className="h-4 w-4" />
+                </span>
                 Jadwal Kegiatan
               </CardTitle>
-              <CardDescription className="text-xs">Kegiatan terbaru yang direncanakan organisasi</CardDescription>
+              <CardDescription className="pl-10 text-xs">Kegiatan terbaru yang direncanakan organisasi</CardDescription>
             </div>
             <Link href="/kegiatan">
-              <Button variant="ghost" size="sm" className="gap-1 text-xs">
+              <Button variant="ghost" size="sm" className="shrink-0 gap-1 text-xs text-primary hover:text-primary">
                 Semua <ArrowRight className="h-3 w-3" />
               </Button>
             </Link>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2.5 pt-5">
             {kegiatanMendatang.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
-                <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs">Belum ada jadwal kegiatan mendatang.</p>
+              <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 py-10 text-center text-muted-foreground">
+                <Calendar className="mx-auto mb-2 h-8 w-8 opacity-40" />
+                <p className="text-sm font-medium text-foreground">Belum ada jadwal mendatang</p>
+                <p className="mt-1 text-xs">Agenda baru akan tampil di sini setelah dipublikasikan.</p>
               </div>
             ) : (
               kegiatanMendatang.map((k) => (
                 <Link key={k.id} href="/kegiatan" className="block group">
-                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/40 transition-colors">
-                    <div className="rounded-md bg-orange-100 dark:bg-orange-900/30 p-2 shrink-0 mt-0.5">
-                      <Calendar className="h-3.5 w-3.5 text-orange-600" />
+                  <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/60 p-3 transition-all hover:border-primary/30 hover:bg-primary/3">
+                    <div className="mt-0.5 shrink-0 rounded-lg bg-primary/10 p-2 text-primary">
+                      <Calendar className="h-3.5 w-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">{k.judul}</p>
@@ -264,7 +270,7 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
                         </div>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0 text-orange-600 border-orange-300">
+                    <Badge variant="outline" className="shrink-0 border-primary/25 bg-primary/5 text-[10px] text-primary">
                       {k.bagian}
                     </Badge>
                   </div>
@@ -276,27 +282,30 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
       </div>
 
       {/* ── Diskusi Terbaru ── */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-border/60 pb-4">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <MessagesSquare className="h-4 w-4 text-sky-600" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <MessagesSquare className="h-4 w-4" />
+              </span>
               Diskusi & Catatan Umum Terbaru
             </CardTitle>
-            <CardDescription className="text-xs">Ikut berpartisipasi dalam diskusi organisasi</CardDescription>
+            <CardDescription className="pl-10 text-xs">Ikut berpartisipasi dalam diskusi organisasi</CardDescription>
           </div>
           <Link href="/diskusi">
-            <Button variant="ghost" size="sm" className="gap-1 text-xs">
+            <Button variant="ghost" size="sm" className="shrink-0 gap-1 text-xs text-primary hover:text-primary">
               Lihat Semua <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
         </CardHeader>
-        <CardContent className="space-y-2.5">
+        <CardContent className="space-y-3 pt-5">
           {latestDiskusis.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <MessagesSquare className="h-8 w-8 mx-auto mb-2 opacity-30" />
-              <p className="text-xs">Belum ada diskusi atau catatan umum.</p>
-              <Link href="/diskusi" className="mt-3 inline-block">
+            <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 py-10 text-center text-muted-foreground">
+              <MessagesSquare className="mx-auto mb-2 h-8 w-8 opacity-40" />
+              <p className="text-sm font-medium text-foreground">Belum ada diskusi terbaru</p>
+              <p className="mt-1 text-xs">Mulai percakapan untuk terhubung dengan organisasi.</p>
+              <Link href="/diskusi" className="mt-4 inline-block">
                 <Button size="sm" variant="outline" className="gap-2 text-xs">
                   <MessageCircle className="h-3.5 w-3.5" />
                   Mulai Diskusi
@@ -305,10 +314,10 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
             </div>
           ) : (
             <>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 {latestDiskusis.map((disc) => (
                   <Link key={disc.id} href={`/diskusi/${disc.id}`} className="block group">
-                    <div className="p-3 rounded-lg border bg-card hover:bg-muted/40 transition-colors space-y-1.5">
+                    <div className="space-y-2 rounded-xl border border-border/60 bg-card/60 p-3.5 transition-all hover:border-primary/30 hover:bg-primary/3">
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">{disc.judul}</h4>
                         {disc.mentions && disc.mentions.length > 0 && (
@@ -332,7 +341,7 @@ export function AnggotaDashboard({ profile, summaryData, announcements, diskusis
                 ))}
               </div>
               <Link href="/diskusi" className="block pt-1">
-                <Button variant="outline" size="sm" className="w-full gap-2 text-xs">
+                <Button variant="outline" size="sm" className="w-full gap-2 text-xs hover:border-primary/40 hover:text-primary">
                   <MessagesSquare className="h-3.5 w-3.5" />
                   Buka Papan Diskusi
                 </Button>

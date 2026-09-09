@@ -42,12 +42,12 @@ export function AppBottomNav() {
               <div
                 className={cn(
                   'relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out',
-                  isActive ? 'bg-primary/15 shadow-[0_0_16px_rgba(16,185,129,0.25),0_0_4px_rgba(16,185,129,0.15)] scale-110' : 'group-hover:bg-foreground/[0.06] scale-100',
+                  isActive ? 'bg-primary/15 theme-shadow-strong scale-110' : 'group-hover:bg-foreground/[0.06] scale-100',
                 )}
               >
                 {/* Active dot indicator above icon */}
                 <div className={cn('absolute -top-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-primary transition-all duration-300 ease-out', isActive ? 'w-3 opacity-100' : 'w-0 opacity-0')} />
-                <Icon className={cn('transition-all duration-300 ease-out', isActive ? 'h-[18px] w-[18px] stroke-[2.5] text-primary drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'h-4 w-4 stroke-[1.8] group-hover:stroke-2')} />
+                <Icon className={cn('transition-all duration-300 ease-out', isActive ? 'h-[18px] w-[18px] stroke-[2.5] text-primary theme-drop-shadow' : 'h-4 w-4 stroke-[1.8] group-hover:stroke-2')} />
               </div>
               <span
                 className={cn(
@@ -75,12 +75,12 @@ export function AppBottomNav() {
           <div
             className={cn(
               'relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out',
-              isMobileOpen ? 'bg-primary/15 shadow-[0_0_16px_rgba(16,185,129,0.25),0_0_4px_rgba(16,185,129,0.15)] scale-110' : 'group-hover:bg-foreground/[0.06] scale-100',
+              isMobileOpen ? 'bg-primary/15 theme-shadow-strong scale-110' : 'group-hover:bg-foreground/[0.06] scale-100',
             )}
           >
             {/* Active dot indicator above icon */}
             <div className={cn('absolute -top-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-primary transition-all duration-300 ease-out', isMobileOpen ? 'w-3 opacity-100' : 'w-0 opacity-0')} />
-            <LayoutGrid className={cn('transition-all duration-300 ease-out', isMobileOpen ? 'h-[18px] w-[18px] stroke-[2.5] text-primary drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'h-4 w-4 stroke-[1.8] group-hover:stroke-2')} />
+            <LayoutGrid className={cn('transition-all duration-300 ease-out', isMobileOpen ? 'h-[18px] w-[18px] stroke-[2.5] text-primary theme-drop-shadow' : 'h-4 w-4 stroke-[1.8] group-hover:stroke-2')} />
           </div>
           <span
             className={cn(

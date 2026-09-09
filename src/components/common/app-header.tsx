@@ -168,7 +168,7 @@ export function AppHeader({
   const toggleMobile = useSidebarStore((s) => s.toggleMobile);
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-border/60 bg-background/80 px-3 sm:px-4 backdrop-blur-md transition-colors duration-200">
+    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-border/50 bg-background/70 px-3 shadow-sm backdrop-blur-xl transition-colors duration-200 sm:px-4 dark:bg-background/65">
       {/* ── Sisi Kiri: Toggle Sidebar + Breadcrumb ── */}
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
         {/* Mobile Hamburger Drawer Toggle */}

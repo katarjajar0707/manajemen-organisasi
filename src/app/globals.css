@@ -19,6 +19,9 @@
     --primary-soft: 158 65% 52%;
     --primary-strong: 158 80% 32%;
     --primary-glow: rgba(16, 185, 129, 0.2);
+    --theme-shadow: 0 0 12px hsl(var(--primary) / 0.14), 0 0 4px hsl(var(--primary) / 0.08);
+    --theme-shadow-strong: 0 0 16px hsl(var(--primary) / 0.18), 0 0 6px hsl(var(--primary) / 0.1);
+    --theme-drop-shadow: drop-shadow(0 0 6px hsl(var(--primary) / 0.38));
 
     --secondary: 0 0% 14%; /* #242424 */
     --secondary-foreground: 0 0% 88%;
@@ -68,6 +71,9 @@
     --primary-soft: 158 64% 50%;
     --primary-strong: 158 78% 28%;
     --primary-glow: rgba(16, 185, 129, 0.14);
+    --theme-shadow: 0 0 10px hsl(var(--primary) / 0.1), 0 0 3px hsl(var(--primary) / 0.06);
+    --theme-shadow-strong: 0 0 14px hsl(var(--primary) / 0.14), 0 0 5px hsl(var(--primary) / 0.08);
+    --theme-drop-shadow: drop-shadow(0 0 5px hsl(var(--primary) / 0.3));
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
@@ -322,11 +328,21 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Emerald glow utilities */
+/* Theme-aware colored glow utilities */
+.theme-shadow {
+  box-shadow: var(--theme-shadow);
+}
+
+.theme-shadow-strong {
+  box-shadow: var(--theme-shadow-strong);
+}
+
+.theme-drop-shadow {
+  filter: var(--theme-drop-shadow);
+}
+
 .glow-emerald {
-  box-shadow:
-    0 0 20px var(--emerald-glow),
-    0 0 40px rgba(16, 185, 129, 0.08);
+  box-shadow: var(--theme-shadow-strong);
 }
 
 .glow-bar-top::before {

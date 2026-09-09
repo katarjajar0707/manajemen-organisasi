@@ -1,25 +1,57 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquareText, Search } from 'lucide-react';
 import type { AspirasiWargaItem } from '@/actions/transparansi';
+import { createClient } from '@/lib/supabase/client';
 
 interface AspirasiManagerProps {
   initialAspirasi: AspirasiWargaItem[];
 }
 
 export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
+  const [aspirasi, setAspirasi] = useState<AspirasiWargaItem[]>(initialAspirasi);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('aspirasi-warga-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'diskusi', filter: 'tipe=eq.catatan_umum' },
+        (payload) => {
+          const item = payload.new as { id?: string; judul?: string; isi?: string; created_at?: string };
+          if (!item.id || !item.judul?.startsWith('[Aspirasi Warga]')) return;
+
+          const match = item.judul.match(/^\[Aspirasi Warga\] dari (.+) \((.+)\)$/);
+          const newAspirasi: AspirasiWargaItem = {
+            id: item.id,
+            nama: match?.[1] || 'Warga',
+            rt: match?.[2] || 'Warga',
+            pesan: item.isi || '-',
+            createdAt: item.created_at || new Date().toISOString(),
+          };
+
+          setAspirasi((current) => (current.some((entry) => entry.id === newAspirasi.id) ? current : [newAspirasi, ...current]));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
 
   const filteredAspirasi = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return initialAspirasi;
+    if (!query) return aspirasi;
 
-    return initialAspirasi.filter((item) => [item.nama, item.rt, item.pesan].some((value) => value.toLowerCase().includes(query)));
-  }, [initialAspirasi, searchQuery]);
+    return aspirasi.filter((item) => [item.nama, item.rt, item.pesan].some((value) => value.toLowerCase().includes(query)));
+  }, [aspirasi, searchQuery]);
 
   const formatDate = (value: string) =>
     new Intl.DateTimeFormat('id-ID', {

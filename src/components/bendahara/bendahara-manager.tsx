@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { cn, isImageFile, isImageUrl } from '@/lib/utils';
 import { PreviewImage } from '@/components/common/preview-image';
 import { createTransaksi, deleteTransaksi, updateTransaksi } from '@/actions/keuangan';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
+import { createClient } from '@/lib/supabase/client';
 
 interface Transaksi {
   id: string;
@@ -41,6 +42,7 @@ interface BendaharaManagerProps {
 }
 
 export function BendaharaManager({ initialList, initialSaldo, agendaCategories = [], settings }: BendaharaManagerProps) {
+  const [transactions, setTransactions] = useState<any[]>(initialList);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterJenis, setFilterJenis] = useState<'semua' | 'masuk' | 'keluar'>('semua');
   const [isPending, startTransition] = useTransition();
@@ -70,6 +72,72 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     });
     return list;
   }, [agendaCategories]);
+
+  const saldo = useMemo(() => {
+    const masuk = transactions.filter((item) => item.jenis === 'masuk').reduce((total, item) => total + Number(item.jumlah), 0);
+    const keluar = transactions.filter((item) => item.jenis === 'keluar').reduce((total, item) => total + Number(item.jumlah), 0);
+    return { masuk, keluar, sisa: masuk - keluar };
+  }, [transactions]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let active = true;
+
+    const normalizeTransaction = (item: any) => {
+      let kategori = 'Kas General';
+      let displayKeterangan = item.keterangan || '';
+      const match = (item.keterangan || '').match(/^\[Kategori:\s*([^\]]+)\]/i);
+      if (match) {
+        kategori = match[1].trim();
+        displayKeterangan = (item.keterangan || '').replace(/^\[Kategori:\s*[^\]]+\]\s*/i, '').trim();
+      } else if (item.kategori) {
+        kategori = item.kategori;
+      }
+      return { ...item, kategori, displayKeterangan };
+    };
+
+    const subscribe = async () => {
+      const { data: bagian } = await supabase.from('bagian').select('id').eq('slug', 'bendahara').single();
+      if (!active || !bagian) return;
+
+      channel = supabase
+        .channel('catatan-keuangan-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'catatan_keuangan', filter: `bagian_id=eq.${bagian.id}` }, async (payload) => {
+          if (payload.eventType === 'DELETE') {
+            setTransactions((current) => current.filter((item) => item.id !== payload.old.id));
+            return;
+          }
+
+          const { data: refreshed } = await supabase
+            .from('catatan_keuangan')
+            .select('*, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)')
+            .eq('id', payload.new.id)
+            .is('deleted_at', null)
+            .single();
+          if (!refreshed) {
+            setTransactions((current) => current.filter((item) => item.id !== payload.new.id));
+            return;
+          }
+
+          const normalized = normalizeTransaction(refreshed);
+          setTransactions((current) => {
+            const index = current.findIndex((item) => item.id === normalized.id);
+            if (index === -1) return [normalized, ...current];
+            const next = [...current];
+            next[index] = normalized;
+            return next;
+          });
+        })
+        .subscribe();
+    };
+
+    void subscribe();
+    return () => {
+      active = false;
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, []);
 
   const formatRupiah = (angka: number | string) => {
     const num = Math.round(Number(angka) || 0);
@@ -157,7 +225,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     }
   };
 
-  const filteredList = initialList.filter((item: any) => {
+  const filteredList = transactions.filter((item: any) => {
     // Filter Jenis Transaksi (Masuk / Keluar)
     if (filterJenis !== 'semua' && item.jenis !== filterJenis) {
       return false;
@@ -417,7 +485,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             </div>
             <div class="card" style="border-left: 4px solid #0284c7;">
               <div class="card-title">Sisa Saldo Kas Organisasi</div>
-              <div class="card-value" style="color: #0284c7;">${formatRupiah(initialSaldo.sisa)}</div>
+              <div class="card-value" style="color: #0284c7;">${formatRupiah(saldo.sisa)}</div>
             </div>
           </div>
 
@@ -506,7 +574,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
           </CardHeader>
           <CardContent>
             <div suppressHydrationWarning className="text-2xl font-extrabold text-foreground dark:text-blue-300">
-              {formatRupiah(initialSaldo.sisa)}
+              {formatRupiah(saldo.sisa)}
             </div>
             <p className="text-xs text-muted-foreground dark:text-blue-400/80 font-medium mt-1">Kas Umum Keseluruhan</p>
           </CardContent>
@@ -523,7 +591,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
           </CardHeader>
           <CardContent>
             <div suppressHydrationWarning className="text-lg font-extrabold text-emerald-800 dark:text-emerald-300 sm:text-2xl">
-              {formatRupiah(initialSaldo.masuk)}
+              {formatRupiah(saldo.masuk)}
             </div>
             <p className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Masuk</p>
           </CardContent>
@@ -540,7 +608,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
           </CardHeader>
           <CardContent>
             <div suppressHydrationWarning className="text-lg font-extrabold text-rose-800 dark:text-rose-300 sm:text-2xl">
-              {formatRupiah(initialSaldo.keluar)}
+              {formatRupiah(saldo.keluar)}
             </div>
             <p className="text-[10px] text-slate-700 dark:text-rose-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Keluar</p>
           </CardContent>
@@ -571,7 +639,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                     filterJenis === 'semua' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
-                  Semua ({initialList.length})
+                  Semua ({transactions.length})
                 </button>
                 <button
                   type="button"
@@ -582,7 +650,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                   )}
                 >
                   <TrendingUp className="h-3 w-3" />
-                  Masuk ({initialList.filter((i: any) => i.jenis === 'masuk').length})
+                  Masuk ({transactions.filter((i: any) => i.jenis === 'masuk').length})
                 </button>
                 <button
                   type="button"
@@ -593,7 +661,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                   )}
                 >
                   <TrendingDown className="h-3 w-3" />
-                  Keluar ({initialList.filter((i: any) => i.jenis === 'keluar').length})
+                  Keluar ({transactions.filter((i: any) => i.jenis === 'keluar').length})
                 </button>
               </div>
 
