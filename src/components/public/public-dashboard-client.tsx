@@ -109,7 +109,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
             </div>
           </div>
           <Link href="/login">
-            <Button size="sm">Masuk Portal Pengurus</Button>
+            <Button size="sm">Masuk</Button>
           </Link>
         </header>
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto space-y-4">
@@ -120,7 +120,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
           <p className="text-sm text-muted-foreground">Akses portal transparansi publik untuk {orgName} saat ini ditutup sesuai kebijakan organisasi. Silakan login ke portal pengurus jika Anda memiliki akun terdaftar.</p>
           <Link href="/login">
             <Button className="gap-2">
-              <span>Masuk Portal Pengurus</span>
+              <span>Masuk</span>
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -151,7 +151,6 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
           )}
           <div>
             <h1 className="text-sm sm:text-base font-bold leading-none tracking-tight">{orgName}</h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{orgWilayah || 'Portal Transparansi Publik'}</p>
           </div>
         </div>
 
@@ -160,7 +159,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
           <PwaInstallPrompt />
           <Link href="/login">
             <Button size="sm" className="gap-1.5 shadow-xs bg-primary hover:bg-primary/90 text-xs h-8">
-              <span>Masuk Portal Pengurus</span>
+              <span>Masuk</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </Link>

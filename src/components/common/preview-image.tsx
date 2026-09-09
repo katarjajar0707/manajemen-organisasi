@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, type ImgHTMLAttributes } from 'react';
-import heic2any from 'heic2any';
 import { isHeicFile, isHeicUrl } from '@/lib/utils';
 
 interface PreviewImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
@@ -22,6 +21,7 @@ export function PreviewImage({ file, src, alt, onError, ...props }: PreviewImage
 
     const convertHeic = async () => {
       try {
+        const { default: heic2any } = await import('heic2any');
         const sourceBlob =
           file ||
           (src

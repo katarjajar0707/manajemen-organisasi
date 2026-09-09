@@ -79,7 +79,7 @@ export function PwaInstallPrompt() {
     <>
       <Button type="button" size="sm" variant="outline" onClick={installApp} disabled={installing} className="gap-1.5 text-xs h-8">
         <Download className="h-3.5 w-3.5" />
-        {installing ? 'Menyiapkan...' : 'Install aplikasi'}
+        {installing ? 'Menyiapkan...' : 'Install'}
       </Button>
 
       {isIos && (
