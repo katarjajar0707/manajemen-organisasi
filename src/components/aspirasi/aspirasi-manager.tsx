@@ -1,32 +1,30 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { MessageSquareText, Search } from "lucide-react";
-import type { AspirasiWargaItem } from "@/actions/transparansi";
+import { useMemo, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { MessageSquareText, Search } from 'lucide-react';
+import type { AspirasiWargaItem } from '@/actions/transparansi';
 
 interface AspirasiManagerProps {
   initialAspirasi: AspirasiWargaItem[];
 }
 
 export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   const filteredAspirasi = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return initialAspirasi;
 
-    return initialAspirasi.filter((item) =>
-      [item.nama, item.rt, item.pesan].some((value) => value.toLowerCase().includes(query)),
-    );
+    return initialAspirasi.filter((item) => [item.nama, item.rt, item.pesan].some((value) => value.toLowerCase().includes(query)));
   }, [initialAspirasi, searchQuery]);
 
   const formatDate = (value: string) =>
-    new Intl.DateTimeFormat("id-ID", {
-      dateStyle: "medium",
-      timeStyle: "short",
+    new Intl.DateTimeFormat('id-ID', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
     }).format(new Date(value));
 
   return (
@@ -82,11 +80,7 @@ export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
             </table>
           </div>
 
-          {filteredAspirasi.length === 0 && (
-            <div className="px-4 py-12 text-center text-sm text-muted-foreground">
-              {searchQuery ? "Tidak ada aspirasi yang sesuai pencarian." : "Belum ada aspirasi atau masukan warga yang masuk."}
-            </div>
-          )}
+          {filteredAspirasi.length === 0 && <div className="px-4 py-12 text-center text-sm text-muted-foreground">{searchQuery ? 'Tidak ada aspirasi yang sesuai pencarian.' : 'Belum ada aspirasi atau masukan warga yang masuk.'}</div>}
         </CardContent>
       </Card>
     </div>

@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { AnggotaDetail } from '@/actions/anggota';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { normalizeWhatsAppNumber } from '@/lib/utils';
+import { PreviewImage } from '@/components/common/preview-image';
 
 interface BagianItem {
   id: string;
@@ -180,7 +181,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                       >
                         {m.foto_url ? (
                           <div className="relative w-10 h-10 rounded-full overflow-hidden border border-border shadow-2xs">
-                            <img src={m.foto_url} alt={m.nama} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" />
+                            <PreviewImage src={m.foto_url} alt={m.nama} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" />
                             <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                               <Eye className="w-3.5 h-3.5 text-white drop-shadow-xs" />
                             </div>
@@ -255,7 +256,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                           >
                             {m.foto_url ? (
                               <div className="relative w-9 h-9 rounded-full overflow-hidden border border-border shadow-2xs">
-                                <img src={m.foto_url} alt={m.nama} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" />
+                                <PreviewImage src={m.foto_url} alt={m.nama} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" />
                                 <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                   <Eye className="w-3.5 h-3.5 text-white drop-shadow-xs" />
                                 </div>
@@ -319,7 +320,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
               <div className="relative w-full bg-muted/40 flex items-center justify-center p-6 border-b">
                 {previewMember.foto_url ? (
                   <div className="relative w-52 h-52 sm:w-60 sm:h-60 rounded-2xl overflow-hidden border-2 border-background shadow-xl ring-1 ring-border/80">
-                    <img src={previewMember.foto_url} alt={previewMember.nama} className="w-full h-full object-cover" />
+                    <PreviewImage src={previewMember.foto_url} alt={previewMember.nama} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="w-36 h-36 rounded-2xl bg-primary/10 text-primary font-bold text-4xl flex items-center justify-center border-2 border-dashed border-primary/30">{previewMember.nama.slice(0, 2).toUpperCase()}</div>

@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient, createAdminClient, getProfile } from '@/lib/supabase/server';
-import { uploadLampiran } from './storage';
+import { deleteLampiranByUrl, uploadLampiran } from './storage';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -262,6 +262,13 @@ export async function updateTransaksi(id: string, formData: FormData, bagianSlug
 
     if (updateError) {
       return { error: updateError.message };
+    }
+
+    if (file && file.size > 0 && existing.lampiran_url && existing.lampiran_url !== lampiran_url) {
+      const deleteResult = await deleteLampiranByUrl(existing.lampiran_url);
+      if (deleteResult.error) {
+        console.warn('Lampiran lama tidak berhasil dihapus:', deleteResult.error);
+      }
     }
 
     revalidatePath(`/bagian/${bagianSlug}`);

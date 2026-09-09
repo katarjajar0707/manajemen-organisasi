@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { isImageUrl } from '@/lib/utils';
+import { PreviewImage } from '@/components/common/preview-image';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, Search, FileText, Paperclip, Calendar, MoreVertical, Edit, Trash2, ArrowLeft, AlertCircle, ExternalLink } from 'lucide-react';
@@ -264,8 +265,8 @@ export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanMana
               <Button type="button" variant="outline" size="sm" onClick={() => setIsDialogOpen(false)} disabled={isPending}>
                 Batal
               </Button>
-              <Button type="submit" size="sm" disabled={!title.trim() || !excerpt.trim() || isPending}>
-                {isPending ? 'Menyimpan...' : 'Simpan Catatan'}
+              <Button type="submit" size="sm" loading={isPending} disabled={!title.trim() || !excerpt.trim()}>
+                Simpan Catatan
               </Button>
             </DialogFooter>
           </form>
@@ -302,7 +303,7 @@ export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanMana
           <div className="p-4 flex items-center justify-center min-h-[40vh] bg-muted/20 rounded-md">
             {previewUrl && isImageUrl(previewUrl) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={previewUrl} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain rounded" />
+              <PreviewImage src={previewUrl} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain rounded" />
             ) : (
               <div className="text-center space-y-4">
                 <FileText className="h-16 w-16 mx-auto text-muted-foreground" />

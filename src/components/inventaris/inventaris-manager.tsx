@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, Plus, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Pencil, Trash2, ArrowRightLeft, Boxes, MapPin, Clock, User, Filter, Check, Loader2, Image as ImageIcon, History, Upload, Calendar } from 'lucide-react';
 import { ItemInventaris, PeminjamanRecord, KondisiBarang, StatusBarang, KategoriBarang, createInventaris, updateInventaris, deleteInventaris, pinjamInventaris, kembalikanInventaris, getRiwayatPeminjaman } from '@/actions/inventaris';
 import { uploadLampiran } from '@/actions/storage';
+import { PreviewImage } from '@/components/common/preview-image';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 
 interface InventarisManagerProps {
@@ -702,7 +703,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                           <TableCell>
                             <div className="flex items-center gap-3">
                               {item.fotoUrl ? (
-                                <img src={item.fotoUrl} alt={item.nama} className="h-10 w-10 rounded object-cover border border-border shrink-0" />
+                                <PreviewImage src={item.fotoUrl} alt={item.nama} className="h-10 w-10 rounded object-cover border border-border shrink-0" />
                               ) : (
                                 <div className="h-10 w-10 rounded bg-muted/60 border border-border flex items-center justify-center text-muted-foreground shrink-0">
                                   <Package className="h-5 w-5" />
@@ -946,7 +947,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
               <div className="flex items-center gap-3">
                 {formData.fotoUrl ? (
                   <div className="relative group">
-                    <img src={formData.fotoUrl} alt="Preview" className="h-16 w-16 rounded-md object-cover border border-border" />
+                    <PreviewImage src={formData.fotoUrl} alt="Preview" className="h-16 w-16 rounded-md object-cover border border-border" />
                     <button type="button" onClick={() => setFormData({ ...formData, fotoUrl: '' })} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs shadow">
                       ✕
                     </button>
@@ -977,15 +978,8 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
               <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isPending}>
                 Batal
               </Button>
-              <Button type="submit" disabled={isPending || isUploading}>
-                {isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  'Simpan ke Inventaris'
-                )}
+              <Button type="submit" loading={isPending} disabled={isUploading}>
+                Simpan ke Inventaris
               </Button>
             </DialogFooter>
           </form>
@@ -1216,7 +1210,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             <div className="space-y-4 py-2 text-sm">
               {selectedItem.fotoUrl && (
                 <div className="rounded-lg overflow-hidden border border-border max-h-48">
-                  <img src={selectedItem.fotoUrl} alt={selectedItem.nama} className="w-full h-full object-cover" />
+                  <PreviewImage src={selectedItem.fotoUrl} alt={selectedItem.nama} className="w-full h-full object-cover" />
                 </div>
               )}
 

@@ -17,6 +17,7 @@ import { Shield, Camera, ArrowRight, CheckCircle2, Lock, Mail, KeyRound, AlertCi
 import { removeAvatar, updateAvatar, changePassword, updateMyProfile } from '@/actions/profil';
 import { useAuthStore } from '@/store/auth-store';
 import { isImageFile, normalizeWhatsAppNumber } from '@/lib/utils';
+import { PreviewImage } from '@/components/common/preview-image';
 
 interface ProfileData {
   id: string;
@@ -332,12 +333,18 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
               <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-2 border-primary/30 shadow-xs">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt="Foto Profil" className="aspect-square h-full w-full object-cover" />
+                  <PreviewImage src={avatarUrl} alt="Foto Profil" className="aspect-square h-full w-full object-cover" />
                 ) : (
                   <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">{currentNama.slice(0, 2).toUpperCase()}</AvatarFallback>
                 )}
               </Avatar>
-              <button type="button" className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-colors cursor-pointer" title="Kelola Foto Profil" onClick={() => setIsAvatarMenuOpen(true)} disabled={isPending}>
+              <button
+                type="button"
+                className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-colors cursor-pointer"
+                title="Kelola Foto Profil"
+                onClick={() => setIsAvatarMenuOpen(true)}
+                disabled={isPending}
+              >
                 {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
               <input id="photo-camera" type="file" accept="image/*,.heic,.heif" capture="environment" className="hidden" onChange={handleAvatarChange} disabled={isPending} />
@@ -805,9 +812,8 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
               <Button type="button" variant="outline" size="sm" onClick={() => setIsEditProfileOpen(false)} disabled={isPending}>
                 Batal
               </Button>
-              <Button type="submit" size="sm" disabled={isPending} className="gap-1.5">
-                {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                <span>{isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+              <Button type="submit" size="sm" loading={isPending} className="gap-1.5">
+                <span>Simpan Perubahan</span>
               </Button>
             </DialogFooter>
           </form>

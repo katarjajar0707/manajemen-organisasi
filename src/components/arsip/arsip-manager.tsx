@@ -39,6 +39,7 @@ import {
 import { ArsipItem, KategoriArsip, createArsip, updateArsip, deleteArsip } from '@/actions/arsip';
 import { uploadLampiran } from '@/actions/storage';
 import { isImageFile } from '@/lib/utils';
+import { PreviewImage } from '@/components/common/preview-image';
 
 interface ArsipManagerProps {
   initialArchives?: ArsipItem[];
@@ -465,7 +466,7 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
               {/* Gambar jika ada */}
               {item.imageUrl && (
                 <div className="relative h-28 w-full rounded-lg overflow-hidden border bg-muted/40 cursor-pointer group/img" onClick={() => setPreviewArsip(item)}>
-                  <img src={item.imageUrl} alt={item.judul} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" />
+                  <PreviewImage src={item.imageUrl} alt={item.judul} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" />
                   <div className="absolute inset-0 bg-black/25 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1.5">
                     <Eye className="h-4 w-4" />
                     <span>Lihat Gambar</span>
@@ -596,7 +597,7 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
                 ) : imageUrl ? (
                   <div className="space-y-2">
                     <div className="relative w-32 h-32 mx-auto rounded-lg overflow-hidden border shadow-xs">
-                      <img src={imageUrl} alt="Preview Dokumen" className="w-full h-full object-cover" />
+                      <PreviewImage src={imageUrl} alt="Preview Dokumen" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-500 font-medium">
                       <CheckCircle2 className="h-3.5 w-3.5" />
@@ -676,7 +677,7 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
                 <div className="space-y-1.5">
                   <span className="text-[11px] font-semibold text-muted-foreground">Lampiran Gambar:</span>
                   <div className="rounded-lg overflow-hidden border max-h-64 bg-black/5">
-                    <img src={previewArsip.imageUrl} alt={previewArsip.judul} className="w-full h-full object-contain mx-auto" />
+                    <PreviewImage src={previewArsip.imageUrl} alt={previewArsip.judul} className="w-full h-full object-contain mx-auto" />
                   </div>
                 </div>
               )}

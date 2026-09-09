@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { isImageFile } from '@/lib/utils';
+import { PreviewImage } from '@/components/common/preview-image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Camera, Upload, X, Pencil, Trash2, ZoomIn, ImageOff, Plus, Download, ChevronLeft, ChevronRight, Loader2, Calendar, MapPin, AlertCircle, ExternalLink } from 'lucide-react';
@@ -241,7 +242,7 @@ export function DokumentasiManager({ kegiatan, initialFotos = [], userRole = 'an
             return (
               <div key={foto.id} className="group relative rounded-xl overflow-hidden border bg-muted aspect-square cursor-pointer shadow-xs hover:shadow-md transition-all" onClick={() => openPreview(foto)}>
                 {url ? (
-                  <img src={url} alt={foto.caption} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <PreviewImage src={url} alt={foto.caption} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-muted">
                     <Camera className="h-8 w-8 text-muted-foreground opacity-40" />
@@ -320,7 +321,7 @@ export function DokumentasiManager({ kegiatan, initialFotos = [], userRole = 'an
           {/* Photo Display Area with Prev/Next Controls */}
           <div className="relative bg-black flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden">
             {preview && getFotoUrl(preview) ? (
-              <img src={getFotoUrl(preview)} alt={preview.caption} className="max-h-[70vh] max-w-full object-contain" />
+              <PreviewImage src={getFotoUrl(preview)} alt={preview.caption} className="max-h-[70vh] max-w-full object-contain" />
             ) : (
               <div className="p-12 text-center text-white/50">
                 <ImageOff className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -405,7 +406,7 @@ export function DokumentasiManager({ kegiatan, initialFotos = [], userRole = 'an
                 <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 border rounded-lg bg-muted/10">
                   {filePreviews.map((previewUrl, idx) => (
                     <div key={idx} className="relative rounded-lg overflow-hidden aspect-square border group">
-                      <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <PreviewImage file={selectedFiles[idx]} src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={(e) => {

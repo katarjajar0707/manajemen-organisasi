@@ -194,9 +194,9 @@ export async function updateAvatar(formData: FormData) {
       return { error: 'File foto tidak ditemukan.' };
     }
 
-    // Validasi ukuran (maks 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      return { error: 'Ukuran foto maksimal 2MB.' };
+    // Validasi ukuran (maks 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return { error: 'Ukuran foto maksimal 10MB.' };
     }
 
     // Validasi tipe file

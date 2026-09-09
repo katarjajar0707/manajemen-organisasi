@@ -1,132 +1,115 @@
-import {
-  LayoutDashboard,
-  Home,
-  User,
-  Users,
-  Building2,
-  FolderKanban,
-  Calendar,
-  Megaphone,
-  MessagesSquare,
-  Package,
-  FileText,
-  Archive,
-  Wallet,
-  ShieldCheck,
-  Settings,
-  KeyRound,
-} from "lucide-react";
+import { LayoutDashboard, Home, User, Users, Building2, FolderKanban, Calendar, Megaphone, MessagesSquare, Package, FileText, Archive, Wallet, ShieldCheck, Settings, KeyRound } from 'lucide-react';
 
 export interface NavItem {
   title: string;
   href: string;
   icon: any;
-  roles?: ("admin" | "ketua" | "anggota")[];
+  roles?: ('admin' | 'ketua' | 'anggota')[];
   badge?: string;
 }
 
 export const MAIN_NAV_ITEMS: NavItem[] = [
   {
-    title: "Dashboard",
-    href: "/dashboard",
+    title: 'Dashboard',
+    href: '/dashboard',
     icon: LayoutDashboard,
   },
   {
-    title: "Profil",
-    href: "/profil",
+    title: 'Profil',
+    href: '/profil',
     icon: User,
   },
   {
-    title: "Catatan Keuangan",
-    href: "/bagian/bendahara",
+    title: 'Catatan Keuangan',
+    href: '/bagian/bendahara',
     icon: Wallet,
   },
   {
-    title: "Anggota",
-    href: "/anggota",
+    title: 'Anggota',
+    href: '/anggota',
     icon: Users,
   },
   {
-    title: "Struktur Organisasi",
-    href: "/struktur",
+    title: 'Struktur Organisasi',
+    href: '/struktur',
     icon: FolderKanban,
   },
   {
-    title: "Kegiatan",
-    href: "/kegiatan",
+    title: 'Kegiatan',
+    href: '/kegiatan',
     icon: Calendar,
   },
   {
-    title: "Pengumuman",
-    href: "/pengumuman",
+    title: 'Pengumuman',
+    href: '/pengumuman',
     icon: Megaphone,
   },
   {
-    title: "Papan Diskusi",
-    href: "/diskusi",
+    title: 'Papan Diskusi',
+    href: '/diskusi',
     icon: MessagesSquare,
   },
   {
-    title: "Inventaris",
-    href: "/inventaris",
+    title: 'Inventaris',
+    href: '/inventaris',
     icon: Package,
   },
   {
-    title: "Surat",
-    href: "/surat",
+    title: 'Surat',
+    href: '/surat',
     icon: FileText,
   },
   {
-    title: "Arsip Dokumen",
-    href: "/arsip",
+    title: 'Arsip Dokumen',
+    href: '/arsip',
     icon: Archive,
   },
 ];
 
 export const HOME_NAV_ITEMS: NavItem[] = [
   {
-    title: "Beranda",
-    href: "/",
+    title: 'Beranda',
+    href: '/',
     icon: Home,
   },
   {
-    title: "Kanal Aspirasi Warga",
-    href: "/aspirasi",
+    title: 'Kanal Aspirasi Warga',
+    href: '/aspirasi',
     icon: MessagesSquare,
-    roles: ["admin", "ketua"],
+    roles: ['admin', 'ketua'],
   },
 ];
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   {
-    title: "Kelola Bagian",
-    href: "/bagian",
+    title: 'Kelola Bagian',
+    href: '/bagian',
     icon: Building2,
-    roles: ["admin"],
+    roles: ['admin'],
   },
   {
-    title: "Manajemen Pengguna",
-    href: "/pengguna",
+    title: 'Manajemen Pengguna',
+    href: '/pengguna',
     icon: ShieldCheck,
-    roles: ["admin"],
+    roles: ['admin'],
   },
   {
-    title: "Manajemen Akses",
-    href: "/akses",
+    title: 'Manajemen Akses',
+    href: '/akses',
     icon: KeyRound,
-    roles: ["admin"],
+    roles: ['admin'],
   },
   {
-    title: "Pengaturan Sistem",
-    href: "/pengaturan",
+    title: 'Pengaturan Sistem',
+    href: '/pengaturan',
     icon: Settings,
-    roles: ["admin"],
+    roles: ['admin'],
   },
 ];
 
 export const BOTTOM_NAV_ITEMS = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Diskusi", href: "/diskusi", icon: MessagesSquare },
-  { title: "Kegiatan", href: "/kegiatan", icon: Calendar },
-  { title: "Profil", href: "/profil", icon: User },
+  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { title: 'Diskusi', href: '/diskusi', icon: MessagesSquare },
+  { title: 'Kegiatan', href: '/kegiatan', icon: Calendar },
+  { title: 'Profil', href: '/profil', icon: User },
 ];

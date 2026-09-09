@@ -6,6 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 const IMAGE_FILE_EXTENSIONS = /\.(apng|avif|bmp|gif|heic|heif|ico|jfi|jfif|jif|jp2|j2k|jpf|jpx|jpeg|jpg|jxl|png|svg|tif|tiff|webp)$/i;
+const HEIC_FILE_EXTENSIONS = /\.(heic|heif)$/i;
 
 export function isImageFile(file: File): boolean {
   return file.type.startsWith('image/') || IMAGE_FILE_EXTENSIONS.test(file.name);
@@ -13,6 +14,14 @@ export function isImageFile(file: File): boolean {
 
 export function isImageUrl(url: string): boolean {
   return IMAGE_FILE_EXTENSIONS.test(url.split(/[?#]/)[0]);
+}
+
+export function isHeicFile(file: File): boolean {
+  return HEIC_FILE_EXTENSIONS.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif';
+}
+
+export function isHeicUrl(url: string): boolean {
+  return HEIC_FILE_EXTENSIONS.test(url.split(/[?#]/)[0]);
 }
 
 export function normalizeWhatsAppNumber(value: string): string {

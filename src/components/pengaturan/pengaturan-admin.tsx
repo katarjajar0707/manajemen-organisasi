@@ -53,6 +53,7 @@ import {
 } from '@/actions/pengaturan';
 import { uploadLampiran } from '@/actions/storage';
 import { isImageFile } from '@/lib/utils';
+import { PreviewImage } from '@/components/common/preview-image';
 
 interface PengaturanAdminProps {
   initialSettings?: PengaturanSistemData;
@@ -443,7 +444,7 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
                       </div>
                     ) : orgProfile.logoUrl ? (
                       <div className="h-20 w-20 rounded-xl overflow-hidden border-2 border-primary/30 shadow-md bg-background relative">
-                        <img src={orgProfile.logoUrl} alt="Logo Karang Taruna" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <PreviewImage src={orgProfile.logoUrl} alt="Logo Karang Taruna" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                         <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <Camera className="h-5 w-5 text-white" />
                         </div>
@@ -572,9 +573,8 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end border-t border-border/50 pt-4">
-                <Button type="submit" disabled={isSavingProfile} className="gap-2 bg-primary text-primary-foreground">
-                  {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  <span>{isSavingProfile ? 'Menyimpan ke Database...' : 'Simpan Profil Organisasi'}</span>
+                <Button type="submit" loading={isSavingProfile} className="gap-2 bg-primary text-primary-foreground">
+                  <span>Simpan Profil Organisasi</span>
                 </Button>
               </CardFooter>
             </Card>
@@ -693,9 +693,8 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end border-t border-border/50 pt-4">
-                <Button type="submit" disabled={isSavingOperasional} className="gap-2 bg-primary text-primary-foreground">
-                  {isSavingOperasional ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  <span>{isSavingOperasional ? 'Menyimpan ke Database...' : 'Simpan Kebijakan Operasional'}</span>
+                <Button type="submit" loading={isSavingOperasional} className="gap-2 bg-primary text-primary-foreground">
+                  <span>Simpan Kebijakan Operasional</span>
                 </Button>
               </CardFooter>
             </Card>

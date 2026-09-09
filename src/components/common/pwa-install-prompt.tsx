@@ -95,7 +95,9 @@ export function PwaInstallPrompt() {
               <Share className="h-4 w-4" /> Bagikan <span aria-hidden="true">→</span> <Plus className="h-4 w-4" /> Tambahkan ke Layar Utama
             </div>
             <DialogFooter>
-              <Button type="button" onClick={() => setShowIosInstructions(false)}>Mengerti</Button>
+              <Button type="button" onClick={() => setShowIosInstructions(false)}>
+                Mengerti
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

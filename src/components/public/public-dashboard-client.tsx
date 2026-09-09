@@ -1,22 +1,15 @@
-"use client";
+'use client';
 
-import { useState, useTransition } from "react";
-import Link from "next/link";
-import { ThemeToggle } from "@/components/common/theme-toggle";
-import { PwaInstallPrompt } from "@/components/common/pwa-install-prompt";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useState, useTransition } from 'react';
+import Link from 'next/link';
+import { ThemeToggle } from '@/components/common/theme-toggle';
+import { PwaInstallPrompt } from '@/components/common/pwa-install-prompt';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Wallet,
   Users,
@@ -41,48 +34,40 @@ import {
   Loader2,
   AlertTriangle,
   Globe,
-} from "lucide-react";
-import { PublicTransparencyData, kirimAspirasiWarga } from "@/actions/transparansi";
-import type { PengaturanSistemData } from "@/actions/pengaturan";
+} from 'lucide-react';
+import { PublicTransparencyData, kirimAspirasiWarga } from '@/actions/transparansi';
+import type { PengaturanSistemData } from '@/actions/pengaturan';
 
 function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(amount);
 }
 
 function getInitials(name: string): string {
-  const parts = name.split(" ").filter(Boolean);
-  if (parts.length === 0) return "KT";
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length === 0) return 'KT';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
+  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
 }
 
-export function PublicDashboardClient({
-  initialData,
-  settings,
-}: {
-  initialData: PublicTransparencyData;
-  settings?: PengaturanSistemData;
-}) {
+export function PublicDashboardClient({ initialData, settings }: { initialData: PublicTransparencyData; settings?: PengaturanSistemData }) {
   const [data] = useState<PublicTransparencyData>(initialData);
 
   // Aspirasi Warga State
-  const [namaWarga, setNamaWarga] = useState("");
-  const [rtWarga, setRtWarga] = useState(settings?.profil.unitWilayah || "RT 01 / RW 05");
-  const [pesanAspirasi, setPesanAspirasi] = useState("");
+  const [namaWarga, setNamaWarga] = useState('');
+  const [rtWarga, setRtWarga] = useState(settings?.profil.unitWilayah || 'RT 01 / RW 05');
+  const [pesanAspirasi, setPesanAspirasi] = useState('');
   const [isSent, setIsSent] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // Download / Cetak Modal
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
-  const orgName = settings?.profil.nama || "Karang Taruna";
-  const orgWilayah = [settings?.profil.unitWilayah, settings?.profil.kelurahan]
-    .filter(Boolean)
-    .join(" · ");
+  const orgName = settings?.profil.nama || 'Karang Taruna';
+  const orgWilayah = [settings?.profil.unitWilayah, settings?.profil.kelurahan].filter(Boolean).join(' · ');
   const isKasPublik = settings?.keamanan?.transparansiKasPublik ?? true;
 
   const handleSubmitAspirasi = (e: React.FormEvent) => {
@@ -98,15 +83,15 @@ export function PublicDashboardClient({
 
       setIsSent(true);
       setTimeout(() => {
-        setNamaWarga("");
-        setPesanAspirasi("");
+        setNamaWarga('');
+        setPesanAspirasi('');
         setIsSent(false);
       }, 5000);
     });
   };
 
   const handlePrintRekap = () => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       window.print();
     }
   };
@@ -117,9 +102,7 @@ export function PublicDashboardClient({
       <div className="min-h-screen flex flex-col bg-background text-foreground">
         <header className="flex h-16 w-full items-center justify-between border-b px-4 md:px-8 bg-background/80 backdrop-blur-md">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm">
-              {getInitials(orgName)}
-            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm">{getInitials(orgName)}</div>
             <div>
               <span className="font-bold text-sm sm:text-base">{orgName}</span>
               {orgWilayah && <p className="text-[11px] text-muted-foreground">{orgWilayah}</p>}
@@ -134,9 +117,7 @@ export function PublicDashboardClient({
             <Shield className="h-10 w-10" />
           </div>
           <h2 className="text-xl font-bold">Portal Publik Dinonaktifkan</h2>
-          <p className="text-sm text-muted-foreground">
-            Akses portal transparansi publik untuk {orgName} saat ini ditutup sesuai kebijakan organisasi. Silakan login ke portal pengurus jika Anda memiliki akun terdaftar.
-          </p>
+          <p className="text-sm text-muted-foreground">Akses portal transparansi publik untuk {orgName} saat ini ditutup sesuai kebijakan organisasi. Silakan login ke portal pengurus jika Anda memiliki akun terdaftar.</p>
           <Link href="/login">
             <Button className="gap-2">
               <span>Masuk Portal Pengurus</span>
@@ -163,24 +144,14 @@ export function PublicDashboardClient({
         <div className="flex items-center gap-2.5">
           {settings?.profil.logoUrl ? (
             <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs bg-background shrink-0">
-              <img
-                src={settings.profil.logoUrl}
-                alt={orgName}
-                className="w-full h-full object-cover"
-              />
+              <img src={settings.profil.logoUrl} alt={orgName} className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm shrink-0">
-              {getInitials(orgName)}
-            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm shrink-0">{getInitials(orgName)}</div>
           )}
           <div>
-            <h1 className="text-sm sm:text-base font-bold leading-none tracking-tight">
-              {orgName}
-            </h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              {orgWilayah || "Portal Transparansi Publik"}
-            </p>
+            <h1 className="text-sm sm:text-base font-bold leading-none tracking-tight">{orgName}</h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{orgWilayah || 'Portal Transparansi Publik'}</p>
           </div>
         </div>
 
@@ -202,27 +173,18 @@ export function PublicDashboardClient({
         <section className="relative px-4 pt-14 pb-12 md:pt-20 md:pb-16 text-center max-w-4xl mx-auto space-y-5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-muted/40 text-xs text-muted-foreground shadow-xs">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span className="font-medium text-foreground">
-              Portal Transparansi Publik · Periode {settings?.operasional.periodeAktif || "Aktif"}
-            </span>
+            <span className="font-medium text-foreground">Portal Transparansi Publik · Periode {settings?.operasional.periodeAktif || 'Aktif'}</span>
           </div>
 
-          <h2 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
-            Keterbukaan Informasi & Kemandirian Pemuda
-          </h2>
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">Keterbukaan Informasi & Kemandirian Pemuda</h2>
 
           <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-            {settings?.profil.slogan ||
-              "Menyajikan data keuangan kas, jumlah anggota pemuda, jadwal kegiatan kemasyarakatan, dan kanal aspirasi warga secara transparan dan akuntabel."}
+            {settings?.profil.slogan || 'Menyajikan data keuangan kas, jumlah anggota pemuda, jadwal kegiatan kemasyarakatan, dan kanal aspirasi warga secara transparan dan akuntabel.'}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             {isKasPublik && (
-              <Button
-                size="sm"
-                className="gap-2 h-9 px-5 shadow-sm"
-                onClick={() => setIsDownloadOpen(true)}
-              >
+              <Button size="sm" className="gap-2 h-9 px-5 shadow-sm" onClick={() => setIsDownloadOpen(true)}>
                 <Download className="h-4 w-4" />
                 <span>Lihat Ringkasan Kas Resmi</span>
               </Button>
@@ -241,9 +203,7 @@ export function PublicDashboardClient({
           <Card className="border-primary/20 shadow-xs hover:shadow-md transition-all relative overflow-hidden bg-card/70">
             <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Saldo Kas Organisasi
-              </CardTitle>
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Saldo Kas Organisasi</CardTitle>
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
                 <Wallet className="h-4 w-4" />
               </div>
@@ -251,9 +211,7 @@ export function PublicDashboardClient({
             <CardContent>
               {isKasPublik ? (
                 <>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
-                    {formatRupiah(data.keuangan.saldoAkhir)}
-                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-foreground">{formatRupiah(data.keuangan.saldoAkhir)}</div>
                   <div className="flex items-center gap-2 mt-2 text-xs">
                     <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 font-semibold gap-0.5">
                       <TrendingUp className="h-3.5 w-3.5" /> Saldo Aktif
@@ -276,40 +234,28 @@ export function PublicDashboardClient({
           <Card className="border-emerald-500/20 shadow-xs hover:shadow-md transition-all relative overflow-hidden bg-card/70">
             <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Pemuda & Anggota Aktif
-              </CardTitle>
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pemuda & Anggota Aktif</CardTitle>
               <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <Users className="h-4 w-4" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
-                {data.anggota.totalAktif} Anggota
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                {data.anggota.keteranganRt}
-              </p>
+              <div className="text-2xl sm:text-3xl font-extrabold text-foreground">{data.anggota.totalAktif} Anggota</div>
+              <p className="text-xs text-muted-foreground mt-2">{data.anggota.keteranganRt}</p>
             </CardContent>
           </Card>
 
           <Card className="border-indigo-500/20 shadow-xs hover:shadow-md transition-all relative overflow-hidden bg-card/70 sm:col-span-2 lg:col-span-1">
             <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Agenda & Program Kerja
-              </CardTitle>
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agenda & Program Kerja</CardTitle>
               <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                 <Award className="h-4 w-4" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
-                {data.kegiatan.totalProgram} Program
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                {data.kegiatan.kegiatanTerlaksana} kegiatan telah terlaksana
-              </p>
+              <div className="text-2xl sm:text-3xl font-extrabold text-foreground">{data.kegiatan.totalProgram} Program</div>
+              <p className="text-xs text-muted-foreground mt-2">{data.kegiatan.kegiatanTerlaksana} kegiatan telah terlaksana</p>
             </CardContent>
           </Card>
         </section>
@@ -322,16 +268,9 @@ export function PublicDashboardClient({
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <CardTitle className="text-base sm:text-lg">Transparansi Arus Kas Terkini</CardTitle>
-                    <CardDescription className="text-xs">
-                      Ringkasan pemasukan & pengeluaran kas bendahara demi transparansi warga {orgName}.
-                    </CardDescription>
+                    <CardDescription className="text-xs">Ringkasan pemasukan & pengeluaran kas bendahara demi transparansi warga {orgName}.</CardDescription>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs self-start sm:self-auto h-8"
-                    onClick={() => setIsDownloadOpen(true)}
-                  >
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs self-start sm:self-auto h-8" onClick={() => setIsDownloadOpen(true)}>
                     <FileText className="h-3.5 w-3.5" />
                     <span>Rincian Ringkasan Kas</span>
                   </Button>
@@ -346,9 +285,7 @@ export function PublicDashboardClient({
                       </span>
                       <span className="text-sm font-bold">{formatRupiah(data.keuangan.totalMasuk)}</span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      Iuran bulanan pengurus/anggota, donasi warga, dan bantuan swadaya masyarakat.
-                    </p>
+                    <p className="text-[11px] text-muted-foreground">Iuran bulanan pengurus/anggota, donasi warga, dan bantuan swadaya masyarakat.</p>
                   </div>
 
                   <div className="p-4 rounded-xl border bg-rose-500/5 space-y-1">
@@ -358,9 +295,7 @@ export function PublicDashboardClient({
                       </span>
                       <span className="text-sm font-bold">{formatRupiah(data.keuangan.totalKeluar)}</span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      Operasional kegiatan kemasyarakatan, perlengkapan inventaris, dan kepanitiaan.
-                    </p>
+                    <p className="text-[11px] text-muted-foreground">Operasional kegiatan kemasyarakatan, perlengkapan inventaris, dan kepanitiaan.</p>
                   </div>
                 </div>
               </CardContent>
@@ -372,18 +307,14 @@ export function PublicDashboardClient({
         <section className="px-4 md:px-8 max-w-6xl mx-auto space-y-4">
           <div>
             <h3 className="text-lg sm:text-xl font-bold tracking-tight">Jadwal Kegiatan & Agenda Warga</h3>
-            <p className="text-xs text-muted-foreground">
-              Ayo hadir dan ramaikan program-program kepemudaan bersama seluruh warga {orgWilayah || orgName}.
-            </p>
+            <p className="text-xs text-muted-foreground">Ayo hadir dan ramaikan program-program kepemudaan bersama seluruh warga {orgWilayah || orgName}.</p>
           </div>
 
           {data.kegiatan.jadwalMendatang.length === 0 ? (
             <Card className="p-8 text-center border-dashed bg-card/40">
               <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm font-semibold">Belum ada jadwal kegiatan mendatang</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Agenda dan kegiatan baru akan segera diumumkan oleh pengurus {orgName}.
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Agenda dan kegiatan baru akan segera diumumkan oleh pengurus {orgName}.</p>
             </Card>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -393,14 +324,8 @@ export function PublicDashboardClient({
                     <Badge variant="outline" className="w-fit text-[10px] bg-primary/10 text-primary border-primary/20">
                       {item.bagian}
                     </Badge>
-                    <CardTitle className="text-base font-semibold mt-2 leading-snug">
-                      {item.judul}
-                    </CardTitle>
-                    {item.deskripsi && (
-                      <CardDescription className="text-xs line-clamp-2 mt-1">
-                        {item.deskripsi}
-                      </CardDescription>
-                    )}
+                    <CardTitle className="text-base font-semibold mt-2 leading-snug">{item.judul}</CardTitle>
+                    {item.deskripsi && <CardDescription className="text-xs line-clamp-2 mt-1">{item.deskripsi}</CardDescription>}
                   </CardHeader>
                   <CardContent className="pt-0 space-y-1.5 text-xs text-muted-foreground">
                     <p className="flex items-center gap-1.5">
@@ -425,12 +350,8 @@ export function PublicDashboardClient({
         {/* Sekretariat & Saluran Komunikasi Resmi */}
         <section className="px-4 md:px-8 max-w-6xl mx-auto space-y-4">
           <div>
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight">
-              Sekretariat & Saluran Komunikasi Resmi
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Hubungi pengurus atau kunjungi sekretariat {orgName} untuk layanan dan koordinasi warga.
-            </p>
+            <h3 className="text-lg sm:text-xl font-bold tracking-tight">Sekretariat & Saluran Komunikasi Resmi</h3>
+            <p className="text-xs text-muted-foreground">Hubungi pengurus atau kunjungi sekretariat {orgName} untuk layanan dan koordinasi warga.</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -445,12 +366,8 @@ export function PublicDashboardClient({
                 </div>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">{settings?.profil.alamat || "Balai Warga"}</p>
-                <p>
-                  {[settings?.profil.kelurahan, settings?.profil.kecamatan, settings?.profil.kota]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
+                <p className="font-medium text-foreground">{settings?.profil.alamat || 'Balai Warga'}</p>
+                <p>{[settings?.profil.kelurahan, settings?.profil.kecamatan, settings?.profil.kota].filter(Boolean).join(', ')}</p>
               </CardContent>
             </Card>
 
@@ -465,11 +382,8 @@ export function PublicDashboardClient({
                 </div>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground space-y-1">
-                <a
-                  href={`mailto:${settings?.profil.email || ""}`}
-                  className="font-medium text-foreground hover:text-primary transition-colors block truncate"
-                >
-                  {settings?.profil.email || "-"}
+                <a href={`mailto:${settings?.profil.email || ''}`} className="font-medium text-foreground hover:text-primary transition-colors block truncate">
+                  {settings?.profil.email || '-'}
                 </a>
                 <p>Korespondensi resmi pengurus</p>
               </CardContent>
@@ -486,7 +400,7 @@ export function PublicDashboardClient({
                 </div>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">{settings?.profil.telepon || "-"}</p>
+                <p className="font-medium text-foreground">{settings?.profil.telepon || '-'}</p>
                 <p>Respon pesan & konfirmasi agenda</p>
               </CardContent>
             </Card>
@@ -502,7 +416,7 @@ export function PublicDashboardClient({
                 </div>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">{settings?.profil.instagram || "-"}</p>
+                <p className="font-medium text-foreground">{settings?.profil.instagram || '-'}</p>
                 <p>Instagram & kanal publikasi</p>
               </CardContent>
             </Card>
@@ -517,9 +431,7 @@ export function PublicDashboardClient({
                 <HeartHandshake className="h-5 w-5" />
               </div>
               <CardTitle className="text-xl">Kanal Aspirasi & Masukan Warga</CardTitle>
-              <CardDescription className="text-xs max-w-md mx-auto">
-                Punya ide lomba, masukan sarana prasarana, atau saran untuk kemajuan kampung? Sampaikan kepada pengurus di sini.
-              </CardDescription>
+              <CardDescription className="text-xs max-w-md mx-auto">Punya ide lomba, masukan sarana prasarana, atau saran untuk kemajuan kampung? Sampaikan kepada pengurus di sini.</CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -534,41 +446,21 @@ export function PublicDashboardClient({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-xs font-medium">Nama Anda / Warga</label>
-                    <Input
-                      value={namaWarga}
-                      onChange={(e) => setNamaWarga(e.target.value)}
-                      placeholder="Contoh: Pak Bambang / Warga RT 02"
-                      className="text-xs"
-                      required
-                    />
+                    <Input value={namaWarga} onChange={(e) => setNamaWarga(e.target.value)} placeholder="Contoh: Pak Bambang / Warga RT 02" className="text-xs" required />
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-xs font-medium">Domisili RT / Wilayah</label>
-                    <Input
-                      value={rtWarga}
-                      onChange={(e) => setRtWarga(e.target.value)}
-                      placeholder="Contoh: RT 03 / RW 05"
-                      className="text-xs"
-                      required
-                    />
+                    <Input value={rtWarga} onChange={(e) => setRtWarga(e.target.value)} placeholder="Contoh: RT 03 / RW 05" className="text-xs" required />
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Pesan / Saran / Aspirasi</label>
-                  <Textarea
-                    rows={4}
-                    value={pesanAspirasi}
-                    onChange={(e) => setPesanAspirasi(e.target.value)}
-                    placeholder="Tuliskan aspirasi, usulan program, atau kebutuhan warga secara detail..."
-                    className="text-xs"
-                    required
-                  />
+                  <Textarea rows={4} value={pesanAspirasi} onChange={(e) => setPesanAspirasi(e.target.value)} placeholder="Tuliskan aspirasi, usulan program, atau kebutuhan warga secara detail..." className="text-xs" required />
                 </div>
 
-                <Button type="submit" disabled={isPending} className="w-full gap-2 text-xs">
-                  {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                <Button type="submit" loading={isPending} className="w-full gap-2 text-xs">
                   <span>Kirimkan Aspirasi Sekarang</span>
                 </Button>
               </form>
@@ -583,20 +475,13 @@ export function PublicDashboardClient({
           <div className="text-center sm:text-left space-y-1">
             <p className="font-semibold text-foreground">
               © {new Date().getFullYear()} {orgName}
-              {settings?.profil.unitWilayah ? ` (${settings.profil.unitWilayah})` : ""}. Seluruh hak cipta dilindungi.
+              {settings?.profil.unitWilayah ? ` (${settings.profil.unitWilayah})` : ''}. Seluruh hak cipta dilindungi.
             </p>
-            <p className="text-[11px]">
-              {[settings?.profil.alamat, settings?.profil.kelurahan, settings?.profil.kota]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
+            <p className="text-[11px]">{[settings?.profil.alamat, settings?.profil.kelurahan, settings?.profil.kota].filter(Boolean).join(' · ')}</p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
             {settings?.profil.email && (
-              <a
-                href={`mailto:${settings.profil.email}`}
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
-              >
+              <a href={`mailto:${settings.profil.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
                 <Mail className="h-3.5 w-3.5 text-primary" />
                 <span>{settings.profil.email}</span>
               </a>
@@ -626,9 +511,7 @@ export function PublicDashboardClient({
                 <FileText className="h-5 w-5 text-primary" />
                 Laporan Ringkasan Kas Publik
               </DialogTitle>
-              <DialogDescription className="text-xs">
-                Transparansi saldo dan rekapitulasi keuangan {orgName}.
-              </DialogDescription>
+              <DialogDescription className="text-xs">Transparansi saldo dan rekapitulasi keuangan {orgName}.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 py-2 text-xs">
@@ -647,9 +530,7 @@ export function PublicDashboardClient({
                 </div>
               </div>
 
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                * Data kas ini disinkronkan secara realtime dari pencatatan bendahara umum dan diverifikasi untuk transparansi warga {orgName}.
-              </p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">* Data kas ini disinkronkan secara realtime dari pencatatan bendahara umum dan diverifikasi untuk transparansi warga {orgName}.</p>
             </div>
 
             <DialogFooter className="gap-2 pt-2">
@@ -667,4 +548,3 @@ export function PublicDashboardClient({
     </div>
   );
 }
-

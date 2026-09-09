@@ -14,6 +14,7 @@ import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, A
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn, isImageFile, isImageUrl } from '@/lib/utils';
+import { PreviewImage } from '@/components/common/preview-image';
 import { createTransaksi, deleteTransaksi, updateTransaksi } from '@/actions/keuangan';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 
@@ -115,7 +116,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     e.preventDefault();
     if (!judul || !jumlah) return;
 
-    if (jenis === 'keluar' && (!file || file.size === 0)) {
+    if (jenis === 'keluar' && !editingLampiranUrl && (!file || file.size === 0)) {
       setError('Nota lampiran wajib disertakan untuk uang keluar.');
       return;
     }
@@ -244,18 +245,9 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
           <tr>
             <td style="text-align: center;">${idx + 1}</td>
             <td style="white-space: nowrap;">${tgl}</td>
-                <div className="flex items-start gap-3">
-                  {editingId && editingLampiranUrl && isImageUrl(editingLampiranUrl) && (
-                    <button type="button" className="h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-muted" onClick={() => setPreviewUrl(editingLampiranUrl)} title="Lihat lampiran tersimpan">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={editingLampiranUrl} alt="Preview lampiran tersimpan" className="h-full w-full object-cover" />
-                    </button>
-                  )}
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <Label className="text-xs">Lampiran (Nota/Bukti) {jenis === 'keluar' && <span className="text-destructive">* Wajib</span>}</Label>
-                    <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-xs" accept="image/*,.heic,.heif,.pdf" required={jenis === 'keluar' && !editingId} />
-                  </div>
+            <td style="text-align: center;">
               <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background-color: ${trx.jenis === 'masuk' ? '#d1fae5' : '#fee2e2'}; color: ${trx.jenis === 'masuk' ? '#065f46' : '#991b1b'};">
+                ${jenisLabel}
               </span>
             </td>
             <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${nominalColor};">
@@ -741,7 +733,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                           >
                             {isImageUrl(trx.lampiran_url) ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={trx.lampiran_url} alt={trx.judul || 'Bukti Lampiran'} className="h-full w-full object-cover" />
+                              <PreviewImage src={trx.lampiran_url} alt={trx.judul || 'Bukti Lampiran'} className="h-full w-full object-cover" />
                             ) : (
                               <div className="flex flex-col items-center justify-center text-[9px] font-mono text-primary font-bold">
                                 <FileText className="h-4 w-4 mb-0.5" />
@@ -784,21 +776,21 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
 
       {/* Dialog Add Transaksi */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
-          <form onSubmit={handleSave}>
-            <DialogHeader>
-              <DialogTitle className="text-base flex items-center gap-2">
+        <DialogContent className="w-[calc(100%-1rem)] max-w-lg max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto p-4 sm:p-6">
+          <form onSubmit={handleSave} className="min-w-0">
+            <DialogHeader className="min-w-0">
+              <DialogTitle className="pr-8 text-base sm:text-lg flex items-center gap-2">
                 {jenis === 'masuk' ? <TrendingUp className="h-5 w-5 text-emerald-600" /> : <TrendingDown className="h-5 w-5 text-rose-600" />}
                 <span>{editingId ? 'Edit Transaksi' : jenis === 'masuk' ? 'Catat Kas Masuk' : 'Catat Kas Keluar'}</span>
               </DialogTitle>
-              <DialogDescription className="text-xs">Masukkan detail mutasi {jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} kas.</DialogDescription>
+              <DialogDescription className="text-xs leading-relaxed">Masukkan detail mutasi {jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} kas.</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4">
+            <div className="min-w-0 space-y-4 py-4 sm:space-y-5">
               {error && (
-                <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
+                <div className="min-w-0 bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>{error}</span>
+                  <span className="min-w-0 break-words">{error}</span>
                 </div>
               )}
 
@@ -810,8 +802,8 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
               <div className="space-y-1.5">
                 <Label className="text-xs">Kategori / Agenda Acara</Label>
                 <Select value={selectedKategori} onValueChange={setSelectedKategori}>
-                  <SelectTrigger className="text-xs">
-                    <SelectValue placeholder="Pilih Kategori / Agenda" />
+                  <SelectTrigger className="min-w-0 text-xs">
+                    <SelectValue placeholder="Pilih Kategori / Agenda" className="truncate" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Kas General">Kas General (Umum / Operasional)</SelectItem>
@@ -822,7 +814,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-muted-foreground">Pilih agenda sesuai acara yang dibuat, atau pilih Kas General untuk transaksi umum.</p>
+                <p className="break-words text-[11px] text-muted-foreground">Pilih agenda sesuai acara yang dibuat, atau pilih Kas General untuk transaksi umum.</p>
               </div>
 
               <div className="space-y-1.5">
@@ -860,12 +852,14 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                   return (
                     <div className="space-y-1.5 pt-1">
                       {isBesar && (
-                        <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
+                        <div className="min-w-0 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
                           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-                          <span>Perhatian: Nominal pengeluaran ini tergolong pengeluaran besar (mencapai batas Rp {new Intl.NumberFormat('id-ID').format(batasNotif)}). Pastikan telah berkoordinasi dan disetujui Ketua.</span>
+                          <span className="min-w-0 break-words">
+                            Perhatian: Nominal pengeluaran ini tergolong pengeluaran besar (mencapai batas Rp {new Intl.NumberFormat('id-ID').format(batasNotif)}). Pastikan telah berkoordinasi dan disetujui Ketua.
+                          </span>
                         </div>
                       )}
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="break-words text-[11px] text-muted-foreground">
                         * Kebijakan operasional {settings.profil.nama || 'organisasi'}: Pengeluaran kas di atas Rp {new Intl.NumberFormat('id-ID').format(maxTanpaNota)} wajib menyertakan lampiran nota fisik.
                       </p>
                     </div>
@@ -873,21 +867,33 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                 })()}
 
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start">
                   {editingId && editingLampiranUrl && isImageUrl(editingLampiranUrl) && (
-                    <button type="button" className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted" onClick={() => setPreviewUrl(editingLampiranUrl)} title="Lihat lampiran tersimpan">
+                    <button type="button" className="h-20 w-20 shrink-0 self-start overflow-hidden rounded-md border bg-muted sm:h-16 sm:w-16" onClick={() => setPreviewUrl(editingLampiranUrl)} title="Lihat lampiran tersimpan">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={editingLampiranUrl} alt="Preview lampiran tersimpan" className="h-full w-full object-cover" />
+                      <PreviewImage src={editingLampiranUrl} alt="Preview lampiran tersimpan" className="h-full w-full object-cover" />
                     </button>
                   )}
-                  <Label className="text-xs">Lampiran (Nota/Bukti) {jenis === 'keluar' && <span className="text-destructive">* Wajib</span>}</Label>
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <Label className="text-xs">Lampiran (Nota/Bukti) {jenis === 'keluar' && <span className="text-destructive">* Wajib</span>}</Label>
+                    <Input id="lampiran-file" type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="sr-only" accept="image/*,.heic,.heif,.pdf" required={jenis === 'keluar' && !editingId} />
+                    <label
+                      htmlFor="lampiran-file"
+                      className="flex min-h-9 w-full cursor-pointer flex-col items-start justify-center gap-0.5 rounded-md border border-input bg-background px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50"
+                    >
+                      <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                      <span className="min-w-0 max-w-full truncate font-medium text-foreground">
+                        {file?.name || (editingLampiranUrl ? decodeURIComponent(editingLampiranUrl.split('/').pop()?.split('?')[0] || 'Lampiran tersimpan') : 'Belum ada file dipilih')}
+                      </span>
+                      <span className="text-[10px]">{editingId && editingLampiranUrl ? 'Upload untuk mengganti/edit file' : 'Upload file lampiran'}</span>
+                    </label>
+                  </div>
                 </div>
-                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-xs" accept="image/*,.heic,.heif,.pdf" required={jenis === 'keluar' && !editingId} />
                 {file && isImageFile(file) && (
-                  <div className="flex items-center gap-2.5 mt-2 p-2 bg-muted/40 border rounded-lg">
+                  <div className="flex min-w-0 items-center gap-2.5 mt-2 p-2 bg-muted/40 border rounded-lg">
                     <div className="h-12 w-12 rounded-md overflow-hidden border bg-background shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={URL.createObjectURL(file)} alt="Preview Bukti" className="h-full w-full object-cover" />
+                      <PreviewImage file={file} src={URL.createObjectURL(file)} alt="Preview Bukti" className="h-full w-full object-cover" />
                     </div>
                     <div className="min-w-0 flex-1 text-xs">
                       <p className="font-medium truncate text-foreground">{file.name}</p>
@@ -898,12 +904,12 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-2 pt-1 sm:gap-0 [&>button]:w-full sm:[&>button]:w-auto">
               <Button type="button" variant="outline" size="sm" onClick={() => setIsDialogOpen(false)} disabled={isPending}>
                 Batal
               </Button>
-              <Button type="submit" size="sm" disabled={isPending || !judul || !jumlah || (jenis === 'keluar' && !file && !editingId)}>
-                {isPending ? 'Menyimpan...' : editingId ? 'Simpan Perubahan' : 'Simpan Transaksi'}
+              <Button type="submit" size="sm" loading={isPending} disabled={!judul || !jumlah || (jenis === 'keluar' && !file && !editingLampiranUrl)}>
+                {editingId ? 'Simpan Perubahan' : 'Simpan Transaksi'}
               </Button>
             </DialogFooter>
           </form>
@@ -941,7 +947,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             {previewUrl &&
               (isImageUrl(previewUrl) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={previewUrl} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain rounded" />
+                <PreviewImage src={previewUrl} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain rounded" />
               ) : (
                 <div className="text-center space-y-4">
                   <FileText className="h-16 w-16 mx-auto text-muted-foreground" />

@@ -15,11 +15,7 @@ interface AppSidebarProps {
   orgName?: string;
 }
 
-export function AppSidebar({
-  userRole: propUserRole,
-  orgLogoUrl,
-  orgName,
-}: AppSidebarProps) {
+export function AppSidebar({ userRole: propUserRole, orgLogoUrl, orgName }: AppSidebarProps) {
   const pathname = usePathname();
   const isCollapsed = useSidebarStore((s) => s.isCollapsed);
   const storeRole = useAuthStore((s) => s.userRole);
@@ -44,7 +40,7 @@ export function AppSidebar({
         <div className={cn('flex h-14 items-center border-b border-border/60 shrink-0', isCollapsed ? 'justify-center px-0' : 'gap-3 px-4')}>
           {orgLogoUrl ? (
             <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 overflow-hidden border border-border/80 shadow-xs bg-background">
-              <img src={orgLogoUrl} alt={orgName || "Logo"} className="w-full h-full object-cover" />
+              <img src={orgLogoUrl} alt={orgName || 'Logo'} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div
@@ -61,7 +57,7 @@ export function AppSidebar({
           {/* Label brand — disembunyikan saat collapsed */}
           {!isCollapsed && (
             <div className="min-w-0">
-              <div className="text-sm font-bold text-foreground truncate">{orgName || "Manajemen Organisasi"}</div>
+              <div className="text-sm font-bold text-foreground truncate">{orgName || 'Manajemen Organisasi'}</div>
             </div>
           )}
         </div>
