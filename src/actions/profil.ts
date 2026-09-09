@@ -20,10 +20,12 @@ export async function getMyProfile() {
     return null;
   }
 
-  const { data: profile } = await supabase.from('profiles').select('*, bagian:bagian_id(id, nama, slug)').eq('id', user.id).single();
-
-  // Ambil kontak dari tabel anggota untuk memastikan nomor WhatsApp sinkron
-  const { data: anggotaData } = await supabase.from('anggota').select('kontak').eq('id', user.id).maybeSingle();
+  // Kedua query hanya bergantung pada user.id, jadi jalankan dalam satu round-trip paralel.
+  const [{ data: profile }, { data: anggotaData }] = await Promise.all([
+    supabase.from('profiles').select('*, bagian:bagian_id(id, nama, slug)').eq('id', user.id).single(),
+    // Ambil kontak dari tabel anggota untuk memastikan nomor WhatsApp sinkron
+    supabase.from('anggota').select('kontak').eq('id', user.id).maybeSingle(),
+  ]);
 
   if (profile) {
     const bagianRaw = profile.bagian;

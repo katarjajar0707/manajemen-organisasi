@@ -180,7 +180,6 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             await fetchTransactions();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             setRealtimeStatus('error');
-            toast.error('Sinkronisasi realtime terputus. Data akan dicoba disambungkan kembali.');
           }
         });
     };

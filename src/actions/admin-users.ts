@@ -17,7 +17,19 @@ export async function getUsers() {
   // Jalankan sinkronisasi background jika ada profile belum tersinkron
   syncProfilesToAnggota().catch((error) => console.error('Error syncing profiles to anggota:', error));
 
-  const { data: profiles, error } = await supabase.from('profiles').select('id, nama, username, foto_url, role, bagian_id, created_at, bagian:bagian_id(id, nama)').order('created_at', { ascending: false });
+  const [{ data: profiles, error }, { data: anggotaPhotos }, waResult] = await Promise.all([
+    supabase.from('profiles').select('id, nama, username, foto_url, role, bagian_id, created_at, bagian:bagian_id(id, nama)').order('created_at', { ascending: false }),
+    // Foto fallback tidak bergantung pada query profiles.
+    supabase.from('anggota').select('id, foto_url'),
+    // Pertahankan fallback untuk schema lama tanpa membuat query ini blocking.
+    (async () => {
+      try {
+        return await supabase.from('profiles').select('id, nomor_wa');
+      } catch {
+        return { data: null };
+      }
+    })(),
+  ]);
 
   if (error) {
     console.error('Error fetching users:', error);
@@ -25,7 +37,6 @@ export async function getUsers() {
   }
 
   // Ambil foto profil dari tabel anggota jika ada fallback
-  const { data: anggotaPhotos } = await supabase.from('anggota').select('id, foto_url');
   const anggotaPhotoMap = new Map<string, string>();
   if (anggotaPhotos) {
     for (const a of anggotaPhotos) {
@@ -35,15 +46,11 @@ export async function getUsers() {
 
   // Try fetching nomor_wa separately (column mungkin belum ada di DB)
   const waMap = new Map<string, string>();
-  try {
-    const { data: waData } = await supabase.from('profiles').select('id, nomor_wa');
-    if (waData) {
-      for (const w of waData) {
-        waMap.set(w.id, (w as any).nomor_wa || '');
-      }
+  const waData = waResult.data;
+  if (waData) {
+    for (const w of waData) {
+      waMap.set(w.id, (w as any).nomor_wa || '');
     }
-  } catch {
-    // Column belum ada, skip
   }
 
   // Fetch emails from auth.users for each profile
