@@ -79,18 +79,32 @@ export default function BendaharaLoading() {
             <table className="w-full min-w-190 text-sm">
               <thead className="border-b bg-muted/40">
                 <tr>
-                  <th className="px-3 py-3 sm:px-6"><Skeleton className="h-3 w-14 bg-muted/55" /></th>
-                  <th className="px-3 py-3 text-left sm:px-6"><Skeleton className="h-3 w-24 bg-muted/55" /></th>
-                  <th className="px-3 py-3 text-right sm:px-6"><Skeleton className="ml-auto h-3 w-16 bg-muted/55" /></th>
-                  <th className="px-3 py-3 sm:px-6"><Skeleton className="mx-auto h-3 w-14 bg-muted/55" /></th>
-                  <th className="px-3 py-3 sm:px-6"><Skeleton className="mx-auto h-3 w-16 bg-muted/55" /></th>
-                  <th className="px-3 py-3 sm:px-6"><Skeleton className="ml-auto h-3 w-10 bg-muted/55" /></th>
+                  <th className="px-3 py-3 sm:px-6">
+                    <Skeleton className="h-3 w-14 bg-muted/55" />
+                  </th>
+                  <th className="px-3 py-3 text-left sm:px-6">
+                    <Skeleton className="h-3 w-24 bg-muted/55" />
+                  </th>
+                  <th className="px-3 py-3 text-right sm:px-6">
+                    <Skeleton className="ml-auto h-3 w-16 bg-muted/55" />
+                  </th>
+                  <th className="px-3 py-3 sm:px-6">
+                    <Skeleton className="mx-auto h-3 w-14 bg-muted/55" />
+                  </th>
+                  <th className="px-3 py-3 sm:px-6">
+                    <Skeleton className="mx-auto h-3 w-16 bg-muted/55" />
+                  </th>
+                  <th className="px-3 py-3 sm:px-6">
+                    <Skeleton className="ml-auto h-3 w-10 bg-muted/55" />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {transactionRows.map((_, index) => (
                   <tr key={index}>
-                    <td className="px-3 py-4 sm:px-6"><Skeleton className="h-3.5 w-20 bg-muted/45" /></td>
+                    <td className="px-3 py-4 sm:px-6">
+                      <Skeleton className="h-3.5 w-20 bg-muted/45" />
+                    </td>
                     <td className="min-w-55 px-3 py-4 sm:px-6">
                       <div className="space-y-2">
                         <Skeleton className="h-4 w-40 bg-muted/65 sm:w-52" />
@@ -98,10 +112,18 @@ export default function BendaharaLoading() {
                         <Skeleton className="h-2.5 w-20 bg-muted/35" />
                       </div>
                     </td>
-                    <td className="px-3 py-4 sm:px-6"><Skeleton className="ml-auto h-4 w-24 bg-muted/60" /></td>
-                    <td className="px-3 py-4 sm:px-6"><Skeleton className="mx-auto h-6 w-20 rounded-md bg-muted/55" /></td>
-                    <td className="px-3 py-4 sm:px-6"><Skeleton className="mx-auto h-12 w-12 rounded-lg bg-muted/50" /></td>
-                    <td className="px-3 py-4 sm:px-6"><Skeleton className="ml-auto h-8 w-8 rounded-md bg-muted/50" /></td>
+                    <td className="px-3 py-4 sm:px-6">
+                      <Skeleton className="ml-auto h-4 w-24 bg-muted/60" />
+                    </td>
+                    <td className="px-3 py-4 sm:px-6">
+                      <Skeleton className="mx-auto h-6 w-20 rounded-md bg-muted/55" />
+                    </td>
+                    <td className="px-3 py-4 sm:px-6">
+                      <Skeleton className="mx-auto h-12 w-12 rounded-lg bg-muted/50" />
+                    </td>
+                    <td className="px-3 py-4 sm:px-6">
+                      <Skeleton className="ml-auto h-8 w-8 rounded-md bg-muted/50" />
+                    </td>
                   </tr>
                 ))}
               </tbody>

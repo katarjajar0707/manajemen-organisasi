@@ -40,10 +40,7 @@ export function AppBottomNav() {
             >
               {/* Active background pill */}
               <div
-                className={cn(
-                  'relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out',
-                  isActive ? 'bg-primary/15 theme-shadow-strong scale-110' : 'group-hover:bg-foreground/[0.06] scale-100',
-                )}
+                className={cn('relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out', isActive ? 'bg-primary/15 theme-shadow-strong scale-110' : 'group-hover:bg-foreground/[0.06] scale-100')}
               >
                 {/* Active dot indicator above icon */}
                 <div className={cn('absolute -top-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-primary transition-all duration-300 ease-out', isActive ? 'w-3 opacity-100' : 'w-0 opacity-0')} />
@@ -73,10 +70,7 @@ export function AppBottomNav() {
         >
           {/* Active background pill */}
           <div
-            className={cn(
-              'relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out',
-              isMobileOpen ? 'bg-primary/15 theme-shadow-strong scale-110' : 'group-hover:bg-foreground/[0.06] scale-100',
-            )}
+            className={cn('relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out', isMobileOpen ? 'bg-primary/15 theme-shadow-strong scale-110' : 'group-hover:bg-foreground/[0.06] scale-100')}
           >
             {/* Active dot indicator above icon */}
             <div className={cn('absolute -top-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-primary transition-all duration-300 ease-out', isMobileOpen ? 'w-3 opacity-100' : 'w-0 opacity-0')} />

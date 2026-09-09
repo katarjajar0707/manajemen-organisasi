@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +47,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
   const [filterJenis, setFilterJenis] = useState<'semua' | 'masuk' | 'keluar'>('semua');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
 
   // Form state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -61,6 +62,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
   const [editingLampiranUrl, setEditingLampiranUrl] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const syncTransactionsRef = useRef<(() => Promise<void>) | null>(null);
 
   const allCategories = useMemo(() => {
     const list: string[] = [];
@@ -83,6 +85,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let active = true;
+    let bagianId: string | null = null;
 
     const normalizeTransaction = (item: any) => {
       let kategori = 'Kas General';
@@ -97,9 +100,41 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
       return { ...item, kategori, displayKeterangan };
     };
 
+    const fetchTransactions = async () => {
+      if (!active) return;
+
+      if (!bagianId) {
+        const { data: bagian } = await supabase.from('bagian').select('id').eq('slug', 'bendahara').single();
+        if (!bagian || !active) return;
+        bagianId = bagian.id;
+      }
+
+      const { data, error: fetchError } = await supabase
+        .from('catatan_keuangan')
+        .select('*, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)')
+        .eq('bagian_id', bagianId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (fetchError || !active) {
+        if (fetchError) setRealtimeStatus('error');
+        return;
+      }
+      setTransactions(data.map(normalizeTransaction));
+    };
+
+    syncTransactionsRef.current = fetchTransactions;
+
     const subscribe = async () => {
       const { data: bagian } = await supabase.from('bagian').select('id').eq('slug', 'bendahara').single();
-      if (!active || !bagian) return;
+      if (!active || !bagian) {
+        if (active) {
+          setRealtimeStatus('error');
+          toast.error('Sinkronisasi realtime gagal menemukan bagian bendahara.');
+        }
+        return;
+      }
+      bagianId = bagian.id;
 
       channel = supabase
         .channel('catatan-keuangan-realtime')
@@ -109,12 +144,17 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             return;
           }
 
-          const { data: refreshed } = await supabase
+          const { data: refreshed, error: refreshError } = await supabase
             .from('catatan_keuangan')
             .select('*, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)')
             .eq('id', payload.new.id)
+            .eq('bagian_id', bagian.id)
             .is('deleted_at', null)
             .single();
+          if (refreshError) {
+            setRealtimeStatus('error');
+            return;
+          }
           if (!refreshed) {
             setTransactions((current) => current.filter((item) => item.id !== payload.new.id));
             return;
@@ -129,12 +169,26 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
             return next;
           });
         })
-        .subscribe();
+        .subscribe(async (status) => {
+          if (!active) return;
+
+          // The first sync closes the gap between the server-rendered snapshot
+          // and the moment the Realtime channel becomes active. The same sync
+          // also recovers cleanly after a reconnect.
+          if (status === 'SUBSCRIBED') {
+            setRealtimeStatus('connected');
+            await fetchTransactions();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setRealtimeStatus('error');
+            toast.error('Sinkronisasi realtime terputus. Data akan dicoba disambungkan kembali.');
+          }
+        });
     };
 
     void subscribe();
     return () => {
       active = false;
+      syncTransactionsRef.current = null;
       if (channel) void supabase.removeChannel(channel);
     };
   }, []);
@@ -204,6 +258,9 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
         setError(res.error);
         toast.error(res.error);
       } else {
+        // Reconcile immediately after the server action succeeds so the
+        // submitting browser updates even when the realtime event is delayed.
+        await syncTransactionsRef.current?.();
         toast.success(editingId ? 'Transaksi berhasil diperbarui.' : `Transaksi kas ${jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} berhasil disimpan.`);
         setIsDialogOpen(false);
         setEditingId(null);
@@ -218,6 +275,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
         if (res?.error) {
           toast.error('Gagal menghapus: ' + res.error);
         } else {
+          await syncTransactionsRef.current?.();
           toast.success('Transaksi berhasil dihapus.');
         }
         setDeleteId(null);
@@ -620,7 +678,13 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle className="text-lg">Riwayat Transaksi</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  Riwayat Transaksi
+                  <span className={cn('inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium', realtimeStatus === 'connected' ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : realtimeStatus === 'error' ? 'border-destructive/25 bg-destructive/10 text-destructive' : 'border-border bg-muted text-muted-foreground')}>
+                    <span className={cn('h-1.5 w-1.5 rounded-full', realtimeStatus === 'connected' ? 'bg-emerald-500' : realtimeStatus === 'error' ? 'bg-destructive' : 'bg-muted-foreground')} />
+                    {realtimeStatus === 'connected' ? 'Live' : realtimeStatus === 'error' ? 'Terputus' : 'Menghubungkan'}
+                  </span>
+                </CardTitle>
                 <Badge variant="outline" className="text-xs font-mono">
                   {filteredList.length} data
                 </Badge>
@@ -688,7 +752,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
               <thead className="text-xs text-muted-foreground bg-muted/50 uppercase border-b">
                 <tr>
                   <th className="px-3 sm:px-6 py-3 font-medium">Tanggal</th>
-                  <th className="px-3 sm:px-6 py-3 font-medium min-w-[220px] sm:min-w-0">Keterangan</th>
+                  <th className="px-3 sm:px-6 py-3 font-medium min-w-55 sm:min-w-0">Keterangan</th>
                   <th className="px-3 sm:px-6 py-3 font-medium text-right">Jumlah</th>
                   <th className="px-3 sm:px-6 py-3 font-medium text-center">Status</th>
                   <th className="px-3 sm:px-6 py-3 font-medium text-center">Lampiran</th>
@@ -712,7 +776,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                           year: 'numeric',
                         })}
                       </td>
-                      <td className="px-3 sm:px-6 py-3.5 min-w-[220px] sm:min-w-0">
+                      <td className="px-3 sm:px-6 py-3.5 min-w-55 sm:min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-foreground">{trx.judul}</span>
                           {trx.kategori && trx.kategori !== 'Kas General' && trx.kategori !== 'Kas General / Operasional' && (
@@ -799,7 +863,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
               {error && (
                 <div className="min-w-0 bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span className="min-w-0 break-words">{error}</span>
+                  <span className="min-w-0 wrap-break-word">{error}</span>
                 </div>
               )}
 
@@ -823,7 +887,7 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="break-words text-[11px] text-muted-foreground">Pilih agenda sesuai acara yang dibuat, atau pilih Kas General untuk transaksi umum.</p>
+                <p className="wrap-break-word text-[11px] text-muted-foreground">Pilih agenda sesuai acara yang dibuat, atau pilih Kas General untuk transaksi umum.</p>
               </div>
 
               <div className="space-y-1.5">
@@ -863,12 +927,12 @@ export function BendaharaManager({ initialList, initialSaldo, agendaCategories =
                       {isBesar && (
                         <div className="min-w-0 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
                           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-                          <span className="min-w-0 break-words">
+                          <span className="min-w-0 wrap-break-word">
                             Perhatian: Nominal pengeluaran ini tergolong pengeluaran besar (mencapai batas Rp {new Intl.NumberFormat('id-ID').format(batasNotif)}). Pastikan telah berkoordinasi dan disetujui Ketua.
                           </span>
                         </div>
                       )}
-                      <p className="break-words text-[11px] text-muted-foreground">
+                      <p className="wrap-break-word text-[11px] text-muted-foreground">
                         * Kebijakan operasional {settings.profil.nama || 'organisasi'}: Pengeluaran kas di atas Rp {new Intl.NumberFormat('id-ID').format(maxTanpaNota)} wajib menyertakan lampiran nota fisik.
                       </p>
                     </div>

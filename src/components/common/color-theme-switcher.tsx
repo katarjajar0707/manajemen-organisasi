@@ -84,7 +84,14 @@ export function ColorThemeSwitcher({ isCollapsed = false, showDivider = true }: 
             const isActive = selectedTheme === option.id;
 
             return (
-              <DropdownMenuItem key={option.id} onSelect={() => setSelectedTheme(option.id)} className={cn('group/item flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-2 transition-all duration-150 hover:bg-primary/8 focus:bg-primary/8', isActive && 'bg-primary/10 text-foreground ring-1 ring-inset ring-primary/25')}>
+              <DropdownMenuItem
+                key={option.id}
+                onSelect={() => setSelectedTheme(option.id)}
+                className={cn(
+                  'group/item flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-2 transition-all duration-150 hover:bg-primary/8 focus:bg-primary/8',
+                  isActive && 'bg-primary/10 text-foreground ring-1 ring-inset ring-primary/25',
+                )}
+              >
                 <span className="flex min-w-0 items-center gap-3">
                   <span
                     className={cn('block h-5 w-5 shrink-0 rounded-full ring-2 ring-background shadow-sm transition-transform duration-150 group-hover/item:scale-110', isActive && 'ring-primary/30')}

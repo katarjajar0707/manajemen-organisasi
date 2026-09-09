@@ -61,6 +61,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
   const [rtWarga, setRtWarga] = useState(settings?.profil.unitWilayah || 'RT 01 / RW 05');
   const [pesanAspirasi, setPesanAspirasi] = useState('');
   const [isSent, setIsSent] = useState(false);
+  const [aspirasiError, setAspirasiError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Download / Cetak Modal
@@ -74,12 +75,18 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
     e.preventDefault();
     if (!namaWarga.trim() || !pesanAspirasi.trim()) return;
 
+    setAspirasiError(null);
     startTransition(async () => {
-      await kirimAspirasiWarga({
+      const result = await kirimAspirasiWarga({
         nama: namaWarga,
         rt: rtWarga,
         pesan: pesanAspirasi,
       });
+
+      if (!result.success) {
+        setAspirasiError(result.error || 'Aspirasi gagal dikirim.');
+        return;
+      }
 
       setIsSent(true);
       setTimeout(() => {
@@ -440,6 +447,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
                   <span>Aspirasi Anda berhasil dikirimkan! Terima kasih atas partisipasi aktif membangun lingkungan bersama.</span>
                 </div>
               )}
+              {aspirasiError && <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs font-medium text-destructive">{aspirasiError}</div>}
 
               <form onSubmit={handleSubmitAspirasi} className="space-y-3.5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -1,61 +1,47 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
-import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User, Search } from "lucide-react";
-import { useSidebarStore } from "@/store/sidebar-store";
-import { cn } from "@/lib/utils";
-import React from "react";
-import { logout } from "@/actions/auth";
-import { GlobalSearchDialog } from "@/components/common/global-search-dialog";
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { Button } from '@/components/ui/button';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User, Search } from 'lucide-react';
+import { useSidebarStore } from '@/store/sidebar-store';
+import { cn } from '@/lib/utils';
+import React from 'react';
+import { logout } from '@/actions/auth';
+import { GlobalSearchDialog } from '@/components/common/global-search-dialog';
 
 // Map segment URL → label yang terbaca
 const SEGMENT_LABELS: Record<string, string> = {
-  dashboard: "Dashboard",
-  keuangan: "Keuangan",
-  anggota: "Anggota",
-  struktur: "Struktur",
-  kegiatan: "Kegiatan",
-  diskusi: "Diskusi",
-  inventaris: "Inventaris",
-  arsip: "Arsip & Surat",
-  surat: "Surat",
-  pengumuman: "Pengumuman",
-  pengguna: "Pengguna",
-  bagian: "Bagian",
-  bendahara: "Bendahara",
-  masuk: "Kas Masuk",
-  keluar: "Kas Keluar",
-  agenda: "Agenda",
-  profil: "Profil",
-  pengaturan: "Pengaturan",
-  akses: "Manajemen Akses",
+  dashboard: 'Dashboard',
+  keuangan: 'Keuangan',
+  anggota: 'Anggota',
+  struktur: 'Struktur',
+  kegiatan: 'Kegiatan',
+  diskusi: 'Diskusi',
+  inventaris: 'Inventaris',
+  arsip: 'Arsip & Surat',
+  surat: 'Surat',
+  pengumuman: 'Pengumuman',
+  pengguna: 'Pengguna',
+  bagian: 'Bagian',
+  bendahara: 'Bendahara',
+  masuk: 'Kas Masuk',
+  keluar: 'Kas Keluar',
+  agenda: 'Agenda',
+  profil: 'Profil',
+  pengaturan: 'Pengaturan',
+  akses: 'Manajemen Akses',
 };
 
 function buildCrumbs(pathname: string) {
-  const segments = pathname.split("/").filter(Boolean);
+  const segments = pathname.split('/').filter(Boolean);
   return segments.map((seg, i) => {
-    const href = "/" + segments.slice(0, i + 1).join("/");
+    const href = '/' + segments.slice(0, i + 1).join('/');
     const isId = /^[0-9a-f-]{8,}$/i.test(seg);
-    const label = isId ? "Detail" : (SEGMENT_LABELS[seg] ?? seg);
+    const label = isId ? 'Detail' : (SEGMENT_LABELS[seg] ?? seg);
     return { href, label, isLast: i === segments.length - 1 };
   });
 }
@@ -67,14 +53,9 @@ interface AppHeaderProps {
   userDepartemen?: string | null;
 }
 
-import { useAuthStore } from "@/store/auth-store";
+import { useAuthStore } from '@/store/auth-store';
 
-export function AppHeader({
-  userRole: propUserRole,
-  userName: propUserName,
-  userAvatarUrl,
-  userDepartemen: propUserDepartemen,
-}: AppHeaderProps) {
+export function AppHeader({ userRole: propUserRole, userName: propUserName, userAvatarUrl, userDepartemen: propUserDepartemen }: AppHeaderProps) {
   const storeRole = useAuthStore((s) => s.userRole);
   const storeName = useAuthStore((s) => s.userName);
   const storeAvatarUrl = useAuthStore((s) => s.avatarUrl);
@@ -82,21 +63,11 @@ export function AppHeader({
   const setUserName = useAuthStore((s) => s.setUserName);
   const setUserRole = useAuthStore((s) => s.setUserRole);
 
-  const userRole = propUserRole || storeRole || "anggota";
-  const userName = propUserName || storeName || "Pengguna";
+  const userRole = propUserRole || storeRole || 'anggota';
+  const userName = propUserName || storeName || 'Pengguna';
   // The effective avatar: store takes priority if set, otherwise fallback to server prop
   const avatarUrl = storeAvatarUrl !== null ? storeAvatarUrl : (userAvatarUrl ?? null);
-  const departemen =
-    propUserDepartemen ||
-    (userRole === "admin"
-      ? "Administrator"
-      : userRole === "ketua"
-      ? "Pimpinan"
-      : userRole === "sekretaris"
-      ? "Sekretariat"
-      : userRole === "bendahara"
-      ? "Keuangan"
-      : userRole);
+  const departemen = propUserDepartemen || (userRole === 'admin' ? 'Administrator' : userRole === 'ketua' ? 'Pimpinan' : userRole === 'sekretaris' ? 'Sekretariat' : userRole === 'bendahara' ? 'Keuangan' : userRole);
   const pathname = usePathname();
   const router = useRouter();
   const { setTheme, theme, systemTheme } = useTheme();
@@ -110,7 +81,7 @@ export function AppHeader({
   const handleLogout = () => {
     startLogoutTransition(async () => {
       setAvatarUrl(null);
-      setUserName("");
+      setUserName('');
       await logout();
     });
   };
@@ -144,25 +115,25 @@ export function AppHeader({
   React.useEffect(() => {
     const handleAvatarEvent = (e: Event) => {
       const customEvent = e as CustomEvent<{ url: string | null }>;
-      if (customEvent.detail && "url" in customEvent.detail) {
+      if (customEvent.detail && 'url' in customEvent.detail) {
         setAvatarUrl(customEvent.detail.url);
       }
     };
-    window.addEventListener("user-avatar-updated", handleAvatarEvent);
+    window.addEventListener('user-avatar-updated', handleAvatarEvent);
     return () => {
-      window.removeEventListener("user-avatar-updated", handleAvatarEvent);
+      window.removeEventListener('user-avatar-updated', handleAvatarEvent);
     };
   }, [setAvatarUrl]);
 
-  const currentTheme = theme === "system" ? systemTheme : theme;
-  const isDark = currentTheme === "dark";
+  const currentTheme = theme === 'system' ? systemTheme : theme;
+  const isDark = currentTheme === 'dark';
 
   const crumbs = buildCrumbs(pathname);
   const initials = userName
-    .split(" ")
+    .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
-    .join("")
+    .join('')
     .toUpperCase();
 
   const toggleMobile = useSidebarStore((s) => s.toggleMobile);
@@ -172,13 +143,7 @@ export function AppHeader({
       {/* ── Sisi Kiri: Toggle Sidebar + Breadcrumb ── */}
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
         {/* Mobile Hamburger Drawer Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleMobile}
-          className="lg:hidden h-8 w-8 text-foreground hover:bg-accent shrink-0 rounded-lg"
-          title="Buka Menu Navigasi"
-        >
+        <Button variant="ghost" size="icon" onClick={toggleMobile} className="lg:hidden h-8 w-8 text-foreground hover:bg-accent shrink-0 rounded-lg" title="Buka Menu Navigasi">
           <PanelLeft className="h-4 w-4" />
           <span className="sr-only">Buka menu drawer</span>
         </Button>
@@ -189,9 +154,9 @@ export function AppHeader({
           size="icon"
           onClick={toggleSidebar}
           className="hidden lg:flex h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
-          title={isSidebarCollapsed ? "Buka Sidebar (Expanded)" : "Tutup Sidebar (Collapsed)"}
+          title={isSidebarCollapsed ? 'Buka Sidebar (Expanded)' : 'Tutup Sidebar (Collapsed)'}
         >
-          <PanelLeft className={cn("h-4 w-4 transition-transform duration-200", isSidebarCollapsed && "rotate-180")} />
+          <PanelLeft className={cn('h-4 w-4 transition-transform duration-200', isSidebarCollapsed && 'rotate-180')} />
           <span className="sr-only">Toggle sidebar</span>
         </Button>
 
@@ -205,30 +170,28 @@ export function AppHeader({
               </BreadcrumbLink>
             </BreadcrumbItem>
 
-            {crumbs.filter((c) => c.href !== "/dashboard").map((crumb) => (
-              <React.Fragment key={crumb.href}>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  {crumb.isLast ? (
-                    <BreadcrumbPage className="font-medium text-foreground truncate max-w-[150px] sm:max-w-xs">
-                      {crumb.label}
-                    </BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <Link href={crumb.href} className="text-muted-foreground hover:text-foreground">
-                        {crumb.label}
-                      </Link>
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-              </React.Fragment>
-            ))}
+            {crumbs
+              .filter((c) => c.href !== '/dashboard')
+              .map((crumb) => (
+                <React.Fragment key={crumb.href}>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    {crumb.isLast ? (
+                      <BreadcrumbPage className="font-medium text-foreground truncate max-w-[150px] sm:max-w-xs">{crumb.label}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink asChild>
+                        <Link href={crumb.href} className="text-muted-foreground hover:text-foreground">
+                          {crumb.label}
+                        </Link>
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </React.Fragment>
+              ))}
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="sm:hidden font-semibold text-xs sm:text-sm truncate max-w-[180px]">
-          {crumbs[crumbs.length - 1]?.label ?? "Dashboard"}
-        </div>
+        <div className="sm:hidden font-semibold text-xs sm:text-sm truncate max-w-[180px]">{crumbs[crumbs.length - 1]?.label ?? 'Dashboard'}</div>
       </div>
 
       {/* ── Sisi Kanan: Search, Role Badge & Profile Dropdown ── */}
@@ -243,18 +206,10 @@ export function AppHeader({
         >
           <Search className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Cari modul...</span>
-          <kbd className="hidden md:inline-flex text-[10px] bg-background border border-border px-1.5 py-0.5 rounded font-mono text-muted-foreground">
-            ⌘K
-          </kbd>
+          <kbd className="hidden md:inline-flex text-[10px] bg-background border border-border px-1.5 py-0.5 rounded font-mono text-muted-foreground">⌘K</kbd>
         </Button>
 
-        <span
-          title={`Departemen: ${departemen}`}
-          className={cn(
-            "hidden sm:inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md",
-            "bg-primary/10 text-primary border border-primary/20"
-          )}
-        >
+        <span title={`Departemen: ${departemen}`} className={cn('hidden sm:inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md', 'bg-primary/10 text-primary border border-primary/20')}>
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
           <span>Departemen: {departemen}</span>
         </span>
@@ -262,13 +217,9 @@ export function AppHeader({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden shrink-0",
-                "text-primary-foreground font-bold text-xs",
-                "transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40"
-              )}
+              className={cn('flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden shrink-0', 'text-primary-foreground font-bold text-xs', 'transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40')}
               style={
-                (!avatarUrl || imgError)
+                !avatarUrl || imgError
                   ? {
                       backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
                       boxShadow: '0 0 12px var(--primary-glow)',
@@ -278,14 +229,9 @@ export function AppHeader({
             >
               {avatarUrl && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarUrl}
-                  alt={userName}
-                  onError={() => setImgError(true)}
-                  className="h-full w-full object-cover"
-                />
+                <img src={avatarUrl} alt={userName} onError={() => setImgError(true)} className="h-full w-full object-cover" />
               ) : (
-                initials || "KT"
+                initials || 'KT'
               )}
             </button>
           </DropdownMenuTrigger>
@@ -311,7 +257,7 @@ export function AppHeader({
             </DropdownMenuItem>
 
             {/* Pengaturan Khusus Admin */}
-            {userRole === "admin" && (
+            {userRole === 'admin' && (
               <DropdownMenuItem asChild>
                 <Link href="/pengaturan" className="flex items-center gap-2 cursor-pointer">
                   <Settings className="h-4 w-4 text-muted-foreground" />
@@ -321,32 +267,17 @@ export function AppHeader({
             )}
 
             {/* Ganti Tema */}
-            <DropdownMenuItem
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              {isDark ? (
-                <Sun className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <Moon className="h-4 w-4 text-muted-foreground" />
-              )}
-              <span>{isDark ? "Mode Terang" : "Mode Gelap"}</span>
+            <DropdownMenuItem onClick={() => setTheme(isDark ? 'light' : 'dark')} className="flex items-center gap-2 cursor-pointer">
+              {isDark ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+              <span>{isDark ? 'Mode Terang' : 'Mode Gelap'}</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
 
             {/* Logout */}
-            <DropdownMenuItem
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
-            >
-              {isLoggingOut ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <LogOut className="h-4 w-4" />
-              )}
-              <span>{isLoggingOut ? "Keluar..." : "Keluar"}</span>
+            <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+              {isLoggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              <span>{isLoggingOut ? 'Keluar...' : 'Keluar'}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

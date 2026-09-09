@@ -426,7 +426,15 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
           </DialogHeader>
           <div className="grid gap-2 py-2">
             {avatarUrl && (
-              <Button type="button" variant="outline" className="justify-start gap-3" onClick={() => { setIsAvatarMenuOpen(false); setIsAvatarPreviewOpen(true); }}>
+              <Button
+                type="button"
+                variant="outline"
+                className="justify-start gap-3"
+                onClick={() => {
+                  setIsAvatarMenuOpen(false);
+                  setIsAvatarPreviewOpen(true);
+                }}
+              >
                 <Eye className="h-4 w-4 text-primary" />
                 Lihat foto
               </Button>

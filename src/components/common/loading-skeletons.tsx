@@ -43,9 +43,13 @@ export function LoadingToolbar({ withTabs = true }: { withTabs?: boolean }) {
     <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/60 p-3 sm:flex-row sm:items-center sm:justify-between">
       {withTabs ? (
         <div className="flex w-full gap-1.5 overflow-hidden sm:w-auto">
-          {[1, 2, 3].map((item) => <Skeleton key={item} className="h-8 w-20 shrink-0 rounded-lg bg-muted/55" />)}
+          {[1, 2, 3].map((item) => (
+            <Skeleton key={item} className="h-8 w-20 shrink-0 rounded-lg bg-muted/55" />
+          ))}
         </div>
-      ) : <Skeleton className="h-8 w-28 rounded-lg bg-muted/55" />}
+      ) : (
+        <Skeleton className="h-8 w-28 rounded-lg bg-muted/55" />
+      )}
       <div className="flex w-full items-center gap-2 sm:w-auto">
         <Skeleton className="h-8 min-w-0 flex-1 rounded-md bg-muted/55 sm:w-56" />
         <Skeleton className="h-8 w-20 shrink-0 rounded-md bg-muted/55" />
@@ -69,7 +73,9 @@ export function LoadingTableCard({ columns = 5, rows = 6, minWidth = 'min-w-0' }
             <thead className="border-b bg-muted/40">
               <tr>
                 {Array.from({ length: columns }).map((_, index) => (
-                  <th key={index} className="px-3 py-3 text-left sm:px-5"><Skeleton className="h-3 w-20 bg-muted/55" /></th>
+                  <th key={index} className="px-3 py-3 text-left sm:px-5">
+                    <Skeleton className="h-3 w-20 bg-muted/55" />
+                  </th>
                 ))}
               </tr>
             </thead>

@@ -18,30 +18,47 @@ export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
 
   useEffect(() => {
     const supabase = createClient();
+    let active = true;
+
+    const parseAspirasi = (item: { id: string; judul: string; isi?: string | null; created_at?: string | null }): AspirasiWargaItem | null => {
+      if (!item.judul.startsWith('[Aspirasi Warga]')) return null;
+      const match = item.judul.match(/^\[Aspirasi Warga\] dari (.+) \((.+)\)$/);
+      return {
+        id: item.id,
+        nama: match?.[1] || 'Warga',
+        rt: match?.[2] || 'Warga',
+        pesan: item.isi || '-',
+        createdAt: item.created_at || new Date().toISOString(),
+      };
+    };
+
+    const syncAspirasi = async () => {
+      const { data, error } = await supabase
+        .from('diskusi')
+        .select('id, judul, isi, created_at')
+        .eq('tipe', 'catatan_umum')
+        .like('judul', '[Aspirasi Warga]%')
+        .order('created_at', { ascending: false });
+      if (!active || error) return;
+      setAspirasi(data.map(parseAspirasi).filter((item): item is AspirasiWargaItem => item !== null));
+    };
+
     const channel = supabase
       .channel('aspirasi-warga-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'diskusi', filter: 'tipe=eq.catatan_umum' },
-        (payload) => {
-          const item = payload.new as { id?: string; judul?: string; isi?: string; created_at?: string };
-          if (!item.id || !item.judul?.startsWith('[Aspirasi Warga]')) return;
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'diskusi', filter: 'tipe=eq.catatan_umum' }, (payload) => {
+        const item = payload.new as { id?: string; judul?: string; isi?: string; created_at?: string };
+        if (!item.id || !item.judul) return;
+        const newAspirasi = parseAspirasi({ id: item.id, judul: item.judul, isi: item.isi, created_at: item.created_at });
+        if (!newAspirasi) return;
 
-          const match = item.judul.match(/^\[Aspirasi Warga\] dari (.+) \((.+)\)$/);
-          const newAspirasi: AspirasiWargaItem = {
-            id: item.id,
-            nama: match?.[1] || 'Warga',
-            rt: match?.[2] || 'Warga',
-            pesan: item.isi || '-',
-            createdAt: item.created_at || new Date().toISOString(),
-          };
-
-          setAspirasi((current) => (current.some((entry) => entry.id === newAspirasi.id) ? current : [newAspirasi, ...current]));
-        },
-      )
-      .subscribe();
+        setAspirasi((current) => (current.some((entry) => entry.id === newAspirasi.id) ? current : [newAspirasi, ...current]));
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') void syncAspirasi();
+      });
 
     return () => {
+      active = false;
       void supabase.removeChannel(channel);
     };
   }, []);
@@ -88,7 +105,7 @@ export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
 
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
+            <table className="w-full min-w-180 text-sm">
               <thead className="bg-muted/40 border-b">
                 <tr className="text-left text-xs text-muted-foreground">
                   <th className="px-4 py-3 font-semibold w-14">No</th>
@@ -100,7 +117,7 @@ export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
               </thead>
               <tbody className="divide-y divide-border/70">
                 {filteredAspirasi.map((item, index) => (
-                  <tr key={item.id} className="odd:bg-muted/20 even:bg-background hover:bg-primary/[0.04] transition-colors align-top">
+                  <tr key={item.id} className="odd:bg-muted/20 even:bg-background hover:bg-primary/4 transition-colors align-top">
                     <td className="px-4 py-3 text-xs text-muted-foreground">{index + 1}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{item.nama}</td>
                     <td className="px-4 py-3 text-muted-foreground">{item.rt}</td>
