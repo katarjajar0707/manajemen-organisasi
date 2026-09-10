@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ColorThemeSwitcher } from '@/components/common/color-theme-switcher';
+import { PreviewImage } from '@/components/common/preview-image';
 
 interface AppMobileNavProps {
   userRole?: string;
@@ -77,7 +78,7 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
           <div className="flex items-center gap-3">
             {orgLogoUrl ? (
               <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs bg-background">
-                <img src={orgLogoUrl} alt={orgName || 'Logo'} className="w-full h-full object-cover" />
+                <PreviewImage src={orgLogoUrl} alt={orgName || 'Logo'} className="w-full h-full object-cover" />
               </div>
             ) : (
               <div

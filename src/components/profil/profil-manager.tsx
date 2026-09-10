@@ -16,7 +16,9 @@ import { useRouter } from 'next/navigation';
 import { Shield, Camera, ArrowRight, CheckCircle2, Lock, Mail, KeyRound, AlertCircle, Loader2, Users, Search, Building2, ShieldCheck, Phone, UserPen, Eye, Upload, Trash2 } from 'lucide-react';
 import { removeAvatar, updateAvatar, changePassword, updateMyProfile } from '@/actions/profil';
 import { useAuthStore } from '@/store/auth-store';
-import { isImageFile, normalizeWhatsAppNumber } from '@/lib/utils';
+import { isImageFile } from '@/lib/utils';
+import { convertHeicToJpeg } from '@/lib/client-image';
+import { normalizeWhatsAppNumber } from '@/lib/utils';
 import { PreviewImage } from '@/components/common/preview-image';
 
 interface ProfileData {
@@ -68,6 +70,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
   const [currentNomorWa, setCurrentNomorWa] = useState(profile.nomor_wa || '');
   const [currentBio, setCurrentBio] = useState(profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.foto_url);
+  const [avatarPreviewFile, setAvatarPreviewFile] = useState<File | undefined>();
 
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -112,16 +115,32 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
 
     setIsAvatarMenuOpen(false);
 
-    const localUrl = URL.createObjectURL(file);
-    setAvatarUrl(localUrl);
-    setStoreAvatarUrl(localUrl);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('user-avatar-updated', { detail: { url: localUrl } }));
-    }
-
     startTransition(async () => {
+      let uploadFile = file;
+      try {
+        uploadFile = await convertHeicToJpeg(file);
+      } catch {
+        setFeedback({ type: 'error', message: 'File HEIC tidak dapat dikonversi menjadi JPG.' });
+        clearFeedback();
+        return;
+      }
+
+      if (uploadFile.size > 10 * 1024 * 1024) {
+        setFeedback({ type: 'error', message: 'Ukuran foto setelah konversi maksimal 10MB.' });
+        clearFeedback();
+        return;
+      }
+
+      const localUrl = URL.createObjectURL(uploadFile);
+      setAvatarPreviewFile(uploadFile);
+      setAvatarUrl(localUrl);
+      setStoreAvatarUrl(localUrl);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('user-avatar-updated', { detail: { url: localUrl } }));
+      }
+
       const formData = new FormData();
-      formData.append('avatar', file);
+      formData.append('avatar', uploadFile);
 
       const res = await updateAvatar(formData);
       if (res?.error) {
@@ -132,6 +151,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
           window.dispatchEvent(new CustomEvent('user-avatar-updated', { detail: { url: profile.foto_url } }));
         }
       } else if (res?.url) {
+        setAvatarPreviewFile(undefined);
         setAvatarUrl(res.url);
         setStoreAvatarUrl(res.url);
         if (typeof window !== 'undefined') {
@@ -155,6 +175,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
       }
 
       setAvatarUrl(null);
+      setAvatarPreviewFile(undefined);
       setStoreAvatarUrl(null);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('user-avatar-updated', { detail: { url: null } }));
@@ -334,7 +355,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
               <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-2 border-primary/30 shadow-xs">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <PreviewImage src={avatarUrl} alt="Foto Profil" className="aspect-square h-full w-full object-cover" />
+                  <PreviewImage file={avatarPreviewFile} src={avatarUrl} alt="Foto Profil" className="aspect-square h-full w-full object-cover" />
                 ) : (
                   <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">{currentNama.slice(0, 2).toUpperCase()}</AvatarFallback>
                 )}
@@ -465,7 +486,7 @@ export function ProfilManager({ profile, users = [] }: ProfilManagerProps) {
           </DialogHeader>
           {avatarUrl && (
             <div className="flex min-h-[70vh] items-center justify-center">
-              <PreviewImage src={avatarUrl} alt="Foto Profil" className="max-h-[85vh] max-w-full rounded-lg object-contain" />
+              <PreviewImage file={avatarPreviewFile} src={avatarUrl} alt="Foto Profil" className="max-h-[85vh] max-w-full rounded-lg object-contain" />
             </div>
           )}
         </DialogContent>

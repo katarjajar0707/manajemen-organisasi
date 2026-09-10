@@ -1125,8 +1125,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                   {file && isImageFile(file) && (
                     <div className="flex min-w-0 items-center gap-2.5 mt-2 p-2 bg-muted/40 border rounded-lg">
                       <div className="h-12 w-12 rounded-md overflow-hidden border bg-background shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <PreviewImage file={file} src={URL.createObjectURL(file)} alt="Preview Bukti" className="h-full w-full object-cover" />
+                        <PreviewImage file={file} alt="Preview Bukti" className="h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0 flex-1 text-xs">
                         <p className="font-medium truncate text-foreground">{file.name}</p>

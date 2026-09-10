@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/common/theme-toggle';
 import { PwaInstallPrompt } from '@/components/common/pwa-install-prompt';
+import { PreviewImage } from '@/components/common/preview-image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -151,7 +152,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
         <div className="flex items-center gap-2.5">
           {settings?.profil.logoUrl ? (
             <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs bg-background shrink-0">
-              <img src={settings.profil.logoUrl} alt={orgName} className="w-full h-full object-cover" />
+              <PreviewImage src={settings.profil.logoUrl} alt={orgName} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm shrink-0">{getInitials(orgName)}</div>

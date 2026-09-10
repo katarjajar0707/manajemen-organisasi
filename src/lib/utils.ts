@@ -21,7 +21,12 @@ export function isHeicFile(file: File): boolean {
 }
 
 export function isHeicUrl(url: string): boolean {
-  return HEIC_FILE_EXTENSIONS.test(url.split(/[?#]/)[0]);
+  const source = url.split(/[?#]/)[0];
+  try {
+    return HEIC_FILE_EXTENSIONS.test(decodeURIComponent(new URL(source, 'http://localhost').pathname));
+  } catch {
+    return HEIC_FILE_EXTENSIONS.test(source);
+  }
 }
 
 export function normalizeWhatsAppNumber(value: string): string {

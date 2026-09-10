@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import React from 'react';
 import { logout } from '@/actions/auth';
 import { GlobalSearchDialog } from '@/components/common/global-search-dialog';
+import { PreviewImage } from '@/components/common/preview-image';
 
 // Map segment URL → label yang terbaca
 const SEGMENT_LABELS: Record<string, string> = {
@@ -227,12 +228,7 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
                   : undefined
               }
             >
-              {avatarUrl && !imgError ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt={userName} onError={() => setImgError(true)} className="h-full w-full object-cover" />
-              ) : (
-                initials || 'KT'
-              )}
+              {avatarUrl && !imgError ? <PreviewImage src={avatarUrl} alt={userName} onError={() => setImgError(true)} className="h-full w-full object-cover" /> : initials || 'KT'}
             </button>
           </DropdownMenuTrigger>
 

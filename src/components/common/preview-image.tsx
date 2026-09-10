@@ -1,27 +1,46 @@
 'use client';
 
-import { useEffect, useState, type ImgHTMLAttributes } from 'react';
+import { forwardRef, useEffect, useRef, useState, type ImgHTMLAttributes } from 'react';
 import { isHeicFile, isHeicUrl } from '@/lib/utils';
+import { convertHeicToJpeg } from '@/lib/client-image';
 
 interface PreviewImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   file?: File;
   src?: string;
 }
 
-export function PreviewImage({ file, src, alt, onError, ...props }: PreviewImageProps) {
-  const [previewSrc, setPreviewSrc] = useState(src);
-  const [failedSource, setFailedSource] = useState<string | null>(null);
+export const PreviewImage = forwardRef<HTMLImageElement, PreviewImageProps>(function PreviewImage({ file, src, alt, onError, className, ...props }, ref) {
+  const [previewSrc, setPreviewSrc] = useState<string | undefined>(src);
+  const [isConverting, setIsConverting] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
+  const [conversionAttempted, setConversionAttempted] = useState(false);
+  const fallbackObjectUrl = useRef<string | null>(null);
+  const sourceIsHeic = file ? isHeicFile(file) : Boolean(src && isHeicUrl(src));
 
   useEffect(() => {
     let objectUrl: string | null = null;
     let cancelled = false;
-    const sourceIsHeic = Boolean(file && isHeicFile(file)) || Boolean(src && isHeicUrl(src));
 
-    if (!sourceIsHeic) return () => undefined;
+    setHasFailed(false);
+    setConversionAttempted(false);
+
+    if (!sourceIsHeic) {
+      if (file) {
+        objectUrl = URL.createObjectURL(file);
+        setPreviewSrc(objectUrl);
+      } else {
+        setPreviewSrc(src);
+      }
+      setIsConverting(false);
+      return () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    }
 
     const convertHeic = async () => {
+      setPreviewSrc(undefined);
+      setIsConverting(true);
       try {
-        const { default: heic2any } = await import('heic2any');
         const sourceBlob =
           file ||
           (src
@@ -32,12 +51,17 @@ export function PreviewImage({ file, src, alt, onError, ...props }: PreviewImage
             : null);
         if (!sourceBlob) throw new Error('Sumber gambar tidak ditemukan.');
 
-        const converted = await heic2any({ blob: sourceBlob, toType: 'image/jpeg', quality: 0.9 });
-        const convertedBlob = Array.isArray(converted) ? converted[0] : converted;
+        const convertedBlob = await convertHeicToJpeg(new File([sourceBlob], 'preview.heic', { type: 'image/heic' }));
         objectUrl = URL.createObjectURL(convertedBlob);
-        if (!cancelled) setPreviewSrc(objectUrl);
+        if (!cancelled) {
+          setPreviewSrc(objectUrl);
+          setIsConverting(false);
+        }
       } catch {
-        if (!cancelled) setFailedSource(src || file?.name || null);
+        if (!cancelled) {
+          setHasFailed(true);
+          setIsConverting(false);
+        }
       }
     };
 
@@ -46,16 +70,59 @@ export function PreviewImage({ file, src, alt, onError, ...props }: PreviewImage
     return () => {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (fallbackObjectUrl.current) {
+        URL.revokeObjectURL(fallbackObjectUrl.current);
+        fallbackObjectUrl.current = null;
+      }
     };
-  }, [file, src]);
+  }, [file, src, sourceIsHeic]);
 
-  if (failedSource && failedSource === (src || file?.name)) {
+  const waitingForConversion = sourceIsHeic && previewSrc === src;
+
+  if (isConverting || waitingForConversion || hasFailed || !previewSrc) {
     return (
-      <span className="flex h-full min-h-10 w-full items-center justify-center bg-muted px-2 text-center text-[10px] text-muted-foreground" role="img" aria-label={alt}>
-        HEIC tidak dapat dipreview
+      <span className={`flex h-full min-h-10 w-full items-center justify-center bg-muted px-2 text-center text-[10px] text-muted-foreground ${className || ''}`} role="img" aria-label={alt}>
+        {isConverting || waitingForConversion ? 'Memuat preview...' : sourceIsHeic ? 'HEIC tidak dapat dipreview' : 'Gambar tidak dapat dipreview'}
       </span>
     );
   }
 
-  return <img {...props} src={previewSrc} alt={alt} onError={onError} />;
-}
+  return (
+    <img
+      {...props}
+      ref={ref}
+      className={className}
+      src={previewSrc}
+      alt={alt}
+      onError={(event) => {
+        if (!conversionAttempted && src && !file) {
+          setConversionAttempted(true);
+          setIsConverting(true);
+          setPreviewSrc(undefined);
+          void fetch(src)
+            .then((response) => {
+              if (!response.ok) throw new Error('Gagal mengambil gambar untuk fallback HEIC.');
+              return response.blob();
+            })
+            .then((blob) => convertHeicToJpeg(new File([blob], 'preview.heic', { type: 'image/heic' })))
+            .then((convertedBlob) => {
+              fallbackObjectUrl.current = URL.createObjectURL(convertedBlob);
+              setPreviewSrc(fallbackObjectUrl.current);
+              setIsConverting(false);
+            })
+            .catch(() => {
+              setHasFailed(true);
+              setIsConverting(false);
+              onError?.(event);
+            });
+          return;
+        }
+
+        setHasFailed(true);
+        onError?.(event);
+      }}
+    />
+  );
+});
+
+PreviewImage.displayName = 'PreviewImage';

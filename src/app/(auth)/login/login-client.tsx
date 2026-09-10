@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/common/theme-toggle';
+import { PreviewImage } from '@/components/common/preview-image';
 import { ArrowLeft, Lock, Mail, ShieldCheck, AlertCircle } from 'lucide-react';
 import { login } from '@/actions/auth';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
@@ -53,7 +54,7 @@ export function LoginClient({ settings }: { settings?: PengaturanSistemData }) {
         <div className="text-center space-y-1">
           {settings?.profil.logoUrl ? (
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden border border-border/80 bg-background mb-2 shadow-md">
-              <img src={settings.profil.logoUrl} alt={orgName} className="w-full h-full object-cover" />
+              <PreviewImage src={settings.profil.logoUrl} alt={orgName} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl mb-2 shadow-md">{getInitials(orgName)}</div>
