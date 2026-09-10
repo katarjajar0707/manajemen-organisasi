@@ -11,31 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  Wallet,
-  Users,
-  Calendar,
-  ArrowRight,
-  Shield,
-  CheckCircle2,
-  TrendingUp,
-  TrendingDown,
-  FileText,
-  MapPin,
-  Clock,
-  Send,
-  MessageSquare,
-  Sparkles,
-  Award,
-  HeartHandshake,
-  Download,
-  Mail,
-  Phone,
-  Printer,
-  Loader2,
-  AlertTriangle,
-  Globe,
-} from 'lucide-react';
+import { Wallet, Users, Calendar, ArrowRight, Shield, CheckCircle2, TrendingUp, TrendingDown, FileText, MapPin, Clock, MessageSquare, Sparkles, Award, HeartHandshake, Eye, Mail, Phone, Printer, AlertTriangle, Globe } from 'lucide-react';
 import { PublicTransparencyData, kirimAspirasiWarga } from '@/actions/transparansi';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 
@@ -192,7 +168,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             {isKasPublik && (
               <Button size="sm" className="gap-2 h-9 px-5 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setIsDownloadOpen(true)}>
-                <Download className="h-4 w-4" />
+                <Eye className="h-4 w-4" />
                 <span>Lihat Ringkasan Kas Resmi</span>
               </Button>
             )}
@@ -545,7 +521,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
               <Button variant="outline" onClick={() => setIsDownloadOpen(false)}>
                 Tutup
               </Button>
-              <Button onClick={handlePrintRekap} className="gap-1.5">
+              <Button onClick={handlePrintRekap} className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
                 <Printer className="h-3.5 w-3.5" />
                 Cetak / Print
               </Button>
