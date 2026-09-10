@@ -39,6 +39,7 @@ import {
 import { ArsipItem, KategoriArsip, createArsip, updateArsip, deleteArsip } from '@/actions/arsip';
 import { uploadLampiran } from '@/actions/storage';
 import { isImageFile } from '@/lib/utils';
+import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
 
 interface ArsipManagerProps {
@@ -109,7 +110,15 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
       if (isImageFile(file)) ext = 'IMG';
       setFileType(ext);
 
-      const res = await uploadLampiran(file, 'arsip');
+      let uploadFile: File;
+      try {
+        uploadFile = await convertHeicToJpeg(file);
+      } catch {
+        triggerNotification('File HEIC tidak dapat dikonversi menjadi JPG.', 'warning');
+        return;
+      }
+
+      const res = await uploadLampiran(uploadFile, 'arsip');
       if (res.error || !res.url) {
         triggerNotification(res.error || 'Gagal mengunggah gambar.', 'warning');
       } else {

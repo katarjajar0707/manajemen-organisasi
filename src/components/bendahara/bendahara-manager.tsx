@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, AlertCircle, Paperclip, ExternalLink, FileText, FileDown, Eye, ImageIcon, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn, isImageFile, isImageUrl } from '@/lib/utils';
+import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
 import { createTransaksi, deleteTransaksi, updateTransaksi } from '@/actions/keuangan';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
@@ -312,7 +313,14 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
       formData.append('kategori', selectedKategori);
       formData.append('jumlah', cleanNominal);
       if (file) {
-        formData.append('lampiran', file);
+        try {
+          formData.append('lampiran', await convertHeicToJpeg(file));
+        } catch {
+          const message = 'File HEIC tidak dapat dikonversi menjadi JPG.';
+          setError(message);
+          toast.error(message);
+          return;
+        }
       }
 
       const res = editingId ? await updateTransaksi(editingId, formData, 'bendahara') : await createTransaksi(formData, 'bendahara');

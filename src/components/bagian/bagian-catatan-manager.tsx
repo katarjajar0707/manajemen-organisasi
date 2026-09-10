@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { isImageUrl } from '@/lib/utils';
+import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -81,7 +82,12 @@ export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanMana
       formData.append('judul', title);
       formData.append('isi', excerpt);
       if (file) {
-        formData.append('lampiran', file);
+        try {
+          formData.append('lampiran', await convertHeicToJpeg(file));
+        } catch {
+          setError('File HEIC tidak dapat dikonversi menjadi JPG.');
+          return;
+        }
       }
       formData.append('removeLampiran', removeLampiran.toString());
 

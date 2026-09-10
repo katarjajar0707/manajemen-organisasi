@@ -53,6 +53,7 @@ import {
 } from '@/actions/pengaturan';
 import { uploadLampiran } from '@/actions/storage';
 import { isImageFile } from '@/lib/utils';
+import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
 
 interface PengaturanAdminProps {
@@ -171,7 +172,15 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
 
     try {
       setIsUploadingLogo(true);
-      const res = await uploadLampiran(file, 'logo');
+      let uploadFile: File;
+      try {
+        uploadFile = await convertHeicToJpeg(file);
+      } catch {
+        triggerToast('File HEIC tidak dapat dikonversi menjadi JPG.', 'warning');
+        return;
+      }
+
+      const res = await uploadLampiran(uploadFile, 'logo');
       if (res.error || !res.url) {
         triggerToast(res.error || 'Gagal mengunggah logo ke storage.', 'warning');
         return;

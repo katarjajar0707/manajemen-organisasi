@@ -28,6 +28,7 @@ import {
   getRiwayatPeminjaman,
 } from '@/actions/inventaris';
 import { uploadLampiran } from '@/actions/storage';
+import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 
@@ -233,7 +234,15 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
 
     try {
       setIsUploading(true);
-      const res = await uploadLampiran(file, 'inventaris');
+      let uploadFile: File;
+      try {
+        uploadFile = await convertHeicToJpeg(file);
+      } catch {
+        triggerNotification('File HEIC tidak dapat dikonversi menjadi JPG.', 'warning');
+        return;
+      }
+
+      const res = await uploadLampiran(uploadFile, 'inventaris');
       if (res.error || !res.url) {
         triggerNotification(res.error || 'Gagal mengunggah foto.', 'warning');
       } else {
@@ -1315,8 +1324,8 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             {selectedItem && (
               <div className="space-y-4 py-2 text-sm">
                 {selectedItem.fotoUrl && (
-                  <div className="rounded-lg overflow-hidden border border-border max-h-48">
-                    <PreviewImage src={selectedItem.fotoUrl} alt={selectedItem.nama} className="w-full h-full object-cover" />
+                  <div className="h-48 overflow-hidden rounded-lg border border-border">
+                    <PreviewImage src={selectedItem.fotoUrl} alt={selectedItem.nama} className="h-full w-full object-cover object-center" />
                   </div>
                 )}
 

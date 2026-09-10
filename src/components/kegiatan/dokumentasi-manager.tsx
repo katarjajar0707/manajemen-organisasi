@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { isImageFile } from '@/lib/utils';
+import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -92,9 +93,17 @@ export function DokumentasiManager({ kegiatan, initialFotos = [], userRole = 'an
 
     setErrorMessage(null);
     startTransition(async () => {
+      let filesToUpload: File[];
+      try {
+        filesToUpload = await Promise.all(selectedFiles.map((file) => convertHeicToJpeg(file)));
+      } catch {
+        setErrorMessage('File HEIC tidak dapat dikonversi menjadi JPG.');
+        return;
+      }
+
       const formData = new FormData();
       formData.set('caption', newCaption || `Dokumentasi ${kegiatan.judul}`);
-      selectedFiles.forEach((file) => {
+      filesToUpload.forEach((file) => {
         formData.append('foto', file);
       });
 

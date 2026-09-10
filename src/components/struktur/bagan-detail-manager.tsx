@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { createAnggota, updateAnggota, deleteAnggota } from '@/actions/anggota';
 import { createPeriode, setActivePeriode, deletePeriode } from '@/actions/periode';
+import { convertHeicToJpeg } from '@/lib/client-image';
 
 export interface DBPeriode {
   id: string;
@@ -187,6 +188,16 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
       formData.set('status', status);
       formData.set('periode_id', currentPeriode.id);
       formData.set('bagian_id', agenda.bagian_id);
+
+      const foto = formData.get('foto');
+      if (foto instanceof File && foto.size > 0) {
+        try {
+          formData.set('foto', await convertHeicToJpeg(foto));
+        } catch {
+          setErrorMessage('File HEIC tidak dapat dikonversi menjadi JPG.');
+          return;
+        }
+      }
 
       if (editingMember) {
         const res = await updateAnggota(editingMember.id, formData);
