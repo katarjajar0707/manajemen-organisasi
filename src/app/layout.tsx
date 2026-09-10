@@ -46,11 +46,11 @@ export const metadata: Metadata = {
     locale: 'id_ID',
     images: [
       {
-        url: 'https://kartatuju.vercel.app/og-image.png',
+        url: 'https://kartatuju.vercel.app/og-image.svg',
         width: 1200,
         height: 630,
         alt: 'KartaTuju | Manajemen Organisasi',
-        type: 'image/png',
+        type: 'image/svg+xml',
       },
     ],
   },
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'KartaTuju | Manajemen Organisasi',
     description: 'Platform digital untuk mengelola anggota, struktur organisasi, agenda, inventaris, dokumen, dan transparansi informasi organisasi.',
-    images: ['https://kartatuju.vercel.app/og-image.png'],
+    images: ['https://kartatuju.vercel.app/og-image.svg'],
   },
   robots: {
     index: true,
