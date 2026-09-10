@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { createContext, type ReactNode, Suspense, useContext, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,12 +33,50 @@ interface AnggotaManagerProps {
     daftarPeriode: PeriodeOption[];
   };
   userRole?: string;
+  children?: ReactNode;
 }
 
 const RT_OPTIONS = ['Semua RT', 'RT 01', 'RT 02', 'RT 03', 'RT 04', 'RT 05', 'RT 06'];
 
-export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian: [], daftarPeriode: [] }, userRole = 'anggota' }: AnggotaManagerProps) {
+interface AnggotaMembersContextValue {
+  setMembers: (members: AnggotaDetail[]) => void;
+  setDataReady: (ready: boolean) => void;
+}
+
+const AnggotaMembersContext = createContext<AnggotaMembersContextValue | null>(null);
+
+export function AnggotaMembersBridge({ members }: { members: AnggotaDetail[] }) {
+  const context = useContext(AnggotaMembersContext);
+
+  useEffect(() => {
+    if (!context) return;
+    context.setMembers(members);
+    context.setDataReady(true);
+  }, [context, members]);
+
+  return null;
+}
+
+export function TableRowsSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <tr key={index} className="border-b border-border/60 last:border-0">
+          {Array.from({ length: 7 }).map((__, cellIndex) => (
+            <td key={cellIndex} className="py-3 px-4">
+              <div className={`h-3 animate-pulse rounded bg-muted ${cellIndex === 0 ? 'w-36' : cellIndex === 6 ? 'ml-auto w-20' : 'w-24'}`} />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian: [], daftarPeriode: [] }, userRole = 'anggota', children }: AnggotaManagerProps) {
   const [members] = useState<AnggotaDetail[]>(initialMembers);
+  const [loadedMembers, setLoadedMembers] = useState<AnggotaDetail[]>(members);
+  const [dataReady, setDataReady] = useState(initialMembers.length > 0);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRt, setFilterRt] = useState('Semua RT');
   const [filterStatus, setFilterStatus] = useState<'semua' | 'Aktif' | 'Alumni' | 'Cuti'>('semua');
@@ -46,6 +84,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
   const [previewMember, setPreviewMember] = useState<AnggotaDetail | null>(null);
 
   const isAdmin = userRole === 'admin';
+  const membersContext = useMemo(() => ({ setMembers: setLoadedMembers, setDataReady }), []);
 
   const handleExportCsv = () => {
     const headers = ['Nama', 'Jabatan', 'Bagian', 'RT/RW', 'Kontak', 'Status', 'Periode'];
@@ -62,7 +101,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
     document.body.removeChild(link);
   };
 
-  const filteredMembers = members.filter((m) => {
+  const filteredMembers = loadedMembers.filter((m) => {
     if (filterStatus !== 'semua' && m.status !== filterStatus) return false;
     if (filterRt !== 'Semua RT' && !m.rt_rw.includes(filterRt)) return false;
     if (filterBagian !== 'semua' && m.bagianId !== filterBagian) return false;
@@ -79,7 +118,8 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
   });
 
   return (
-    <div className="space-y-6">
+    <AnggotaMembersContext.Provider value={membersContext}>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -146,7 +186,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
         <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           {(['semua', 'Aktif', 'Alumni', 'Cuti'] as const).map((st) => (
             <Button key={st} size="sm" variant={filterStatus === st ? 'default' : 'ghost'} className="text-xs h-8 px-3 rounded-lg capitalize whitespace-nowrap shrink-0" onClick={() => setFilterStatus(st)}>
-              {st === 'semua' ? `Semua (${members.length})` : `${st} (${members.filter((m) => m.status === st).length})`}
+              {st === 'semua' ? `Semua (${loadedMembers.length})` : `${st} (${loadedMembers.filter((m) => m.status === st).length})`}
             </Button>
           ))}
         </div>
@@ -158,7 +198,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Users className="h-4 w-4 text-primary" />
-              <span>Daftar Keanggotaan ({filteredMembers.length})</span>
+              <span>Daftar Keanggotaan ({dataReady ? filteredMembers.length : 0})</span>
             </CardTitle>
             <span className="text-xs text-muted-foreground">Tersinkronisasi Terpusat</span>
           </div>
@@ -166,7 +206,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
         <CardContent className="p-0">
           {/* Mobile Card List (< md) */}
           <div className="md:hidden divide-y divide-border/60">
-            {filteredMembers.length === 0 ? (
+            {!dataReady ? null : filteredMembers.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground text-xs">Tidak ada anggota yang cocok dengan filter atau pencarian.</div>
             ) : (
               filteredMembers.map((m) => (
@@ -237,7 +277,10 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {filteredMembers.length === 0 ? (
+                <Suspense fallback={<TableRowsSkeleton />}>
+                  {children}
+                </Suspense>
+                {!dataReady ? null : filteredMembers.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-10 text-center text-muted-foreground text-xs">
                       Tidak ada data anggota yang cocok dengan filter atau pencarian.
@@ -371,6 +414,7 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </AnggotaMembersContext.Provider>
   );
 }

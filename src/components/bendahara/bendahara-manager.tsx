@@ -184,7 +184,6 @@ export function BendaharaManager({ initialList, initialSaldo, bagianId: initialB
             setRealtimeStatus('connected');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             setRealtimeStatus('error');
-            void queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
           }
         });
     };

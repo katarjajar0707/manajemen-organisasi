@@ -1,19 +1,25 @@
-import { getAnggotaList, getAnggotaFormMeta } from "@/actions/anggota";
+import { Suspense } from "react";
+import { getAnggotaList, getAnggotaFormMeta, type AnggotaDetail } from "@/actions/anggota";
 import { getProfile } from "@/lib/supabase/server";
-import { AnggotaManager } from "@/components/anggota/anggota-manager";
+import { AnggotaManager, AnggotaMembersBridge, TableRowsSkeleton } from "@/components/anggota/anggota-manager";
+
+async function AnggotaMembersData({ membersPromise }: { membersPromise: Promise<AnggotaDetail[]> }) {
+  const members = await membersPromise;
+  return <AnggotaMembersBridge members={members} />;
+}
 
 export default async function AnggotaPage() {
-  const [members, metadata, profile] = await Promise.all([
-    getAnggotaList(),
-    getAnggotaFormMeta(),
-    getProfile(),
-  ]);
+  const membersPromise = getAnggotaList();
+  const [metadata, profile] = await Promise.all([getAnggotaFormMeta(), getProfile()]);
 
   return (
     <AnggotaManager
-      initialMembers={members}
       metadata={metadata}
       userRole={profile?.role || "anggota"}
-    />
+    >
+      <Suspense fallback={<TableRowsSkeleton />}>
+        <AnggotaMembersData membersPromise={membersPromise} />
+      </Suspense>
+    </AnggotaManager>
   );
 }

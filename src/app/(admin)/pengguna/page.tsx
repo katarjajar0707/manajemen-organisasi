@@ -1,8 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { UserFormModal } from './components/user-form-modal';
 import { DeleteUserButton } from './components/delete-user-button';
+import { UserDataTable } from './components/user-data-table';
 import { getUsers } from '@/actions/admin-users';
 import { getProfile } from '@/lib/supabase/server';
 import { getCachedBagianOptions } from '@/lib/cache/bagian';
@@ -85,40 +85,7 @@ export default async function UserManagementPage() {
 
           {/* Desktop Table View (>= md) */}
           <div className="hidden md:block overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Email / Username</TableHead>
-                  <TableHead>Bagian</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((u: any) => (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.nama}</TableCell>
-                    <TableCell>
-                      <div className="text-xs text-muted-foreground">{u.email}</div>
-                      <div className="text-[10px] text-muted-foreground/60">@{u.username}</div>
-                    </TableCell>
-                    <TableCell>{u.bagian?.nama || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant={u.role === 'admin' ? 'default' : u.role === 'ketua' ? 'destructive' : 'secondary'} className="capitalize">
-                        {u.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <UserFormModal bagianList={bagianList || []} mode="edit" userToEdit={{ id: u.id, nama: u.nama, username: u.username, email: u.email, nomor_wa: u.nomor_wa, role: u.role, bagian_id: u.bagian_id }} />
-                        <DeleteUserButton userId={u.id} userName={u.nama} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <UserDataTable users={users} bagianList={bagianList || []} />
           </div>
         </CardContent>
       </Card>
