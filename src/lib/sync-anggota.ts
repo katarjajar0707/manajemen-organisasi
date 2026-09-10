@@ -31,7 +31,7 @@ export async function syncProfilesToAnggota() {
       periode_id: existing?.periode_id || periode.id,
       bagian_id: profile.bagian_id || null,
       status: 'Aktif',
-      ...(profile.foto_url ? { foto_url: profile.foto_url } : {}),
+      foto_url: profile.foto_url || null,
     };
 
     const { error } = await supabase.from('anggota').upsert(payload, { onConflict: 'id' });

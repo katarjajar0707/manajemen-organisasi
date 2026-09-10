@@ -253,7 +253,11 @@ export async function removeAvatar() {
       return { error: 'Gagal menghapus foto profil.' };
     }
 
-    await supabase.from('anggota').update({ foto_url: null }).eq('id', user.id);
+    const { error: anggotaError } = await supabase.from('anggota').update({ foto_url: null }).eq('id', user.id);
+    if (anggotaError) {
+      console.error('Failed to remove avatar URL from anggota:', anggotaError);
+      return { error: 'Foto profil terhapus, tetapi gagal menyinkronkan data anggota.' };
+    }
 
     revalidatePath('/profil');
     revalidatePath('/anggota');
