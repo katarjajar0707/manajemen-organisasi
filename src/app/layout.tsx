@@ -18,9 +18,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://manajemen-organisasi.vercel.app/'),
-  title: 'KartaTuju',
-  description: 'Selasa, 04 Agustus 2026',
+  metadataBase: new URL('https://kartatuju.vercel.app'),
+  title: {
+    default: 'KartaTuju | Manajemen Organisasi',
+    template: '%s | KartaTuju',
+  },
+  description: 'Platform digital untuk mengelola anggota, struktur organisasi, agenda, inventaris, dokumen, dan transparansi informasi organisasi.',
   applicationName: 'KartaTuju',
   appleWebApp: {
     capable: true,
@@ -32,28 +35,30 @@ export const metadata: Metadata = {
   publisher: 'KartaTuju',
   category: 'website',
   alternates: {
-    canonical: '/',
+    canonical: 'https://kartatuju.vercel.app/',
   },
   openGraph: {
-    title: 'KartaTuju',
-    description: 'Selasa, 04 Agustus 2026',
-    url: '/',
+    title: 'KartaTuju | Manajemen Organisasi',
+    description: 'Platform digital untuk mengelola anggota, struktur organisasi, agenda, inventaris, dokumen, dan transparansi informasi organisasi.',
+    url: 'https://kartatuju.vercel.app/',
     siteName: 'KartaTuju',
     type: 'website',
     locale: 'id_ID',
     images: [
       {
-        url: '/logo.png',
-        alt: 'KartaTuju',
+        url: 'https://kartatuju.vercel.app/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'KartaTuju | Manajemen Organisasi',
         type: 'image/png',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'KartaTuju',
-    description: 'Selasa, 04 Agustus 2026',
-    images: ['/logo.png'],
+    title: 'KartaTuju | Manajemen Organisasi',
+    description: 'Platform digital untuk mengelola anggota, struktur organisasi, agenda, inventaris, dokumen, dan transparansi informasi organisasi.',
+    images: ['https://kartatuju.vercel.app/og-image.png'],
   },
   robots: {
     index: true,

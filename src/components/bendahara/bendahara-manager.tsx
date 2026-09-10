@@ -148,6 +148,8 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [filterJenis, setFilterJenis] = useState<'semua' | 'masuk' | 'keluar'>('semua');
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
@@ -361,6 +363,43 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
       (item.author?.nama || '').toLowerCase().includes(q)
     );
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / rowsPerPage));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterJenis, rowsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
+  const paginatedList = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredList.slice(start, start + rowsPerPage);
+  }, [filteredList, currentPage, rowsPerPage]);
+
+  const pageButtons = useMemo(() => {
+    const buttons: number[] = [];
+    const maxVisible = 5;
+    let startPage = 1;
+    let endPage = totalPages;
+
+    if (totalPages > maxVisible) {
+      const half = Math.floor(maxVisible / 2);
+      startPage = Math.max(1, currentPage - half);
+      endPage = Math.min(totalPages, startPage + maxVisible - 1);
+      if (endPage - startPage + 1 < maxVisible) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+      }
+    }
+
+    for (let page = startPage; page <= endPage; page += 1) {
+      buttons.push(page);
+    }
+
+    return buttons;
+  }, [currentPage, totalPages]);
 
   const handleExportPDF = () => {
     if (filteredList.length === 0) {
@@ -839,7 +878,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                       </td>
                     </tr>
                   ) : (
-                    filteredList.map((trx: any) => (
+                    paginatedList.map((trx: any) => (
                       <tr key={trx.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30 transition-colors">
                         <td suppressHydrationWarning className="px-3 sm:px-6 py-3.5 whitespace-nowrap text-xs">
                           {new Date(trx.created_at).toLocaleDateString('id-ID', {
@@ -916,6 +955,55 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                 </tbody>
               </table>
             </div>
+
+            {!dataReady || filteredList.length === 0 ? null : (
+              <div className="border-t bg-muted/5 px-3 py-3 sm:px-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center justify-between gap-2 sm:justify-start">
+                    <span className="text-xs text-muted-foreground">Baris per halaman</span>
+                    <Select value={String(rowsPerPage)} onValueChange={(value) => setRowsPerPage(Number(value))}>
+                      <SelectTrigger className="h-8 w-[110px] text-xs">
+                        <SelectValue placeholder="10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[5, 10, 30, 50, 75, 100].map((option) => (
+                          <SelectItem key={option} value={String(option)}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 sm:justify-end">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="h-8 px-3 text-xs">
+                      Previous
+                    </Button>
+                    <span className="text-xs font-medium whitespace-nowrap">
+                      Halaman {currentPage} dari {totalPages}
+                    </span>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="h-8 px-3 text-xs">
+                      Next
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-3 hidden items-center justify-end gap-1 sm:flex">
+                  {pageButtons.map((page) => (
+                    <Button
+                      key={page}
+                      type="button"
+                      variant={page === currentPage ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={cn('h-8 w-8 p-0 text-xs', page === currentPage && 'bg-primary text-primary-foreground hover:bg-primary/90')}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
