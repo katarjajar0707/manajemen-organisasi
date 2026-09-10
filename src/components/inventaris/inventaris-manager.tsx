@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition, useRef } from 'react';
+import { createContext, type ReactNode, Suspense, useContext, useState, useMemo, useTransition, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,13 +37,85 @@ interface InventarisManagerProps {
   userRole?: string;
   currentUserId?: string;
   settings?: PengaturanSistemData;
+  loading?: boolean;
+  children?: ReactNode;
 }
 
 const INVENTARIS_ITEMS_QUERY_KEY = ['inventaris', 'items'] as const;
 const INVENTARIS_RIWAYAT_QUERY_KEY = ['inventaris', 'riwayat'] as const;
 
-export function InventarisManager({ initialItems = [], initialRiwayat = [], userRole = 'anggota', currentUserId, settings }: InventarisManagerProps) {
+interface InventarisData {
+  items: ItemInventaris[];
+  riwayat: PeminjamanRecord[];
+  profile: { id: string; role: string } | null;
+  settings: PengaturanSistemData;
+}
+
+const InventarisDataContext = createContext<((data: InventarisData) => void) | null>(null);
+
+export function InventarisDataBridge({ data }: { data: InventarisData }) {
+  const setData = useContext(InventarisDataContext);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!setData) return;
+    queryClient.setQueryData(INVENTARIS_ITEMS_QUERY_KEY, data.items);
+    queryClient.setQueryData(INVENTARIS_RIWAYAT_QUERY_KEY, data.riwayat);
+    setData(data);
+  }, [data, queryClient, setData]);
+
+  return null;
+}
+
+export function InventarisDataSkeleton() {
+  return (
+    <div className="space-y-4" aria-label="Memuat data inventaris">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="h-24 animate-pulse rounded-lg border border-border/60 bg-muted/40" />
+        ))}
+      </div>
+      <div className="rounded-lg border border-border/60 p-4">
+        <div className="h-5 w-44 animate-pulse rounded bg-muted" />
+        <div className="mt-4 space-y-3">
+          {Array.from({ length: 5 }).map((_, index) => <div key={index} className="h-10 animate-pulse rounded bg-muted/60" />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InventarisTableRowsSkeleton({ history = false }: { history?: boolean }) {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, row) => (
+        <TableRow key={row}>
+          {Array.from({ length: 7 }).map((__, cell) => (
+            <TableCell key={cell} className="py-4">
+              <div className={`h-3 animate-pulse rounded bg-muted ${history && cell === 0 ? 'w-36' : cell === 6 ? 'ml-auto w-16' : 'w-24'}`} />
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </>
+  );
+}
+
+export function InventarisManager({ initialItems = [], initialRiwayat = [], userRole = 'anggota', currentUserId: initialCurrentUserId, settings: initialSettings, loading = false, children }: InventarisManagerProps) {
+  const queryClient = useQueryClient();
+  const [dataReady, setDataReady] = useState(!loading);
+  const [currentUserRole, setCurrentUserRole] = useState(userRole);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(initialCurrentUserId);
+  const [settings, setSettings] = useState(initialSettings);
+  const dataSetter = useMemo(
+    () => (data: InventarisData) => {
+      setCurrentUserRole(data.profile?.role || 'anggota');
+      setCurrentUserId(data.profile?.id);
+      setSettings(data.settings);
+      setDataReady(true);
+    },
+    [],
+  );
   const { data: items = initialItems } = useQuery({
     queryKey: INVENTARIS_ITEMS_QUERY_KEY,
     queryFn: () => getInventarisList(),
@@ -422,7 +494,9 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
   };
 
   return (
-    <div className="space-y-6">
+    <InventarisDataContext.Provider value={dataSetter}>
+      <div className="space-y-6">
+      {children}
       {/* Toast Notification Banner */}
       {notification.show && (
         <div
@@ -467,8 +541,8 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             <div>
               <p className="text-xs font-medium text-muted-foreground">Total Inventaris</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-2xl font-bold text-foreground">{stats.totalJenis}</span>
-                <span className="text-xs text-muted-foreground">jenis ({stats.totalUnit} unit)</span>
+                {dataReady ? <span className="text-2xl font-bold text-foreground">{stats.totalJenis}</span> : <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />}
+                <span className="text-xs text-muted-foreground">jenis ({dataReady ? `${stats.totalUnit} unit` : '...'} )</span>
               </div>
             </div>
             <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
@@ -482,7 +556,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             <div>
               <p className="text-xs font-medium text-muted-foreground">Kondisi Baik</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-2xl font-bold text-emerald-400">{stats.kondisiBaik}</span>
+                {dataReady ? <span className="text-2xl font-bold text-emerald-400">{stats.kondisiBaik}</span> : <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />}
                 <span className="text-xs text-muted-foreground">jenis</span>
               </div>
             </div>
@@ -497,7 +571,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             <div>
               <p className="text-xs font-medium text-muted-foreground">Perlu Perbaikan</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-2xl font-bold text-amber-400">{stats.kondisiRusak}</span>
+                {dataReady ? <span className="text-2xl font-bold text-amber-400">{stats.kondisiRusak}</span> : <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />}
                 <span className="text-xs text-muted-foreground">jenis</span>
               </div>
             </div>
@@ -512,7 +586,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             <div>
               <p className="text-xs font-medium text-muted-foreground">Sedang Dipinjam</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-2xl font-bold text-sky-400">{stats.dipinjam}</span>
+                {dataReady ? <span className="text-2xl font-bold text-sky-400">{stats.dipinjam}</span> : <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />}
                 <span className="text-xs text-muted-foreground">barang</span>
               </div>
             </div>
@@ -529,11 +603,11 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
           <TabsList className="bg-muted/60">
             <TabsTrigger value="daftar" className="gap-2">
               <Package className="h-4 w-4" />
-              Daftar Barang ({items.length})
+              Daftar Barang ({dataReady ? items.length : '...'})
             </TabsTrigger>
             <TabsTrigger value="riwayat" className="gap-2">
               <History className="h-4 w-4" />
-              Riwayat Peminjaman ({riwayat.length})
+              Riwayat Peminjaman ({dataReady ? riwayat.length : '...'})
             </TabsTrigger>
           </TabsList>
         </div>
@@ -690,7 +764,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEdit(item)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          {(userRole === 'admin' || userRole === 'ketua') && (
+                          {(currentUserRole === 'admin' || currentUserRole === 'ketua') && (
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleOpenDelete(item)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -717,7 +791,9 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredItems.length === 0 ? (
+                    {!dataReady ? (
+                      <InventarisTableRowsSkeleton />
+                    ) : filteredItems.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-sm">
                           Tidak ada inventaris barang yang sesuai dengan filter.
@@ -807,7 +883,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                                 <Pencil className="h-4 w-4" />
                               </Button>
 
-                              {(userRole === 'admin' || userRole === 'ketua') && (
+                              {(currentUserRole === 'admin' || currentUserRole === 'ketua') && (
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenDelete(item)} title="Hapus Barang">
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -849,7 +925,9 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {riwayat.length === 0 ? (
+                    {!dataReady ? (
+                      <InventarisTableRowsSkeleton history />
+                    ) : riwayat.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-sm">
                           Belum ada riwayat peminjaman barang tercatat.
@@ -1312,5 +1390,6 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
         </DialogContent>
       </Dialog>
     </div>
+    </InventarisDataContext.Provider>
   );
 }
