@@ -20,10 +20,10 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://kartatuju.vercel.app'),
   title: {
-    default: 'KartaTuju | Manajemen Organisasi',
+    default: 'KartaTuju | Jatijajar Depok',
     template: '%s | KartaTuju',
   },
-  description: 'Platform digital untuk mengelola anggota, struktur organisasi, agenda, inventaris, dokumen, dan transparansi informasi organisasi.',
+  description: 'A digital platform for managing organizations and community information.',
   applicationName: 'KartaTuju',
   appleWebApp: {
     capable: true,
@@ -38,8 +38,8 @@ export const metadata: Metadata = {
     canonical: 'https://kartatuju.vercel.app/',
   },
   openGraph: {
-    title: 'KartaTuju | Manajemen Organisasi',
-    description: 'Platform digital untuk mengelola anggota, struktur organisasi, agenda, inventaris, dokumen, dan transparansi informasi organisasi.',
+    title: 'KartaTuju | Rt 07/07 Jatijajar II Depok',
+    description: 'A digital platform for managing organizations and community information.',
     url: 'https://kartatuju.vercel.app/',
     siteName: 'KartaTuju',
     type: 'website',
@@ -49,15 +49,15 @@ export const metadata: Metadata = {
         url: 'https://kartatuju.vercel.app/og-image.svg',
         width: 1200,
         height: 630,
-        alt: 'KartaTuju | Manajemen Organisasi',
+        alt: 'KartaTuju | Jatijajar Depok',
         type: 'image/svg+xml',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'KartaTuju | Manajemen Organisasi',
-    description: 'Platform digital untuk mengelola anggota, struktur organisasi, agenda, inventaris, dokumen, dan transparansi informasi organisasi.',
+    title: 'KartaTuju | Jatijajar Depok',
+    description: 'A digital platform for managing organizations and community information.',
     images: ['https://kartatuju.vercel.app/og-image.svg'],
   },
   robots: {
