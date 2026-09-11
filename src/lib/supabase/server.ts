@@ -69,22 +69,29 @@ export function createPublicClient() {
 }
 
 export const getProfile = cache(async () => {
-  const supabase = await createClient();
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  if (userError || !user) {
+    if (userError || !user) {
+      return null;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*, bagian:bagian_id(id, nama, slug)")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return null;
+    }
+
+    return profile;
+  } catch (error) {
+    // A temporary authentication/database failure must not crash an entire
+    // route. Callers can treat this the same way as an expired session.
+    console.error("Error fetching authenticated profile:", error);
     return null;
   }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("*, bagian:bagian_id(id, nama, slug)")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    return null;
-  }
-
-  return profile;
 });

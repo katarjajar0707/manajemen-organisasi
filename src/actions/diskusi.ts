@@ -49,11 +49,12 @@ export async function getDiskusis(filters?: {
   search?: string;
   bagianId?: string;
 }): Promise<DiskusiItem[]> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  let query = supabase
-    .from("diskusi")
-    .select(`
+    let query = supabase
+      .from("diskusi")
+      .select(`
       *,
       bagian_pembuat:bagian!bagian_pembuat_id (
         id,
@@ -77,60 +78,66 @@ export async function getDiskusis(filters?: {
           slug
         )
       )
-    `)
-    .order("is_pinned", { ascending: false })
-    .order("created_at", { ascending: false });
+      `)
+      .order("is_pinned", { ascending: false })
+      .order("created_at", { ascending: false });
 
-  if (filters?.tipe && filters.tipe !== "semua") {
-    query = query.eq("tipe", filters.tipe);
-  }
+    if (filters?.tipe && filters.tipe !== "semua") {
+      query = query.eq("tipe", filters.tipe);
+    }
 
-  if (filters?.search && filters.search.trim() !== "") {
-    query = query.or(`judul.ilike.%${filters.search.trim()}%,isi.ilike.%${filters.search.trim()}%`);
-  }
+    if (filters?.search && filters.search.trim() !== "") {
+      query = query.or(`judul.ilike.%${filters.search.trim()}%,isi.ilike.%${filters.search.trim()}%`);
+    }
 
-  if (filters?.bagianId) {
-    query = query.eq("bagian_pembuat_id", filters.bagianId);
-  }
+    if (filters?.bagianId) {
+      query = query.eq("bagian_pembuat_id", filters.bagianId);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
-    console.error("Error fetching diskusis:", JSON.stringify(error, null, 2));
+    if (error) {
+      console.error("Error fetching diskusis:", JSON.stringify(error, null, 2));
+      return [];
+    }
+
+    if (!data) return [];
+
+    return data.map((item) => {
+      const rawMentions = Array.isArray(item.diskusi_mention) ? item.diskusi_mention : [];
+      const mentions: DiskusiMentionItem[] = rawMentions
+        .filter((m: any) => Boolean(m?.bagian))
+        .map((m: any) => ({
+          id: m.id,
+          bagianId: m.bagian.id,
+          bagianNama: m.bagian.nama,
+          bagianSlug: m.bagian.slug,
+        }));
+
+      return {
+        id: item.id,
+        tipe: item.tipe,
+        judul: item.judul,
+        isi: item.isi,
+        bagianPembuatId: item.bagian_pembuat_id,
+        bagianPembuatNama: item.bagian_pembuat?.nama || "Umum",
+        bagianPembuatSlug: item.bagian_pembuat?.slug || "",
+        dibuatOleh: item.dibuat_oleh,
+        authorName: item.author?.nama || "Anggota",
+        authorAvatar: item.author?.foto_url || null,
+        authorRole: item.author?.role || "anggota",
+        isPinned: Boolean(item.is_pinned),
+        createdAt: item.created_at,
+        balasanCount: Array.isArray(item.diskusi_balasan) ? item.diskusi_balasan.length : 0,
+        mentions,
+      };
+    });
+  } catch (error) {
+    // The dashboard can remain usable when its non-critical discussion feed
+    // is unavailable for a moment.
+    console.error("Unexpected error fetching diskusis:", error);
     return [];
   }
-
-  if (!data) return [];
-
-  return data.map((item) => {
-    const rawMentions = Array.isArray(item.diskusi_mention) ? item.diskusi_mention : [];
-    const mentions: DiskusiMentionItem[] = rawMentions
-      .filter((m: any) => Boolean(m?.bagian))
-      .map((m: any) => ({
-        id: m.id,
-        bagianId: m.bagian.id,
-        bagianNama: m.bagian.nama,
-        bagianSlug: m.bagian.slug,
-      }));
-
-    return {
-      id: item.id,
-      tipe: item.tipe,
-      judul: item.judul,
-      isi: item.isi,
-      bagianPembuatId: item.bagian_pembuat_id,
-      bagianPembuatNama: item.bagian_pembuat?.nama || "Umum",
-      bagianPembuatSlug: item.bagian_pembuat?.slug || "",
-      dibuatOleh: item.dibuat_oleh,
-      authorName: item.author?.nama || "Anggota",
-      authorAvatar: item.author?.foto_url || null,
-      authorRole: item.author?.role || "anggota",
-      isPinned: Boolean(item.is_pinned),
-      createdAt: item.created_at,
-      balasanCount: Array.isArray(item.diskusi_balasan) ? item.diskusi_balasan.length : 0,
-      mentions,
-    };
-  });
 }
 
 /**
