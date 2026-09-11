@@ -18,31 +18,39 @@ function revalidateCatatanPaths() {
 }
 
 export async function getCatatanList() {
-  const access = await getCatatanAccess();
-  if ('error' in access) return [];
+  try {
+    const access = await getCatatanAccess();
+    if ('error' in access) return [];
 
-  const supabase = await createClient();
-  const { data: catatanList, error } = await supabase
-    .from('catatan')
-    .select(
-      `
-      *,
-      author:profiles!catatan_dibuat_oleh_fkey (
-        nama,
-        role
+    const supabase = await createClient();
+    const { data: catatanList, error } = await supabase
+      .from('catatan')
+      .select(
+        `
+        *,
+        author:profiles!catatan_dibuat_oleh_fkey (
+          nama,
+          role
+        )
+      `,
       )
-    `,
-    )
-    .eq('bagian_id', access.bagian.id)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+      .eq('bagian_id', access.bagian.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching catatan:', error);
+    if (error) {
+      console.error('Error fetching catatan:', error);
+      return [];
+    }
+
+    return catatanList || [];
+  } catch (error) {
+    // A data-source outage must not turn the entire protected route into a
+    // React Server Component error. The manager can safely render its empty
+    // state and data will return on the next request.
+    console.error('Unexpected error fetching catatan:', error);
     return [];
   }
-
-  return catatanList || [];
 }
 
 export async function createCatatan(formData: FormData) {

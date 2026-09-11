@@ -18,84 +18,113 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return supabaseResponse;
-  }
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({
-          request,
-        });
-        cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
-      },
-    },
-  });
-
-  // Refresh auth token if expired
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith('/login');
   const isPublicRoute = pathname === '/' || pathname === '/laporan-keuangan' || pathname === '/opengraph-image';
   const isHealthRoute = pathname === '/api/health';
   const isSystemRoute = isHealthRoute || pathname === '/api/keep-alive';
 
-  // Maintenance mode is enforced here, before a page, route handler, or
-  // server action can be reached. The setting is intentionally queried
-  // directly rather than through the app cache so activating it takes effect
-  // on the next request.
-  const { data: maintenanceSettings, error: maintenanceError } = await supabase
-    .from('pengaturan_sistem')
-    .select('mode_maintenance')
-    .eq('id', 'default')
-    .maybeSingle();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!maintenanceError && maintenanceSettings?.mode_maintenance) {
-    let isAdministrator = false;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[supabase-session] Missing public Supabase environment variables', { pathname });
 
-    if (user) {
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-      isAdministrator = profile?.role === 'admin';
-    }
-
-    // Keep the sign-in form reachable for an unauthenticated administrator.
-    // The login action below verifies the role and signs non-admin users out.
-    const isUnauthenticatedLogin = !user && isAuthRoute;
-    if (!isAdministrator && pathname !== '/maintenance' && !isUnauthenticatedLogin && !isSystemRoute) {
+    if (!isAuthRoute && !isPublicRoute && !isSystemRoute) {
       const url = request.nextUrl.clone();
-      url.pathname = '/maintenance';
+      url.pathname = '/login';
       url.search = '';
       return redirectWithSessionCookies(url, supabaseResponse);
     }
-  } else if (pathname === '/maintenance') {
-    // Do not expose a stale maintenance page once the mode is disabled.
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    return redirectWithSessionCookies(url, supabaseResponse);
+
+    return supabaseResponse;
   }
 
-  if (!user && !isAuthRoute && !isPublicRoute && !isHealthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    return redirectWithSessionCookies(url, supabaseResponse);
-  }
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
+        },
+      },
+    });
 
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return redirectWithSessionCookies(url, supabaseResponse);
-  }
+    // Refresh auth token if expired.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  return supabaseResponse;
+    // Maintenance mode is enforced here, before a page, route handler, or
+    // server action can be reached. The setting is intentionally queried
+    // directly rather than through the app cache so activating it takes effect
+    // on the next request.
+    const { data: maintenanceSettings, error: maintenanceError } = await supabase
+      .from('pengaturan_sistem')
+      .select('mode_maintenance')
+      .eq('id', 'default')
+      .maybeSingle();
+
+    if (!maintenanceError && maintenanceSettings?.mode_maintenance) {
+      let isAdministrator = false;
+
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        isAdministrator = profile?.role === 'admin';
+      }
+
+      // Keep the sign-in form reachable for an unauthenticated administrator.
+      // The login action below verifies the role and signs non-admin users out.
+      const isUnauthenticatedLogin = !user && isAuthRoute;
+      if (!isAdministrator && pathname !== '/maintenance' && !isUnauthenticatedLogin && !isSystemRoute) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/maintenance';
+        url.search = '';
+        return redirectWithSessionCookies(url, supabaseResponse);
+      }
+    } else if (pathname === '/maintenance') {
+      // Do not expose a stale maintenance page once the mode is disabled.
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return redirectWithSessionCookies(url, supabaseResponse);
+    }
+
+    if (!user && !isAuthRoute && !isPublicRoute && !isSystemRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.search = '';
+      return redirectWithSessionCookies(url, supabaseResponse);
+    }
+
+    if (user && isAuthRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      url.search = '';
+      return redirectWithSessionCookies(url, supabaseResponse);
+    }
+
+    return supabaseResponse;
+  } catch (error) {
+    console.error('[supabase-session] Failed to validate session', {
+      pathname,
+      message: error instanceof Error ? error.message : String(error),
+    });
+
+    // An auth refresh outage must not render a broken protected page. A fresh
+    // sign-in can recover a stale cookie once Supabase is reachable again.
+    if (!isAuthRoute && !isPublicRoute && !isSystemRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.search = '';
+      return redirectWithSessionCookies(url, supabaseResponse);
+    }
+
+    return supabaseResponse;
+  }
 }

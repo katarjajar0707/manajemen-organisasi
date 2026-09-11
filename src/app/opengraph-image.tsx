@@ -52,13 +52,14 @@ export default async function OpenGraphImage() {
           <div
             style={{
               background: 'rgba(255,255,255,0.14)',
+              alignSelf: 'flex-start',
               border: '1px solid rgba(255,255,255,0.22)',
               borderRadius: 999,
               display: 'flex',
               fontSize: 21,
               marginTop: 34,
               padding: '11px 20px',
-              width: 'fit-content',
+              width: 'auto',
             }}
           >
             RT 07 / RW 07 · Jatijajar II, Depok
