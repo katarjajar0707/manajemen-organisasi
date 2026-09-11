@@ -3,6 +3,8 @@ import { BendaharaManager } from '@/components/bendahara/bendahara-manager';
 import { getKeuanganList, getAgendaCategories } from '@/actions/keuangan';
 import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
 import { BendaharaDataBridge, TransactionRowsSkeleton } from '@/components/bendahara/bendahara-manager';
+import { BagianCatatanManager } from '@/components/bagian/bagian-catatan-manager';
+import { getCatatanList } from '@/actions/catatan';
 
 async function BendaharaData({ dataPromise }: { dataPromise: ReturnType<typeof loadBendaharaData> }) {
   const data = await dataPromise;
@@ -19,12 +21,17 @@ function loadBendaharaData() {
 
 export default async function BendaharaPage() {
   const dataPromise = loadBendaharaData();
+  const catatanList = await getCatatanList('bendahara');
 
   return (
-    <BendaharaManager initialList={[]} initialSaldo={{ masuk: 0, keluar: 0, sisa: 0 }}>
-      <Suspense fallback={<TransactionRowsSkeleton />}>
-        <BendaharaData dataPromise={dataPromise} />
-      </Suspense>
-    </BendaharaManager>
+    <div className="space-y-10">
+      <BendaharaManager initialList={[]} initialSaldo={{ masuk: 0, keluar: 0, sisa: 0 }}>
+        <Suspense fallback={<TransactionRowsSkeleton />}>
+          <BendaharaData dataPromise={dataPromise} />
+        </Suspense>
+      </BendaharaManager>
+
+      <BagianCatatanManager slug="bendahara" initialCatatan={catatanList} />
+    </div>
   );
 }

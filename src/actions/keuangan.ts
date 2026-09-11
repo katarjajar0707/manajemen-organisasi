@@ -6,6 +6,21 @@ import { revalidatePath } from 'next/cache';
 import { invalidatePublicTransparencyCache } from '@/lib/cache/transparansi';
 import { getCachedBagianBySlug } from '@/lib/cache/bagian';
 
+async function getBendaharaAccess(bagianSlug: string) {
+  if (bagianSlug !== 'bendahara') {
+    return { error: 'Modul keuangan ini hanya tersedia untuk bagian Bendahara.' } as const;
+  }
+
+  const [profile, bagian] = await Promise.all([getProfile(), getCachedBagianBySlug('bendahara')]);
+  const canAccessBendahara = profile?.bagian?.slug === 'bendahara' || profile?.role === 'admin' || profile?.role === 'ketua';
+  if (!canAccessBendahara) {
+    return { error: 'Halaman keuangan hanya dapat diakses oleh bagian Bendahara, admin, atau ketua.' } as const;
+  }
+  if (!bagian) return { error: 'Bagian Bendahara tidak ditemukan.' } as const;
+
+  return { profile, bagian } as const;
+}
+
 /**
  * Mengambil daftar kegiatan langsung dari kalender_kegiatan (/kegiatan)
  * sehingga menu bar kategori di /bagian/bendahara sinkron 1:1 dengan data kegiatan.
@@ -32,14 +47,13 @@ export async function getAgendaCategories(): Promise<string[]> {
 }
 
 export async function getKeuanganList(bagianSlug: string = 'bendahara') {
-  const supabase = await createClient();
-
-  // Get bagian ID
-  const bagian = await getCachedBagianBySlug(bagianSlug);
-
-  if (!bagian) {
+  const access = await getBendaharaAccess(bagianSlug);
+  if ('error' in access) {
     return { bagianId: null, list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
   }
+
+  const supabase = await createClient();
+  const { bagian } = access;
 
   const { data: list, error } = await supabase
     .from('catatan_keuangan')
@@ -106,10 +120,9 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
 
 export async function createTransaksi(formData: FormData, bagianSlug: string = 'bendahara') {
   try {
-    const profile = await getProfile();
-    if (!profile) {
-      return { error: 'Anda harus login terlebih dahulu.' };
-    }
+    const access = await getBendaharaAccess(bagianSlug);
+    if ('error' in access) return access;
+    const { profile, bagian } = access;
 
     const jenis = formData.get('jenis') as 'masuk' | 'keluar';
     const judul = formData.get('judul') as string;
@@ -133,22 +146,6 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = '
     }
 
     const adminSupabase = await createAdminClient();
-
-    // Dapatkan bagian ID
-    const { data: bagian, error: bagianErr } = await adminSupabase.from('bagian').select('id, slug').eq('slug', bagianSlug).single();
-
-    if (bagianErr || !bagian) {
-      return { error: 'Bagian/divisi tidak ditemukan.' };
-    }
-
-    // Role check: admin, ketua, atau anggota bagian yang bersangkutan
-    const isAuthorized = profile.role === 'admin' || profile.role === 'ketua' || profile.bagian_id === bagian.id;
-
-    if (!isAuthorized) {
-      return {
-        error: 'Hanya pengurus bendahara, ketua, atau admin yang berhak mencatat transaksi kas.',
-      };
-    }
 
     let lampiran_url: string | null = null;
     if (file && file.size > 0) {
@@ -197,10 +194,9 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = '
 
 export async function updateTransaksi(id: string, formData: FormData, bagianSlug: string = 'bendahara') {
   try {
-    const profile = await getProfile();
-    if (!profile) {
-      return { error: 'Anda harus login terlebih dahulu.' };
-    }
+    const access = await getBendaharaAccess(bagianSlug);
+    if ('error' in access) return access;
+    const { bagian } = access;
 
     const jenis = formData.get('jenis') as 'masuk' | 'keluar';
     const judul = formData.get('judul') as string;
@@ -225,9 +221,7 @@ export async function updateTransaksi(id: string, formData: FormData, bagianSlug
       return { error: 'Transaksi tidak ditemukan.' };
     }
 
-    const isAuthorized = profile.role === 'admin' || profile.role === 'ketua' || profile.bagian_id === existing.bagian_id || existing.dibuat_oleh === profile.id;
-
-    if (!isAuthorized) {
+    if (existing.bagian_id !== bagian.id) {
       return { error: 'Anda tidak memiliki izin untuk mengubah transaksi ini.' };
     }
 
@@ -291,10 +285,9 @@ export async function updateTransaksi(id: string, formData: FormData, bagianSlug
 
 export async function deleteTransaksi(id: string, bagianSlug: string = 'bendahara') {
   try {
-    const profile = await getProfile();
-    if (!profile) {
-      return { error: 'Anda harus login terlebih dahulu.' };
-    }
+    const access = await getBendaharaAccess(bagianSlug);
+    if ('error' in access) return access;
+    const { bagian } = access;
 
     const adminSupabase = await createAdminClient();
 
@@ -305,10 +298,7 @@ export async function deleteTransaksi(id: string, bagianSlug: string = 'bendahar
       return { error: 'Transaksi tidak ditemukan.' };
     }
 
-    // Authorized if admin, ketua, or the creator
-    const isAuthorized = profile.role === 'admin' || profile.role === 'ketua' || profile.bagian_id === existing.bagian_id || existing.dibuat_oleh === profile.id;
-
-    if (!isAuthorized) {
+    if (existing.bagian_id !== bagian.id) {
       return { error: 'Anda tidak memiliki izin untuk menghapus transaksi ini.' };
     }
 

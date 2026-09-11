@@ -31,7 +31,7 @@ export default async function MaintenancePage() {
         <div className="mt-7 border-t pt-6">
           <p className="mb-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck aria-hidden="true" className="size-4" />
-            Tenang.. nanti juga bisa di akses lagi kok.
+            Tenang.. nanti bisa di akses lagi...
           </p>
           <Button asChild variant="outline">
             <Link href="/login">Masuk sebagai Az</Link>

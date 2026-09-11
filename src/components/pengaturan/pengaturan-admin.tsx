@@ -55,6 +55,7 @@ import { uploadLampiran } from '@/actions/storage';
 import { isImageFile } from '@/lib/utils';
 import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
+import { ActiveUsersPanel } from '@/components/pengaturan/active-users-panel';
 
 interface PengaturanAdminProps {
   initialSettings?: PengaturanSistemData;
@@ -952,6 +953,8 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
               )}
             </CardContent>
           </Card>
+
+          <ActiveUsersPanel />
 
           {/* Zona Bahaya */}
           <Card className="border-destructive/30 bg-destructive/5">

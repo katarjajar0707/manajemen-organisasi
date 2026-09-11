@@ -17,6 +17,7 @@ export default async function BagianManagementPage() {
     <BagianManager
       initialBagian={departments}
       userRole={profile?.role || "anggota"}
+      currentUserBagianSlug={profile?.bagian?.slug}
     />
   );
 }

@@ -5,6 +5,7 @@ export interface NavItem {
   href: string;
   icon: any;
   roles?: ('admin' | 'ketua' | 'anggota')[];
+  bagianSlugs?: string[];
   badge?: string;
 }
 
@@ -23,6 +24,8 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     title: 'Catatan Keuangan',
     href: '/bagian/bendahara',
     icon: Wallet,
+    roles: ['admin', 'ketua'],
+    bagianSlugs: ['bendahara'],
   },
   {
     title: 'Anggota',

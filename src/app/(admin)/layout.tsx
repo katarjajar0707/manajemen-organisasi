@@ -6,6 +6,7 @@ import { AppMobileNav } from '@/components/common/app-mobile-nav';
 import { getProfile } from '@/lib/supabase/server';
 import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
 import { AdminQueryProvider } from '@/providers/admin-query-provider';
+import { UserPresenceTracker } from '@/components/common/user-presence-tracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,8 @@ async function AdminSidebarChrome() {
 
   return (
     <>
-      <AppSidebar userRole={profile?.role} orgLogoUrl={settings.profil.logoUrl} orgName={settings.profil.nama} />
-      <AppMobileNav userRole={profile?.role} orgLogoUrl={settings.profil.logoUrl} orgName={settings.profil.nama} />
+      <AppSidebar userRole={profile?.role} userBagianSlug={profile?.bagian?.slug} orgLogoUrl={settings.profil.logoUrl} orgName={settings.profil.nama} />
+      <AppMobileNav userRole={profile?.role} userBagianSlug={profile?.bagian?.slug} orgLogoUrl={settings.profil.logoUrl} orgName={settings.profil.nama} />
     </>
   );
 }
@@ -28,6 +29,7 @@ async function AdminHeaderChrome() {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminQueryProvider>
+      <UserPresenceTracker />
       {/* Fullscreen container — no overflow at root level */}
       <div className="h-screen min-h-0 flex overflow-hidden bg-background">
         {/* The shell is interactive immediately; session-backed chrome streams in separately. */}

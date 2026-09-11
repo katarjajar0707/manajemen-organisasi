@@ -14,11 +14,12 @@ import { PreviewImage } from '@/components/common/preview-image';
 
 interface AppMobileNavProps {
   userRole?: string;
+  userBagianSlug?: string | null;
   orgLogoUrl?: string | null;
   orgName?: string;
 }
 
-export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: AppMobileNavProps) {
+export function AppMobileNav({ userRole: propUserRole, userBagianSlug, orgLogoUrl, orgName }: AppMobileNavProps) {
   const pathname = usePathname();
   const isMobileOpen = useSidebarStore((s) => s.isMobileOpen);
   const setMobileOpen = useSidebarStore((s) => s.setMobileOpen);
@@ -53,9 +54,17 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
     };
   }, [isMobileOpen]);
 
-  const isAuthorized = (itemRoles?: string[]) => {
-    if (!itemRoles || itemRoles.length === 0) return true;
-    return itemRoles.includes(userRole);
+  const isAuthorized = (itemRoles?: string[], bagianSlugs?: string[]) => {
+    const hasRoleRestriction = Boolean(itemRoles?.length);
+    const hasBagianRestriction = Boolean(bagianSlugs?.length);
+    const hasRoleAccess = Boolean(itemRoles?.includes(userRole));
+    const hasBagianAccess = Boolean(userBagianSlug && bagianSlugs?.includes(userBagianSlug));
+
+    // Item dengan peran dan bagian dapat dibuka oleh salah satu jalur akses tersebut.
+    if (hasRoleRestriction && hasBagianRestriction) return hasRoleAccess || hasBagianAccess;
+    if (hasRoleRestriction) return hasRoleAccess;
+    if (hasBagianRestriction) return hasBagianAccess;
+    return true;
   };
 
   const navItemClass = (isActive: boolean) =>
@@ -108,7 +117,7 @@ export function AppMobileNav({ userRole: propUserRole, orgLogoUrl, orgName }: Ap
           <div>
             <p className="px-3 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">Menu Utama</p>
             <nav className="space-y-1">
-              {MAIN_NAV_ITEMS.filter((item) => isAuthorized(item.roles)).map((item) => {
+              {MAIN_NAV_ITEMS.filter((item) => isAuthorized(item.roles, item.bagianSlugs)).map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
