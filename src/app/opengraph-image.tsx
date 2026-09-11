@@ -1,14 +1,15 @@
 import { ImageResponse } from 'next/og';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
 export const alt = 'KartaTuju | Sistem Informasi Organisasi dan Transparansi Warga';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 export const runtime = 'nodejs';
 
-const logoData = await readFile(join(process.cwd(), 'public', 'logo.png'), 'base64');
-const logoSrc = `data:image/png;base64,${logoData}`;
+// Assets in `public` are served by Vercel but are not guaranteed to exist in
+// the serverless function filesystem. Supplying an absolute public URL lets
+// ImageResponse fetch the same logo without making every Server Component
+// render depend on `process.cwd()/public/logo.png`.
+const logoSrc = 'https://kartatuju.vercel.app/logo.png';
 
 export default async function OpenGraphImage() {
   return new ImageResponse(
