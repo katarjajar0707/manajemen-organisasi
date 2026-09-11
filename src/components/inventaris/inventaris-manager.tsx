@@ -1093,7 +1093,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isPending}>
                   Batal
                 </Button>
-                <Button type="submit" loading={isPending} disabled={isUploading}>
+                <Button type="submit" loading={isPending} disabled={isUploading} className="bg-primary text-primary-foreground hover:bg-primary/90">
                   Simpan ke Inventaris
                 </Button>
               </DialogFooter>
@@ -1219,7 +1219,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                 <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isPending}>
                   Batal
                 </Button>
-                <Button type="submit" disabled={isPending || isUploading}>
+                <Button type="submit" disabled={isPending || isUploading} className="bg-primary text-primary-foreground hover:bg-primary/90">
                   {isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
