@@ -1,12 +1,16 @@
 import { ImageResponse } from 'next/og';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 export const alt = 'KartaTuju | Sistem Informasi Organisasi dan Transparansi Warga';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
+export const runtime = 'nodejs';
+
+const logoData = await readFile(join(process.cwd(), 'public', 'logo.png'), 'base64');
+const logoSrc = `data:image/png;base64,${logoData}`;
 
 export default async function OpenGraphImage() {
-  const logo = await fetch(new URL('../../public/logo.png', import.meta.url)).then((response) => response.arrayBuffer());
-
   return new ImageResponse(
     (
       <div
@@ -34,7 +38,7 @@ export default async function OpenGraphImage() {
             width: 360,
           }}
         >
-          <img alt="Logo Karang Taruna RT 07" height="324" src={logo as unknown as string} style={{ height: 324, objectFit: 'contain', width: 324 }} width="324" />
+          <img alt="Logo Karang Taruna RT 07" height="324" src={logoSrc} style={{ height: 324, objectFit: 'contain', width: 324 }} width="324" />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 610 }}>
