@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, type ReactNode, Suspense, useContext, useState, useMemo, useTransition, useRef, useEffect } from 'react';
+import { createContext, type ReactNode, useContext, useState, useMemo, useTransition, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,26 +68,6 @@ export function InventarisDataBridge({ data }: { data: InventarisData }) {
   return null;
 }
 
-export function InventarisDataSkeleton() {
-  return (
-    <div className="space-y-4" aria-label="Memuat data inventaris">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-24 animate-pulse rounded-lg border border-border/60 bg-muted/40" />
-        ))}
-      </div>
-      <div className="rounded-lg border border-border/60 p-4">
-        <div className="h-5 w-44 animate-pulse rounded bg-muted" />
-        <div className="mt-4 space-y-3">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="h-10 animate-pulse rounded bg-muted/60" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function InventarisTableRowsSkeleton({ history = false }: { history?: boolean }) {
   return (
     <>
@@ -101,6 +81,23 @@ function InventarisTableRowsSkeleton({ history = false }: { history?: boolean })
         </TableRow>
       ))}
     </>
+  );
+}
+
+function InventarisMobileRowsSkeleton() {
+  return (
+    <div className="divide-y divide-border/60" aria-label="Memuat daftar inventaris">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="space-y-3 p-3.5">
+          <div className="h-3.5 w-24 animate-pulse rounded bg-muted" />
+          <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+          <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2">
+            <div className="h-7 animate-pulse rounded bg-muted/60" />
+            <div className="h-7 animate-pulse rounded bg-muted/60" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -197,7 +194,8 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
     keterangan: '',
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const createFileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -538,7 +536,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             <p className="text-sm text-muted-foreground">Kelola data aset, status kepemilikan, kondisi fisik, dan sirkulasi pinjam-pakai barang.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <Button size="sm" onClick={handleOpenCreate} className="gap-1.5 shadow-sm font-medium w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button variant="default" size="sm" onClick={handleOpenCreate} className="gap-1.5 font-medium w-full sm:w-auto">
               <Plus className="h-4 w-4" />
               Tambah Barang
             </Button>
@@ -714,7 +712,9 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
               <CardContent className="p-0">
                 {/* Mobile Card List (< md) */}
                 <div className="md:hidden divide-y divide-border/60">
-                  {filteredItems.length === 0 ? (
+                  {!dataReady ? (
+                    <InventarisMobileRowsSkeleton />
+                  ) : filteredItems.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground text-xs">Tidak ada data barang yang cocok dengan filter.</div>
                   ) : (
                     filteredItems.map((item) => (
@@ -1073,8 +1073,8 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                     </div>
                   )}
                   <div className="flex-1">
-                    <input ref={fileInputRef} type="file" accept="image/*,.heic,.heif" onChange={handleFileUpload} className="hidden" />
-                    <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="gap-1.5 text-xs">
+                    <input ref={createFileInputRef} type="file" accept="image/*,.heic,.heif" onChange={handleFileUpload} className="hidden" />
+                    <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => createFileInputRef.current?.click()} className="gap-1.5 text-xs">
                       {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                       {isUploading ? 'Mengunggah...' : 'Unggah Foto'}
                     </Button>
@@ -1183,6 +1183,32 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
               </div>
 
               <div className="space-y-1.5">
+                <Label className="text-xs">Foto / Lampiran Barang (Opsional)</Label>
+                <p className="text-xs text-muted-foreground">Unggah gambar baru untuk mengganti foto yang tersimpan.</p>
+                <div className="flex items-center gap-3">
+                  {formData.fotoUrl ? (
+                    <div className="relative group">
+                      <PreviewImage src={formData.fotoUrl} alt={`Foto ${formData.nama || 'barang'}`} className="h-16 w-16 rounded-md border border-border object-cover" />
+                      <button type="button" onClick={() => setFormData({ ...formData, fotoUrl: '' })} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-0.5 text-xs text-destructive-foreground shadow" aria-label="Hapus foto barang">
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
+                      <ImageIcon className="h-6 w-6" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input ref={editFileInputRef} type="file" accept="image/*,.heic,.heif" onChange={handleFileUpload} className="hidden" />
+                    <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => editFileInputRef.current?.click()} className="gap-1.5 text-xs">
+                      {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      {isUploading ? 'Mengunggah...' : formData.fotoUrl ? 'Ganti Foto' : 'Unggah Foto'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
                 <Label htmlFor="edit-keterangan" className="text-xs">
                   Keterangan Tambahan
                 </Label>
@@ -1193,7 +1219,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                 <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isPending}>
                   Batal
                 </Button>
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending || isUploading}>
                   {isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />

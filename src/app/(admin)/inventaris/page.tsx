@@ -3,7 +3,7 @@ import { getInventarisList, getRiwayatPeminjaman } from '@/actions/inventaris';
 import { getProfile } from '@/lib/supabase/server';
 import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
 import { InventarisManager } from '@/components/inventaris/inventaris-manager';
-import { InventarisDataBridge, InventarisDataSkeleton } from '@/components/inventaris/inventaris-manager';
+import { InventarisDataBridge } from '@/components/inventaris/inventaris-manager';
 
 export const metadata = {
   title: 'Inventaris & Aset | Manajemen Organisasi',
@@ -24,7 +24,8 @@ export default function InventarisPage() {
 
   return (
     <InventarisManager loading>
-      <Suspense fallback={<InventarisDataSkeleton />}>
+      {/* Kerangka halaman dan kontrol dirender langsung; hanya data yang disusulkan. */}
+      <Suspense fallback={null}>
         <InventarisData dataPromise={dataPromise} />
       </Suspense>
     </InventarisManager>

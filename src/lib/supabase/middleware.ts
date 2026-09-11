@@ -1,6 +1,18 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+function redirectWithSessionCookies(url: URL, responseWithSession: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url);
+
+  // Supabase may refresh the session while this proxy is running. Keep those
+  // cookies when redirecting so a valid administrator session is not lost.
+  responseWithSession.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie);
+  });
+
+  return redirectResponse;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -33,20 +45,56 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login');
-  const isPublicRoute = request.nextUrl.pathname === '/'; // Dashboard publik di /
-  const isHealthRoute = request.nextUrl.pathname === '/api/health';
+  const { pathname } = request.nextUrl;
+  const isAuthRoute = pathname.startsWith('/login');
+  const isPublicRoute = pathname === '/'; // Dashboard publik di /
+  const isHealthRoute = pathname === '/api/health';
+  const isSystemRoute = isHealthRoute || pathname === '/api/keep-alive';
+
+  // Maintenance mode is enforced here, before a page, route handler, or
+  // server action can be reached. The setting is intentionally queried
+  // directly rather than through the app cache so activating it takes effect
+  // on the next request.
+  const { data: maintenanceSettings, error: maintenanceError } = await supabase
+    .from('pengaturan_sistem')
+    .select('mode_maintenance')
+    .eq('id', 'default')
+    .maybeSingle();
+
+  if (!maintenanceError && maintenanceSettings?.mode_maintenance) {
+    let isAdministrator = false;
+
+    if (user) {
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      isAdministrator = profile?.role === 'admin';
+    }
+
+    // Keep the sign-in form reachable for an unauthenticated administrator.
+    // The login action below verifies the role and signs non-admin users out.
+    const isUnauthenticatedLogin = !user && isAuthRoute;
+    if (!isAdministrator && pathname !== '/maintenance' && !isUnauthenticatedLogin && !isSystemRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/maintenance';
+      url.search = '';
+      return redirectWithSessionCookies(url, supabaseResponse);
+    }
+  } else if (pathname === '/maintenance') {
+    // Do not expose a stale maintenance page once the mode is disabled.
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    return redirectWithSessionCookies(url, supabaseResponse);
+  }
 
   if (!user && !isAuthRoute && !isPublicRoute && !isHealthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    return NextResponse.redirect(url);
+    return redirectWithSessionCookies(url, supabaseResponse);
   }
 
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+    return redirectWithSessionCookies(url, supabaseResponse);
   }
 
   return supabaseResponse;

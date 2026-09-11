@@ -51,6 +51,11 @@ export function LoginClient({ settings }: { settings?: PengaturanSistemData }) {
       </div>
 
       <div className="w-full max-w-md space-y-4">
+        {settings?.keamanan.modeMaintenance && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+            Mode pemeliharaan aktif. Hanya Administrator yang dapat masuk.
+          </div>
+        )}
         <div className="text-center space-y-1">
           {settings?.profil.logoUrl ? (
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden border border-border/80 bg-background mb-2 shadow-md">

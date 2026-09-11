@@ -119,7 +119,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
       {settings?.keamanan?.modeMaintenance && (
         <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-800 dark:text-amber-200 px-4 py-2 text-xs text-center font-medium flex items-center justify-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-          <span>Sistem sedang dalam mode pemeliharaan berkala. Beberapa fitur mungkin sedang disesuaikan.</span>
+          <span>Mode pemeliharaan aktif. Akses publik sedang dibatasi.</span>
         </div>
       )}
 
