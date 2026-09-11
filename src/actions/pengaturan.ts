@@ -206,7 +206,7 @@ export async function updatePengaturanProfil(payload: Partial<ProfilOrganisasi>)
     revalidatePath('/dashboard');
     revalidatePath('/surat');
     revalidatePath('/inventaris');
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     revalidatePath('/login');
     return { success: true };
   } catch (err: any) {
@@ -270,7 +270,7 @@ export async function updatePengaturanOperasional(payload: Partial<OperasionalKe
     revalidatePath('/dashboard');
     revalidatePath('/surat');
     revalidatePath('/inventaris');
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     revalidatePath('/login');
     return { success: true };
   } catch (err: any) {
@@ -330,7 +330,7 @@ export async function updatePengaturanKeamanan(payload: Partial<KeamananSistem>)
     revalidatePath('/dashboard');
     revalidatePath('/surat');
     revalidatePath('/inventaris');
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     revalidatePath('/login');
     return { success: true };
   } catch (err: any) {
@@ -653,7 +653,7 @@ export async function clearAllDummyData(): Promise<{ success: boolean; message: 
     // 10. Revalidasi seluruh rute aplikasi
     revalidatePath('/', 'layout');
     revalidatePath('/kegiatan');
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     revalidatePath('/struktur');
     revalidatePath('/anggota');
     revalidatePath('/profil');

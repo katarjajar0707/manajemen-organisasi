@@ -47,7 +47,7 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith('/login');
-  const isPublicRoute = pathname === '/'; // Dashboard publik di /
+  const isPublicRoute = pathname === '/' || pathname === '/laporan-keuangan' || pathname === '/opengraph-image';
   const isHealthRoute = pathname === '/api/health';
   const isSystemRoute = isHealthRoute || pathname === '/api/keep-alive';
 

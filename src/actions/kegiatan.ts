@@ -232,7 +232,7 @@ export async function createKegiatan(formData: FormData) {
     revalidatePath('/kegiatan');
     revalidatePath('/dashboard');
     revalidatePath('/');
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     invalidatePublicTransparencyCache();
     return { success: true, kegiatan: data };
   } catch (err: any) {
@@ -318,7 +318,7 @@ export async function updateKegiatan(id: string, formData: FormData) {
     revalidatePath(`/kegiatan/${id}/dokumentasi`);
     revalidatePath('/dashboard');
     revalidatePath('/');
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     invalidatePublicTransparencyCache();
     return { success: true };
   } catch (err: any) {
@@ -348,7 +348,7 @@ export async function deleteKegiatan(id: string) {
     revalidatePath('/kegiatan');
     revalidatePath('/dashboard');
     revalidatePath('/');
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     invalidatePublicTransparencyCache();
     return { success: true };
   } catch (err: any) {

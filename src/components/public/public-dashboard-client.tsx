@@ -139,6 +139,12 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
         </div>
 
         <div className="flex items-center gap-2">
+          <Link href="/laporan-keuangan" aria-label="Laporan Keuangan">
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground sm:px-3">
+              <Wallet className="h-3.5 w-3.5 text-primary" />
+              <span className="hidden sm:inline">Laporan Keuangan</span>
+            </Button>
+          </Link>
           <ThemeToggle />
           <PwaInstallPrompt />
           <Link href="/login">

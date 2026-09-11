@@ -50,10 +50,18 @@ const SEARCH_ITEMS: SearchItem[] = [
   {
     title: "Catatan Keuangan & Kas",
     category: "Modul Utama",
-    href: "/bagian/bendahara",
+    href: "/keuangan",
     description: "Pemasukan, pengeluaran, saldo kas, dan nota lampiran",
     icon: Wallet,
     keywords: "keuangan kas masuk keluar bendahara saldo duit uang nota",
+  },
+  {
+    title: "Catatan Bagian",
+    category: "Modul Utama",
+    href: "/catatan",
+    description: "Notula dan koordinasi internal untuk bagian Anda",
+    icon: FileText,
+    keywords: "catatan bagian notula koordinasi internal divisi",
   },
   {
     title: "Data Anggota",

@@ -12,8 +12,7 @@ import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, FileText, Paperclip, Calendar, MoreVertical, Edit, Trash2, ArrowLeft, AlertCircle, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, Search, FileText, Paperclip, Calendar, MoreVertical, Edit, Trash2, AlertCircle, ExternalLink } from 'lucide-react';
 import { createCatatan, updateCatatan, deleteCatatan } from '@/actions/catatan';
 
 interface Catatan {
@@ -29,12 +28,11 @@ interface Catatan {
 }
 
 interface BagianCatatanManagerProps {
-  slug: string;
+  bagianNama: string;
   initialCatatan: any[];
 }
 
-export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanManagerProps) {
-  const capitalized = slug.charAt(0).toUpperCase() + slug.slice(1);
+export function BagianCatatanManager({ bagianNama, initialCatatan }: BagianCatatanManagerProps) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -93,9 +91,9 @@ export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanMana
 
       let res;
       if (editingNote) {
-        res = await updateCatatan(editingNote.id, formData, slug);
+        res = await updateCatatan(editingNote.id, formData);
       } else {
-        res = await createCatatan(formData, slug);
+        res = await createCatatan(formData);
       }
 
       if (res?.error) {
@@ -109,7 +107,7 @@ export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanMana
   const handleDelete = () => {
     if (deleteId) {
       startTransition(async () => {
-        const res = await deleteCatatan(deleteId, slug);
+        const res = await deleteCatatan(deleteId);
         if (res?.error) {
           alert('Gagal menghapus: ' + res.error);
         } else {
@@ -128,26 +126,16 @@ export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanMana
 
   return (
     <div className="space-y-6">
-      {/* Back button */}
-      <div className="flex items-center gap-2">
-        <Link href="/bagian">
-          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Kembali ke Kelola Bagian</span>
-          </Button>
-        </Link>
-      </div>
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Catatan Bagian: {capitalized}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Catatan</h1>
             <Badge variant="secondary" className="text-xs">
               Internal Bagian
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Daftar notula rapat, koordinasi kerja operasional, dan penugasan {capitalized}.</p>
+          <p className="text-sm text-muted-foreground mt-1">Notula rapat, koordinasi kerja, dan penugasan internal bagian {bagianNama}.</p>
         </div>
         <Button size="sm" className="gap-2 shadow-xs bg-primary hover:bg-primary/90 text-xs h-8 w-full sm:w-auto" onClick={handleOpenCreate}>
           <Plus className="h-4 w-4" />
@@ -158,7 +146,7 @@ export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanMana
       {/* Search Input */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Input placeholder={`Cari catatan ${capitalized}...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 text-xs" />
+          <Input placeholder={`Cari catatan ${bagianNama}...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 text-xs" />
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
         </div>
       </div>
@@ -231,7 +219,7 @@ export function BagianCatatanManager({ slug, initialCatatan }: BagianCatatanMana
                 <FileText className="h-5 w-5 text-primary" />
                 <span>{editingNote ? 'Edit Catatan' : 'Tulis Catatan Baru'}</span>
               </DialogTitle>
-              <DialogDescription className="text-xs">Catatan ini akan tersimpan pada bagian {capitalized}.</DialogDescription>
+              <DialogDescription className="text-xs">Catatan ini hanya tersimpan dan dapat diakses oleh bagian {bagianNama}.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 py-4">

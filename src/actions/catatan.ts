@@ -3,29 +3,22 @@
 import { createClient, getProfile } from '@/lib/supabase/server';
 import { uploadLampiran } from './storage';
 import { revalidatePath } from 'next/cache';
-import { getCachedBagianBySlug } from '@/lib/cache/bagian';
 
-const SUPERVISOR_ROLES = new Set(['admin', 'ketua']);
-
-async function getCatatanAccess(bagianSlug: string) {
-  const [profile, bagian] = await Promise.all([getProfile(), getCachedBagianBySlug(bagianSlug)]);
+async function getCatatanAccess() {
+  const profile = await getProfile();
 
   if (!profile) return { error: 'Anda harus login terlebih dahulu.' } as const;
-  if (!bagian) return { error: 'Bagian tidak ditemukan.' } as const;
+  if (!profile.bagian) return { error: 'Akun Anda belum terhubung ke bagian organisasi.' } as const;
 
-  const canManage = SUPERVISOR_ROLES.has(profile.role) || profile.bagian_id === bagian.id;
-  if (!canManage) return { error: 'Catatan hanya dapat dikelola oleh anggota bagian yang bersangkutan.' } as const;
-
-  return { profile, bagian } as const;
+  return { profile, bagian: profile.bagian } as const;
 }
 
-function revalidateCatatanPaths(bagianSlug: string) {
-  revalidatePath(`/bagian/${bagianSlug}`);
-  if (bagianSlug === 'bendahara') revalidatePath('/bagian/bendahara');
+function revalidateCatatanPaths() {
+  revalidatePath('/catatan');
 }
 
-export async function getCatatanList(bagianSlug: string) {
-  const access = await getCatatanAccess(bagianSlug);
+export async function getCatatanList() {
+  const access = await getCatatanAccess();
   if ('error' in access) return [];
 
   const supabase = await createClient();
@@ -52,7 +45,7 @@ export async function getCatatanList(bagianSlug: string) {
   return catatanList || [];
 }
 
-export async function createCatatan(formData: FormData, bagianSlug: string) {
+export async function createCatatan(formData: FormData) {
   try {
     const judul = (formData.get('judul') as string)?.trim();
     const isi = (formData.get('isi') as string)?.trim();
@@ -60,12 +53,12 @@ export async function createCatatan(formData: FormData, bagianSlug: string) {
 
     if (!judul || !isi) return { error: 'Judul dan isi catatan wajib diisi.' };
 
-    const access = await getCatatanAccess(bagianSlug);
+    const access = await getCatatanAccess();
     if ('error' in access) return access;
 
     let lampiran_url: string | null = null;
     if (file && file.size > 0) {
-      const uploadRes = await uploadLampiran(file, `catatan/${bagianSlug}`);
+      const uploadRes = await uploadLampiran(file, `catatan/${access.bagian.slug}`);
       if (uploadRes.error) return { error: uploadRes.error };
       lampiran_url = uploadRes.url || null;
     }
@@ -81,14 +74,14 @@ export async function createCatatan(formData: FormData, bagianSlug: string) {
 
     if (error) return { error: error.message };
 
-    revalidateCatatanPaths(bagianSlug);
+    revalidateCatatanPaths();
     return { success: true };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Terjadi kesalahan internal.' };
   }
 }
 
-export async function updateCatatan(id: string, formData: FormData, bagianSlug: string) {
+export async function updateCatatan(id: string, formData: FormData) {
   try {
     const judul = (formData.get('judul') as string)?.trim();
     const isi = (formData.get('isi') as string)?.trim();
@@ -97,7 +90,7 @@ export async function updateCatatan(id: string, formData: FormData, bagianSlug: 
 
     if (!judul || !isi) return { error: 'Judul dan isi catatan wajib diisi.' };
 
-    const access = await getCatatanAccess(bagianSlug);
+    const access = await getCatatanAccess();
     if ('error' in access) return access;
 
     const supabase = await createClient();
@@ -116,7 +109,7 @@ export async function updateCatatan(id: string, formData: FormData, bagianSlug: 
     if (removeLampiran) {
       lampiran_url = null;
     } else if (file && file.size > 0) {
-      const uploadRes = await uploadLampiran(file, `catatan/${bagianSlug}`);
+      const uploadRes = await uploadLampiran(file, `catatan/${access.bagian.slug}`);
       if (uploadRes.error) return { error: uploadRes.error };
       lampiran_url = uploadRes.url || lampiran_url;
     }
@@ -129,16 +122,16 @@ export async function updateCatatan(id: string, formData: FormData, bagianSlug: 
 
     if (error) return { error: error.message };
 
-    revalidateCatatanPaths(bagianSlug);
+    revalidateCatatanPaths();
     return { success: true };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Terjadi kesalahan internal.' };
   }
 }
 
-export async function deleteCatatan(id: string, bagianSlug: string) {
+export async function deleteCatatan(id: string) {
   try {
-    const access = await getCatatanAccess(bagianSlug);
+    const access = await getCatatanAccess();
     if ('error' in access) return access;
 
     const supabase = await createClient();
@@ -151,7 +144,7 @@ export async function deleteCatatan(id: string, bagianSlug: string) {
 
     if (error) return { error: error.message };
 
-    revalidateCatatanPaths(bagianSlug);
+    revalidateCatatanPaths();
     return { success: true };
   } catch (err: unknown) {
     return { error: err instanceof Error ? err.message : 'Terjadi kesalahan internal.' };

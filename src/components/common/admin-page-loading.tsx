@@ -19,9 +19,8 @@ const PAGE_COPY: Record<string, { title: string; description: string; mode: 'tab
   '/akses': { title: 'Manajemen Akses', description: 'Kelola akses pengguna organisasi.', mode: 'table' },
   '/struktur': { title: 'Struktur Organisasi', description: 'Kelola struktur dan agenda organisasi.', mode: 'cards' },
   '/struktur/agenda': { title: 'Agenda Organisasi', description: 'Kelola agenda organisasi.', mode: 'cards' },
-  '/bagian/bendahara': { title: 'Bendahara', description: 'Kelola transaksi dan keuangan organisasi.', mode: 'table' },
-  '/bagian/bendahara/masuk': { title: 'Kas Masuk', description: 'Kelola pemasukan organisasi.', mode: 'table' },
-  '/bagian/bendahara/keluar': { title: 'Kas Keluar', description: 'Kelola pengeluaran organisasi.', mode: 'table' },
+  '/keuangan': { title: 'Catatan Keuangan', description: 'Kelola transaksi dan keuangan organisasi.', mode: 'table' },
+  '/catatan': { title: 'Catatan', description: 'Kelola catatan internal bagian Anda.', mode: 'cards' },
   '/profil': { title: 'Profil', description: 'Kelola profil pengguna.', mode: 'table' },
   '/pengaturan': { title: 'Pengaturan', description: 'Kelola pengaturan sistem organisasi.', mode: 'table' },
 };

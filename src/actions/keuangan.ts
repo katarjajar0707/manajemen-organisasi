@@ -6,24 +6,33 @@ import { revalidatePath } from 'next/cache';
 import { invalidatePublicTransparencyCache } from '@/lib/cache/transparansi';
 import { getCachedBagianBySlug } from '@/lib/cache/bagian';
 
-async function getBendaharaAccess(bagianSlug: string) {
+async function getKeuanganReadAccess(bagianSlug: string) {
   if (bagianSlug !== 'bendahara') {
     return { error: 'Modul keuangan ini hanya tersedia untuk bagian Bendahara.' } as const;
   }
 
   const [profile, bagian] = await Promise.all([getProfile(), getCachedBagianBySlug('bendahara')]);
-  const canAccessBendahara = profile?.bagian?.slug === 'bendahara' || profile?.role === 'admin' || profile?.role === 'ketua';
-  if (!canAccessBendahara) {
-    return { error: 'Halaman keuangan hanya dapat diakses oleh bagian Bendahara, admin, atau ketua.' } as const;
-  }
+  if (!profile) return { error: 'Anda harus login terlebih dahulu.' } as const;
   if (!bagian) return { error: 'Bagian Bendahara tidak ditemukan.' } as const;
 
   return { profile, bagian } as const;
 }
 
+async function getKeuanganManageAccess(bagianSlug: string) {
+  const access = await getKeuanganReadAccess(bagianSlug);
+  if ('error' in access) return access;
+
+  const canManage = access.profile.role === 'admin' || access.profile.role === 'ketua' || access.profile.bagian?.slug === 'bendahara';
+  if (!canManage) {
+    return { error: 'Hanya admin, ketua, atau anggota bagian Bendahara yang dapat mengubah transaksi.' } as const;
+  }
+
+  return access;
+}
+
 /**
  * Mengambil daftar kegiatan langsung dari kalender_kegiatan (/kegiatan)
- * sehingga menu bar kategori di /bagian/bendahara sinkron 1:1 dengan data kegiatan.
+ * sehingga menu bar kategori di /keuangan sinkron 1:1 dengan data kegiatan.
  */
 export async function getAgendaCategories(): Promise<string[]> {
   const supabase = await createClient();
@@ -47,7 +56,7 @@ export async function getAgendaCategories(): Promise<string[]> {
 }
 
 export async function getKeuanganList(bagianSlug: string = 'bendahara') {
-  const access = await getBendaharaAccess(bagianSlug);
+  const access = await getKeuanganReadAccess(bagianSlug);
   if ('error' in access) {
     return { bagianId: null, list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
   }
@@ -120,7 +129,7 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
 
 export async function createTransaksi(formData: FormData, bagianSlug: string = 'bendahara') {
   try {
-    const access = await getBendaharaAccess(bagianSlug);
+    const access = await getKeuanganManageAccess(bagianSlug);
     if ('error' in access) return access;
     const { profile, bagian } = access;
 
@@ -178,10 +187,10 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = '
       return { error: insertError.message };
     }
 
-    revalidatePath(`/bagian/${bagianSlug}`);
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    revalidatePath('/laporan-keuangan');
     invalidatePublicTransparencyCache();
 
     return { success: true };
@@ -194,7 +203,7 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = '
 
 export async function updateTransaksi(id: string, formData: FormData, bagianSlug: string = 'bendahara') {
   try {
-    const access = await getBendaharaAccess(bagianSlug);
+    const access = await getKeuanganManageAccess(bagianSlug);
     if ('error' in access) return access;
     const { bagian } = access;
 
@@ -269,10 +278,10 @@ export async function updateTransaksi(id: string, formData: FormData, bagianSlug
       }
     }
 
-    revalidatePath(`/bagian/${bagianSlug}`);
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    revalidatePath('/laporan-keuangan');
     invalidatePublicTransparencyCache();
 
     return { success: true };
@@ -285,7 +294,7 @@ export async function updateTransaksi(id: string, formData: FormData, bagianSlug
 
 export async function deleteTransaksi(id: string, bagianSlug: string = 'bendahara') {
   try {
-    const access = await getBendaharaAccess(bagianSlug);
+    const access = await getKeuanganManageAccess(bagianSlug);
     if ('error' in access) return access;
     const { bagian } = access;
 
@@ -309,10 +318,10 @@ export async function deleteTransaksi(id: string, bagianSlug: string = 'bendahar
       return { error: error.message };
     }
 
-    revalidatePath(`/bagian/${bagianSlug}`);
-    revalidatePath('/bagian/bendahara');
+    revalidatePath('/keuangan');
     revalidatePath('/dashboard');
     revalidatePath('/');
+    revalidatePath('/laporan-keuangan');
     invalidatePublicTransparencyCache();
 
     return { success: true };

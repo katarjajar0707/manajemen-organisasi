@@ -2,7 +2,14 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getProfile } from '@/lib/supabase/server';
 import { KetuaDashboard } from '@/components/dashboard/ketua-dashboard';
-import { AnggotaDashboard } from '@/components/dashboard/anggota-dashboard';
+import {
+  AnggotaDashboardDataSkeleton,
+  AnggotaDashboardDiscussions,
+  AnggotaDashboardProfile,
+  AnggotaDashboardSchedule,
+  AnggotaDashboardShell,
+  AnggotaDashboardSummary,
+} from '@/components/dashboard/anggota-dashboard';
 import {
   AdminDashboardShell,
   AdminDashboardStats,
@@ -22,17 +29,31 @@ async function DashboardContent() {
   }
 
   if (profile.role !== 'admin') {
-    const { getDiskusis } = await import('@/actions/diskusi');
-    const { getPengumumanList } = await import('@/actions/pengumuman');
-    const { getCachedPengaturanSistem } = await import('@/lib/cache/pengaturan');
-    const { getCachedPublicTransparencyData } = await import('@/lib/cache/transparansi');
-    const [diskusis, announcements, summaryData, settings] = await Promise.all([getDiskusis(), getPengumumanList(), getCachedPublicTransparencyData(), getCachedPengaturanSistem()]);
-
     if (profile.role === 'ketua') {
+      const { getDiskusis } = await import('@/actions/diskusi');
+      const { getPengumumanList } = await import('@/actions/pengumuman');
+      const { getCachedPengaturanSistem } = await import('@/lib/cache/pengaturan');
+      const { getCachedPublicTransparencyData } = await import('@/lib/cache/transparansi');
+      const [diskusis, announcements, summaryData, settings] = await Promise.all([getDiskusis(), getPengumumanList(), getCachedPublicTransparencyData(), getCachedPengaturanSistem()]);
       return <KetuaDashboard profile={profile} summaryData={summaryData} announcements={announcements} diskusis={diskusis} settings={settings} />;
     }
 
-    return <AnggotaDashboard profile={profile} summaryData={summaryData} announcements={announcements} diskusis={diskusis} settings={settings} />;
+    return (
+      <AnggotaDashboardShell profile={profile}>
+        <Suspense fallback={<AnggotaDashboardDataSkeleton variant="summary" />}>
+          <AnggotaDashboardSummary />
+        </Suspense>
+        <div className="grid gap-5 lg:grid-cols-5 lg:gap-6">
+          <AnggotaDashboardProfile profile={profile} />
+          <Suspense fallback={<AnggotaDashboardDataSkeleton variant="schedule" />}>
+            <AnggotaDashboardSchedule />
+          </Suspense>
+        </div>
+        <Suspense fallback={<AnggotaDashboardDataSkeleton variant="discussion" />}>
+          <AnggotaDashboardDiscussions />
+        </Suspense>
+      </AnggotaDashboardShell>
+    );
   }
 
   return (
@@ -62,9 +83,5 @@ async function DashboardContent() {
 }
 
 export default function DashboardPage() {
-  return (
-    <Suspense fallback={<AdminDashboardShell />}>
-      <DashboardContent />
-    </Suspense>
-  );
+  return <DashboardContent />;
 }

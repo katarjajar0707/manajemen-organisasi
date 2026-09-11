@@ -1,4 +1,4 @@
-import { LayoutDashboard, Home, User, Users, Building2, FolderKanban, Calendar, Megaphone, MessagesSquare, Package, FileText, Archive, Wallet, ShieldCheck, Settings, KeyRound } from 'lucide-react';
+import { LayoutDashboard, Home, User, Users, Building2, FolderKanban, Calendar, MessagesSquare, Package, FileText, Archive, Wallet, ShieldCheck, Settings, KeyRound, NotebookPen } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -22,10 +22,13 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
   },
   {
     title: 'Catatan Keuangan',
-    href: '/bagian/bendahara',
+    href: '/keuangan',
     icon: Wallet,
-    roles: ['admin', 'ketua'],
-    bagianSlugs: ['bendahara'],
+  },
+  {
+    title: 'Catatan',
+    href: '/catatan',
+    icon: NotebookPen,
   },
   {
     title: 'Anggota',
@@ -41,11 +44,6 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     title: 'Kegiatan',
     href: '/kegiatan',
     icon: Calendar,
-  },
-  {
-    title: 'Pengumuman',
-    href: '/pengumuman',
-    icon: Megaphone,
   },
   {
     title: 'Papan Diskusi',

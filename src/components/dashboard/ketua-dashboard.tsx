@@ -17,7 +17,6 @@ import {
   ShieldCheck,
   Clock,
   MapPin,
-  ChevronRight,
 } from "lucide-react";
 import { LogoutButton } from "@/components/common/logout-button";
 import { DashboardAnnouncementBanner } from "@/components/dashboard/dashboard-announcement-banner";
@@ -58,41 +57,6 @@ function formatRelativeTime(dateIso: string): string {
     return "Baru saja";
   }
 }
-
-const DEPT_SHORTCUTS = [
-  {
-    name: "Bendahara",
-    slug: "bendahara",
-    desc: "Catatan keuangan kas masuk & keluar",
-    href: "/bagian/bendahara",
-    color: "text-emerald-600",
-    dotColor: "bg-emerald-500",
-  },
-  {
-    name: "Sekretaris",
-    slug: "sekretaris",
-    desc: "Notula rapat & arsip persuratan",
-    href: "/bagian/sekretaris",
-    color: "text-sky-600",
-    dotColor: "bg-sky-500",
-  },
-  {
-    name: "Acara & Kegiatan",
-    slug: "acara",
-    desc: "Perencanaan & rundown kegiatan",
-    href: "/bagian/acara",
-    color: "text-orange-600",
-    dotColor: "bg-orange-500",
-  },
-  {
-    name: "Humas & Kominfo",
-    slug: "kominfo",
-    desc: "Publikasi media sosial & broadcast",
-    href: "/bagian/kominfo",
-    color: "text-violet-600",
-    dotColor: "bg-violet-500",
-  },
-];
 
 export function KetuaDashboard({
   profile,
@@ -158,7 +122,7 @@ export function KetuaDashboard({
           Ringkasan Organisasi
         </p>
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-          <Link href="/bagian/bendahara" className="block">
+          <Link href="/keuangan" className="block">
             <Card className="hover:border-emerald-500/40 transition-all duration-200 hover:shadow-md h-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2 p-3.5 sm:p-5">
                 <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
@@ -313,29 +277,22 @@ export function KetuaDashboard({
               <div>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <TrendingUp className="h-4 w-4 text-sky-600" />
-                  Akses Cepat Bagian
+                  Catatan Internal
                 </CardTitle>
-                <CardDescription className="text-xs">Catatan internal per divisi</CardDescription>
+                <CardDescription className="text-xs">Notula dan koordinasi untuk bagian Anda</CardDescription>
               </div>
-              <Link href="/bagian">
+              <Link href="/catatan">
                 <Button variant="ghost" size="sm" className="gap-1 text-xs">
-                  Semua <ArrowRight className="h-3 w-3" />
+                  Buka <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {DEPT_SHORTCUTS.map((dept) => (
-                <Link key={dept.slug} href={dept.href} className="block group">
-                  <div className="flex items-center gap-3 p-2.5 rounded-lg border bg-card hover:bg-muted/40 transition-colors">
-                    <div className={`h-2 w-2 rounded-full ${dept.dotColor} shrink-0`} />
-                    <div className="min-w-0 flex-1">
-                      <p className={`font-semibold text-sm ${dept.color}`}>{dept.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{dept.desc}</p>
-                    </div>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  </div>
-                </Link>
-              ))}
+            <CardContent>
+              <Link href="/catatan" className="block">
+                <Button variant="outline" size="sm" className="w-full gap-2 text-xs">
+                  Buka Catatan Bagian <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 

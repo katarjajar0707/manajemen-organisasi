@@ -35,14 +35,12 @@ import Link from "next/link";
 import {
   Building2,
   Plus,
-  ArrowRight,
   FolderKanban,
   Pencil,
   Trash2,
   Loader2,
   Search,
   Users,
-  FileText,
   Layers,
   Lock,
 } from "lucide-react";
@@ -57,13 +55,11 @@ import {
 interface BagianManagerProps {
   initialBagian: BagianWithCount[];
   userRole: string;
-  currentUserBagianSlug?: string | null;
 }
 
 export function BagianManager({
   initialBagian,
   userRole,
-  currentUserBagianSlug,
 }: BagianManagerProps) {
   const [departments, setDepartments] = useState<BagianWithCount[]>(initialBagian);
   const [isPending, startTransition] = useTransition();
@@ -303,10 +299,6 @@ export function BagianManager({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredDepartments.map((dept) => {
             const isBendahara = dept.slug === "bendahara";
-            const canOpenCatatan = isBendahara
-              ? canManage || currentUserBagianSlug === "bendahara"
-              : canManage || currentUserBagianSlug === dept.slug;
-
             return (
               <Card
                 key={dept.id}
@@ -352,41 +344,12 @@ export function BagianManager({
                 </CardHeader>
 
                 <CardContent className="pt-0 space-y-2">
-                  {/* Primary navigation buttons */}
                   <div className="flex gap-2">
-                    {canOpenCatatan ? (
-                      <Link
-                        href={isBendahara ? "/bagian/bendahara" : `/bagian/${dept.slug}`}
-                        className="flex-1"
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-1 text-xs h-8 hover:bg-primary/5 hover:text-primary hover:border-primary/40"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          <span>{isBendahara ? "Keuangan & Catatan" : "Buka Catatan"}</span>
-                          <ArrowRight className="h-3 w-3 ml-auto opacity-60" />
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 gap-1 text-xs h-8"
-                        disabled
-                        title="Catatan hanya tersedia untuk anggota bagian yang bersangkutan"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        <span>Catatan Internal</span>
-                      </Button>
-                    )}
-
-                    <Link href={`/struktur/${dept.slug}/agenda`}>
+                    <Link href={`/struktur/${dept.slug}/agenda`} className="flex-1">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-xs h-8 gap-1 hover:bg-primary/5"
+                        className="w-full text-xs h-8 gap-1 hover:bg-primary/5"
                         title="Kelola Agenda & Struktur Bagian"
                       >
                         <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />

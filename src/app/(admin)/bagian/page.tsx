@@ -8,16 +8,12 @@ export const metadata = {
 };
 
 export default async function BagianManagementPage() {
-  const [departments, profile] = await Promise.all([
-    getBagianList(),
-    getProfile(),
-  ]);
+  const [departments, profile] = await Promise.all([getBagianList(), getProfile()]);
 
   return (
     <BagianManager
       initialBagian={departments}
       userRole={profile?.role || "anggota"}
-      currentUserBagianSlug={profile?.bagian?.slug}
     />
   );
 }

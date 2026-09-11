@@ -18,6 +18,7 @@ import { PreviewImage } from '@/components/common/preview-image';
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   keuangan: 'Keuangan',
+  catatan: 'Catatan',
   anggota: 'Anggota',
   struktur: 'Struktur',
   kegiatan: 'Kegiatan',

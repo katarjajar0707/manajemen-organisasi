@@ -46,11 +46,11 @@ export const metadata: Metadata = {
     locale: 'id_ID',
     images: [
       {
-        url: 'https://kartatuju.vercel.app/og-image.svg',
+        url: 'https://kartatuju.vercel.app/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'KartaTuju | Jatijajar Depok',
-        type: 'image/svg+xml',
+        type: 'image/png',
       },
     ],
   },
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'KartaTuju | Jatijajar Depok',
     description: 'A digital platform for managing organizations and community information.',
-    images: ['https://kartatuju.vercel.app/og-image.svg'],
+    images: ['https://kartatuju.vercel.app/opengraph-image'],
   },
   robots: {
     index: true,

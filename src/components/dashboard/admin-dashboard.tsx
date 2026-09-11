@@ -170,7 +170,7 @@ export function AdminDashboard({ profile, summaryData, announcements, diskusis, 
           </Link>
 
           {/* Kas */}
-          <Link href="/bagian/bendahara" className="block xl:col-span-1">
+          <Link href="/keuangan" className="block xl:col-span-1">
             <Card className="hover:border-emerald-500/40 transition-all duration-200 hover:shadow-md h-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2 p-3.5 sm:p-4">
                 <CardTitle className="text-xs font-medium text-muted-foreground truncate">Saldo Kas</CardTitle>
@@ -323,7 +323,7 @@ export function AdminDashboard({ profile, summaryData, announcements, diskusis, 
               </CardTitle>
               <CardDescription>Laporan kas organisasi keseluruhan</CardDescription>
             </div>
-            <Link href="/bagian/bendahara">
+            <Link href="/keuangan">
               <Button variant="ghost" size="sm" className="gap-1 text-xs">
                 Detail <ArrowRight className="h-3 w-3" />
               </Button>
@@ -367,13 +367,13 @@ export function AdminDashboard({ profile, summaryData, announcements, diskusis, 
             </div>
 
             <div className="flex gap-2 pt-1">
-              <Link href="/bagian/bendahara" className="flex-1">
+              <Link href="/keuangan" className="flex-1">
                 <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
                   <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
                   Catat Masuk
                 </Button>
               </Link>
-              <Link href="/bagian/bendahara" className="flex-1">
+              <Link href="/keuangan" className="flex-1">
                 <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
                   <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
                   Catat Keluar
@@ -685,7 +685,7 @@ export async function AdminDashboardFinance() {
           </CardTitle>
           <CardDescription>Laporan kas organisasi keseluruhan</CardDescription>
         </div>
-        <Link href="/bagian/bendahara">
+        <Link href="/keuangan">
           <Button variant="ghost" size="sm" className="gap-1 text-xs">
             Detail <ArrowRight className="h-3 w-3" />
           </Button>

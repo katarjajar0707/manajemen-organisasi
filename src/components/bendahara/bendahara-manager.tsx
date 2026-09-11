@@ -42,6 +42,7 @@ interface BendaharaManagerProps {
   bagianId?: string | null;
   agendaCategories?: string[];
   settings?: PengaturanSistemData;
+  canManage?: boolean;
   children?: ReactNode;
 }
 
@@ -120,7 +121,7 @@ async function fetchKeuanganTransactions(initialBagianId: string | null) {
   return (data || []).map(normalizeTransaction);
 }
 
-export function BendaharaManager({ initialList = [], initialSaldo, bagianId: initialBagianId = null, agendaCategories = [], settings: initialSettings, children }: BendaharaManagerProps) {
+export function BendaharaManager({ initialList = [], initialSaldo, bagianId: initialBagianId = null, agendaCategories = [], settings: initialSettings, canManage = false, children }: BendaharaManagerProps) {
   const queryClient = useQueryClient();
   const [dataReady, setDataReady] = useState(initialList.length > 0);
   const [currentBagianId, setCurrentBagianId] = useState<string | null>(initialBagianId);
@@ -441,14 +442,15 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
       .map((trx: any, idx: number) => {
         const tgl = new Date(trx.created_at).toLocaleDateString('id-ID', {
           day: '2-digit',
-          month: 'long',
-          year: 'numeric',
+          month: '2-digit',
+          year: '2-digit',
         });
         const jenisLabel = trx.jenis === 'masuk' ? 'Pemasukan' : 'Pengeluaran';
         const nominalColor = trx.jenis === 'masuk' ? '#047857' : '#b91c1c';
         const cleanDesc = trx.displayKeterangan || trx.keterangan || '';
         const title = escapeHtml(trx.judul || 'Transaksi');
         const description = escapeHtml(cleanDesc);
+        const kategori = escapeHtml(trx.kategori || 'Kas General');
         const author = escapeHtml(trx.author?.nama || 'Admin');
 
         return `
@@ -459,6 +461,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
               <strong>${title}</strong>
               ${description ? `<div class="description">${description}</div>` : ''}
             </td>
+            <td style="font-size: 11px; color: #475569;">${kategori}</td>
             <td style="text-align: center;">
               <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background-color: ${trx.jenis === 'masuk' ? '#d1fae5' : '#fee2e2'}; color: ${trx.jenis === 'masuk' ? '#065f46' : '#991b1b'};">
                 ${jenisLabel}
@@ -661,6 +664,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                 <th style="width: 35px;">No</th>
                 <th style="width: 100px;">Tanggal</th>
                 <th>Uraian / Judul Transaksi</th>
+                <th style="width: 105px;">Kategori</th>
                 <th style="width: 95px; text-align: center;">Jenis</th>
                 <th style="width: 130px; text-align: right;">Nominal</th>
                 <th style="width: 110px;">Pencatat</th>
@@ -671,7 +675,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
             </tbody>
             <tfoot>
               <tr style="background-color: #f8fafc; font-weight: bold;">
-                <td colspan="4" style="text-align: right; padding: 10px;">Total Mutasi (Data Sesuai Filter):</td>
+                <td colspan="5" style="text-align: right; padding: 10px;">Total Mutasi (Data Sesuai Filter):</td>
                 <td style="text-align: right; font-family: monospace; color: ${saldoFiltered >= 0 ? '#047857' : '#b91c1c'};">
                   ${formatRupiah(saldoFiltered)}
                 </td>
@@ -716,16 +720,18 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Manajemen Keuangan</h1>
             <p className="text-sm text-muted-foreground mt-1">Catatan arus kas, kas masuk, dan pengeluaran organisasi.</p>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button className="flex-1 sm:flex-none gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700" size="sm" onClick={() => handleOpenCreate('masuk')}>
-              <TrendingUp className="h-4 w-4" />
-              <span>Kas Masuk</span>
-            </Button>
-            <Button className="flex-1 sm:flex-none gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-xs" size="sm" onClick={() => handleOpenCreate('keluar')}>
-              <TrendingDown className="h-4 w-4" />
-              <span>Kas Keluar</span>
-            </Button>
-          </div>
+          {canManage && (
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button className="flex-1 sm:flex-none gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700" size="sm" onClick={() => handleOpenCreate('masuk')}>
+                <TrendingUp className="h-4 w-4" />
+                <span>Kas Masuk</span>
+              </Button>
+              <Button className="flex-1 sm:flex-none gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-xs" size="sm" onClick={() => handleOpenCreate('keluar')}>
+                <TrendingDown className="h-4 w-4" />
+                <span>Kas Keluar</span>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Saldo Cards */}
@@ -874,14 +880,14 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                     <th className="px-3 sm:px-6 py-3 font-medium text-right">Jumlah</th>
                     <th className="px-3 sm:px-6 py-3 font-medium text-center">Status</th>
                     <th className="px-3 sm:px-6 py-3 font-medium text-center">Lampiran</th>
-                    <th className="px-3 sm:px-6 py-3 text-right">Aksi</th>
+                    {canManage && <th className="px-3 sm:px-6 py-3 text-right">Aksi</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   <Suspense fallback={<TransactionRowsSkeleton />}>{children}</Suspense>
                   {!dataReady ? null : filteredList.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-3 sm:px-6 py-8 text-center text-muted-foreground">
+                      <td colSpan={canManage ? 6 : 5} className="px-3 sm:px-6 py-8 text-center text-muted-foreground">
                         Belum ada transaksi kas umum.
                       </td>
                     </tr>
@@ -940,23 +946,25 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                             <span className="text-xs text-muted-foreground">-</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleOpenEdit(trx)}>
-                                <Pencil className="h-4 w-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(trx.id)}>
-                                <Trash2 className="h-4 w-4 mr-2" /> Hapus
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
+                        {canManage && (
+                          <td className="px-6 py-4 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenEdit(trx)}>
+                                  <Pencil className="h-4 w-4 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(trx.id)}>
+                                  <Trash2 className="h-4 w-4 mr-2" /> Hapus
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -1015,8 +1023,8 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
           </CardContent>
         </Card>
 
-        {/* Dialog Add Transaksi */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        {/* Dialog Add/Edit Transaksi hanya dirender untuk pengguna yang berwenang. */}
+        {canManage && <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="w-[calc(100%-1rem)] max-w-lg max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto p-4 sm:p-6">
             <form onSubmit={handleSave} className="min-w-0">
               <DialogHeader className="min-w-0">
@@ -1154,10 +1162,10 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
+        </Dialog>}
 
         {/* Delete Confirmation */}
-        <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        {canManage && <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-base text-destructive flex items-center gap-2">
@@ -1175,7 +1183,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+        </Dialog>}
 
         {/* Preview Lampiran Modal */}
         <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
@@ -1193,7 +1201,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                     <FileText className="h-16 w-16 mx-auto text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Berkas bukan berupa gambar yang bisa di-preview.</p>
                     <a href={previewUrl} target="_blank" rel="noopener noreferrer">
-                      <Button className="gap-2">
+                      <Button variant="default" className="gap-2">
                         Unduh / Buka Berkas <ExternalLink className="h-4 w-4" />
                       </Button>
                     </a>

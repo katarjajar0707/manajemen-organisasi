@@ -180,7 +180,7 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     id: 'keuangan',
     nama: 'Catatan Kas & Keuangan',
     kategori: 'Organisasi',
-    path: '/bagian/bendahara',
+    path: '/keuangan',
     iconName: 'Wallet',
     deskripsi: 'Buku kas masuk, kas keluar, unggah nota/bukti transaksi pengeluaran, dan rekapitulasi saldo bendahara.',
     access: {
@@ -292,9 +292,9 @@ export const INITIAL_PERMISSIONS: ModulePermission[] = [
     id: 'bagian_catatan',
     nama: 'Catatan Internal Divisi / Bagian',
     kategori: 'Organisasi',
-    path: '/bagian/[slug]',
+    path: '/catatan',
     iconName: 'FileText',
-    deskripsi: 'Catatan operasional internal privat masing-masing bagian (Sekretaris, Humas, Acara, dll).',
+    deskripsi: 'Catatan operasional internal yang hanya dapat diakses oleh anggota bagiannya sendiri.',
     access: {
       admin: true,
       ketua: true,
