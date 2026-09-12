@@ -36,8 +36,6 @@ interface AnggotaManagerProps {
   children?: ReactNode;
 }
 
-const RT_OPTIONS = ['Semua RT', 'RT 01', 'RT 02', 'RT 03', 'RT 04', 'RT 05', 'RT 06'];
-
 interface AnggotaMembersContextValue {
   setMembers: (members: AnggotaDetail[]) => void;
   setDataReady: (ready: boolean) => void;
@@ -78,7 +76,6 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
   const [loadedMembers, setLoadedMembers] = useState<AnggotaDetail[]>(members);
   const [dataReady, setDataReady] = useState(initialMembers.length > 0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterRt, setFilterRt] = useState('Semua RT');
   const [filterStatus, setFilterStatus] = useState<'semua' | 'Aktif' | 'Alumni' | 'Cuti'>('semua');
   const [filterBagian, setFilterBagian] = useState<string>('semua');
   const [previewMember, setPreviewMember] = useState<AnggotaDetail | null>(null);
@@ -103,7 +100,6 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
 
   const filteredMembers = loadedMembers.filter((m) => {
     if (filterStatus !== 'semua' && m.status !== filterStatus) return false;
-    if (filterRt !== 'Semua RT' && !m.rt_rw.includes(filterRt)) return false;
     if (filterBagian !== 'semua' && m.bagianId !== filterBagian) return false;
 
     if (searchQuery.trim()) {
@@ -151,21 +147,8 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
               <Input placeholder="Cari nama, jabatan, atau RT..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8 h-8 text-xs bg-muted/30 w-full" />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Select value={filterRt} onValueChange={setFilterRt}>
-                <SelectTrigger className="h-8 text-xs flex-1 sm:w-[110px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RT_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {opt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {metadata.daftarBagian.length > 0 && (
+            {metadata.daftarBagian.length > 0 && (
+              <div className="w-full sm:w-auto">
                 <Select value={filterBagian} onValueChange={setFilterBagian}>
                   <SelectTrigger className="h-8 text-xs flex-1 sm:w-[130px]">
                     <SelectValue placeholder="Bagian" />
@@ -179,8 +162,8 @@ export function AnggotaManager({ initialMembers = [], metadata = { daftarBagian:
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">

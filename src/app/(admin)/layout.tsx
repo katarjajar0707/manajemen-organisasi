@@ -5,6 +5,7 @@ import { AppBottomNav } from '@/components/common/app-bottom-nav';
 import { AppMobileNav } from '@/components/common/app-mobile-nav';
 import { getProfile } from '@/lib/supabase/server';
 import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
+import { getUnreadNotificationCount } from '@/actions/notifikasi';
 import { AdminQueryProvider } from '@/providers/admin-query-provider';
 import { UserPresenceTracker } from '@/components/common/user-presence-tracker';
 
@@ -22,8 +23,8 @@ async function AdminSidebarChrome() {
 }
 
 async function AdminHeaderChrome() {
-  const profile = await getProfile();
-  return <AppHeader userName={profile?.nama} userRole={profile?.role} userAvatarUrl={profile?.foto_url} userDepartemen={profile?.bagian?.nama} />;
+  const [profile, notificationCount] = await Promise.all([getProfile(), getUnreadNotificationCount()]);
+  return <AppHeader userName={profile?.nama} userRole={profile?.role} userAvatarUrl={profile?.foto_url} userDepartemen={profile?.bagian?.nama} notificationCount={notificationCount} />;
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

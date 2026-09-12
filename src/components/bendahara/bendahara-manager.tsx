@@ -490,15 +490,16 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
           <title>Laporan Keuangan Karang Taruna - ${nowIndo}</title>
           <style>
             @page {
-              size: A4;
-              margin: 12mm 15mm;
+              /* Tujuh kolom laporan tidak cukup lega pada A4 potret. */
+              size: A4 landscape;
+              margin: 10mm 12mm;
             }
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               color: #1e293b;
               margin: 0;
-              padding: 10px;
-              font-size: 12px;
+              padding: 0;
+              font-size: 11px;
               line-height: 1.4;
             }
             .kop {
@@ -564,29 +565,40 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
               margin-bottom: 25px;
               table-layout: fixed;
             }
+            col.no { width: 4%; }
+            col.tanggal { width: 10%; }
+            col.uraian { width: 31%; }
+            col.kategori { width: 15%; }
+            col.jenis { width: 12%; }
+            col.nominal { width: 16%; }
+            col.pencatat { width: 12%; }
             thead {
               display: table-header-group;
             }
             tfoot {
-              display: table-footer-group;
+              /* Total hanya dicetak sekali, di akhir tabel. */
+              display: table-row-group;
             }
-            tr {
+            tbody tr, tfoot tr {
+              break-inside: avoid;
               page-break-inside: avoid;
             }
             th {
               background-color: #f1f5f9;
               border: 1px solid #cbd5e1;
-              padding: 8px;
-              font-size: 11px;
+              padding: 7px 6px;
+              font-size: 9px;
               text-transform: uppercase;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.25px;
               color: #334155;
+              overflow-wrap: anywhere;
             }
             td {
               border: 1px solid #cbd5e1;
-              padding: 8px;
-              font-size: 12px;
+              padding: 7px 6px;
+              font-size: 10px;
               overflow-wrap: anywhere;
+              word-break: break-word;
               vertical-align: top;
             }
             td .description {
@@ -659,15 +671,24 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
           </div>
 
           <table>
+            <colgroup>
+              <col class="no">
+              <col class="tanggal">
+              <col class="uraian">
+              <col class="kategori">
+              <col class="jenis">
+              <col class="nominal">
+              <col class="pencatat">
+            </colgroup>
             <thead>
               <tr>
-                <th style="width: 35px;">No</th>
-                <th style="width: 100px;">Tanggal</th>
+                <th>No</th>
+                <th>Tanggal</th>
                 <th>Uraian / Judul Transaksi</th>
-                <th style="width: 105px;">Kategori</th>
-                <th style="width: 95px; text-align: center;">Jenis</th>
-                <th style="width: 130px; text-align: right;">Nominal</th>
-                <th style="width: 110px;">Pencatat</th>
+                <th>Kategori</th>
+                <th style="text-align: center;">Jenis</th>
+                <th style="text-align: right;">Nominal</th>
+                <th>Pencatat</th>
               </tr>
             </thead>
             <tbody>

@@ -1,18 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User, Search } from 'lucide-react';
+import { Bell, Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User, Search } from 'lucide-react';
 import { useSidebarStore } from '@/store/sidebar-store';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { logout } from '@/actions/auth';
 import { GlobalSearchDialog } from '@/components/common/global-search-dialog';
 import { PreviewImage } from '@/components/common/preview-image';
+import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 
 // Map segment URL → label yang terbaca
 const SEGMENT_LABELS: Record<string, string> = {
@@ -36,6 +37,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   profil: 'Profil',
   pengaturan: 'Pengaturan',
   akses: 'Manajemen Akses',
+  notifikasi: 'Notifikasi',
 };
 
 function buildCrumbs(pathname: string) {
@@ -53,11 +55,12 @@ interface AppHeaderProps {
   userName?: string;
   userAvatarUrl?: string | null;
   userDepartemen?: string | null;
+  notificationCount?: number;
 }
 
 import { useAuthStore } from '@/store/auth-store';
 
-export function AppHeader({ userRole: propUserRole, userName: propUserName, userAvatarUrl, userDepartemen: propUserDepartemen }: AppHeaderProps) {
+export function AppHeader({ userRole: propUserRole, userName: propUserName, userAvatarUrl, userDepartemen: propUserDepartemen, notificationCount = 0 }: AppHeaderProps) {
   const storeRole = useAuthStore((s) => s.userRole);
   const storeName = useAuthStore((s) => s.userName);
   const storeAvatarUrl = useAuthStore((s) => s.avatarUrl);
@@ -71,12 +74,11 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
   const avatarUrl = storeAvatarUrl !== null ? storeAvatarUrl : (userAvatarUrl ?? null);
   const departemen = propUserDepartemen || (userRole === 'admin' ? 'Administrator' : userRole === 'ketua' ? 'Pimpinan' : userRole === 'sekretaris' ? 'Sekretariat' : userRole === 'bendahara' ? 'Keuangan' : userRole);
   const pathname = usePathname();
-  const router = useRouter();
   const { setTheme, theme, systemTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isLoggingOut, startLogoutTransition] = React.useTransition();
   const [imgError, setImgError] = React.useState(false);
+  const [unreadCount, setUnreadCount] = React.useState(notificationCount);
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
 
@@ -87,10 +89,6 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
       await logout();
     });
   };
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Sync server prop to store whenever userAvatarUrl prop changes
   React.useEffect(() => {
@@ -112,6 +110,27 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
   React.useEffect(() => {
     setImgError(false);
   }, [avatarUrl]);
+
+  React.useEffect(() => {
+    const supabase = createSupabaseClient();
+    const handleNotificationsRead = (event: Event) => {
+      const detail = (event as CustomEvent<{ count: number }>).detail;
+      if (typeof detail?.count === 'number') setUnreadCount(detail.count);
+    };
+    const channel = supabase
+      .channel('notifikasi-header')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifikasi' }, () => {
+        setUnreadCount((current) => current + 1);
+      })
+      .subscribe();
+
+    window.addEventListener('notifications-read', handleNotificationsRead);
+
+    return () => {
+      window.removeEventListener('notifications-read', handleNotificationsRead);
+      void supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Listen to immediate custom events for avatar changes (optimistic updates from other components)
   React.useEffect(() => {
@@ -215,6 +234,20 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
           <span>Departemen: {departemen}</span>
         </span>
+
+        <Link
+          href="/notifikasi"
+          className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          title={unreadCount > 0 ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'}
+          aria-label={unreadCount > 0 ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'}
+        >
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-background bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </Link>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
