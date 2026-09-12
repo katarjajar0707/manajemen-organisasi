@@ -9,11 +9,13 @@ import { cn } from "@/lib/utils";
 interface LogoutButtonProps extends ButtonProps {
   showText?: boolean;
   text?: string;
+  description?: string;
 }
 
 export function LogoutButton({
   showText = true,
   text = "Keluar",
+  description,
   className,
   variant = "ghost",
   size = "sm",
@@ -44,7 +46,12 @@ export function LogoutButton({
       ) : (
         <LogOut className="h-4 w-4 shrink-0" />
       )}
-      {showText && <span>{isPending ? "Keluar..." : text}</span>}
+      {showText && (
+        <span className="min-w-0 text-left">
+          <span className="block">{isPending ? "Keluar..." : text}</span>
+          {description && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{description}</span>}
+        </span>
+      )}
     </Button>
   );
 }

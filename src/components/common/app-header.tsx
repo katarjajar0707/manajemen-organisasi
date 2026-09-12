@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
@@ -14,6 +14,8 @@ import { logout } from '@/actions/auth';
 import { GlobalSearchDialog } from '@/components/common/global-search-dialog';
 import { PreviewImage } from '@/components/common/preview-image';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
+import { getNotifikasi, markNotificationAsRead, type AppNotification } from '@/actions/notifikasi';
+import { formatNotificationDate, notificationStyle } from '@/components/notifikasi/notification-presentation';
 
 // Map segment URL → label yang terbaca
 const SEGMENT_LABELS: Record<string, string> = {
@@ -56,11 +58,12 @@ interface AppHeaderProps {
   userAvatarUrl?: string | null;
   userDepartemen?: string | null;
   notificationCount?: number;
+  initialNotifications?: AppNotification[];
 }
 
 import { useAuthStore } from '@/store/auth-store';
 
-export function AppHeader({ userRole: propUserRole, userName: propUserName, userAvatarUrl, userDepartemen: propUserDepartemen, notificationCount = 0 }: AppHeaderProps) {
+export function AppHeader({ userRole: propUserRole, userName: propUserName, userAvatarUrl, userDepartemen: propUserDepartemen, notificationCount = 0, initialNotifications = [] }: AppHeaderProps) {
   const storeRole = useAuthStore((s) => s.userRole);
   const storeName = useAuthStore((s) => s.userName);
   const storeAvatarUrl = useAuthStore((s) => s.avatarUrl);
@@ -74,13 +77,44 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
   const avatarUrl = storeAvatarUrl !== null ? storeAvatarUrl : (userAvatarUrl ?? null);
   const departemen = propUserDepartemen || (userRole === 'admin' ? 'Administrator' : userRole === 'ketua' ? 'Pimpinan' : userRole === 'sekretaris' ? 'Sekretariat' : userRole === 'bendahara' ? 'Keuangan' : userRole);
   const pathname = usePathname();
+  const router = useRouter();
   const { setTheme, theme, systemTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isLoggingOut, startLogoutTransition] = React.useTransition();
   const [imgError, setImgError] = React.useState(false);
   const [unreadCount, setUnreadCount] = React.useState(notificationCount);
+  const [notifications, setNotifications] = React.useState(initialNotifications);
+  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+  const [isNotificationsLoading, startNotificationsTransition] = React.useTransition();
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
+
+  const refreshNotifications = () => {
+    startNotificationsTransition(async () => {
+      const latestNotifications = await getNotifikasi(5);
+      setNotifications(latestNotifications);
+    });
+  };
+
+  const handleNotificationMenuChange = (open: boolean) => {
+    setIsNotificationsOpen(open);
+    if (open) refreshNotifications();
+  };
+
+  const handleNotificationOpen = (notification: AppNotification) => {
+    setIsNotificationsOpen(false);
+    startNotificationsTransition(async () => {
+      if (!notification.dibaca) {
+        const result = await markNotificationAsRead(notification.id);
+        if (result.success) {
+          setNotifications((current) => current.map((item) => (item.id === notification.id ? { ...item, dibaca: true } : item)));
+          setUnreadCount((current) => Math.max(current - 1, 0));
+          window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: Math.max(unreadCount - 1, 0) } }));
+        }
+      }
+      router.push(notification.href);
+    });
+  };
 
   const handleLogout = () => {
     startLogoutTransition(async () => {
@@ -235,19 +269,61 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
           <span>Departemen: {departemen}</span>
         </span>
 
-        <Link
-          href="/notifikasi"
-          className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          title={unreadCount > 0 ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'}
-          aria-label={unreadCount > 0 ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'}
-        >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-background bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </Link>
+        <DropdownMenu open={isNotificationsOpen} onOpenChange={handleNotificationMenuChange}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:h-8 sm:w-8"
+              title={unreadCount > 0 ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'}
+              aria-label={unreadCount > 0 ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'}
+            >
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-background bg-destructive px-0.5 text-[9px] font-bold leading-none text-destructive-foreground sm:-right-1 sm:-top-1">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={8} className="w-[calc(100vw-1.5rem)] max-w-sm overflow-hidden p-0 sm:w-96">
+            <DropdownMenuLabel className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+              <span>Notifikasi</span>
+              <span className="text-xs font-medium text-muted-foreground">{unreadCount > 0 ? `${unreadCount} belum dibaca` : 'Semua terbaca'}</span>
+            </DropdownMenuLabel>
+            <div className="max-h-[min(24rem,calc(100vh-10rem))] overflow-y-auto overscroll-contain">
+              {isNotificationsLoading && notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">Memuat notifikasi...</div>
+              ) : notifications.length === 0 ? (
+                <div className="flex min-h-44 flex-col items-center justify-center px-5 py-8 text-center">
+                  <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Bell className="h-4 w-4" /></span>
+                  <p className="text-sm font-semibold">Belum ada notifikasi</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Pembaruan aktivitas organisasi akan muncul di sini.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/60">
+                  {notifications.map((notification) => {
+                    const style = notificationStyle[notification.tipe];
+                    const Icon = style.icon;
+                    return (
+                      <DropdownMenuItem key={notification.id} onSelect={() => handleNotificationOpen(notification)} disabled={isNotificationsLoading} className={cn('flex min-h-20 items-start gap-3 rounded-none px-4 py-3 text-left focus:bg-muted/70', !notification.dibaca && 'bg-primary/[0.035]')}>
+                        <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', style.className)}><Icon className="h-4 w-4" /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-start gap-2"><span className={cn('line-clamp-1 text-sm', !notification.dibaca ? 'font-bold' : 'font-semibold')}>{notification.judul}</span>{!notification.dibaca && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-label="Belum dibaca" />}</span>
+                          {notification.pesan && <span className="mt-0.5 block line-clamp-2 text-xs leading-5 text-muted-foreground">{notification.pesan}</span>}
+                          <span suppressHydrationWarning className="mt-1 block text-[11px] text-muted-foreground">{style.label} · {formatNotificationDate(notification.createdAt)}</span>
+                        </span>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <DropdownMenuSeparator className="my-0" />
+            <DropdownMenuItem asChild className="justify-center rounded-none px-4 py-3 font-semibold text-primary focus:bg-primary/10 focus:text-primary">
+              <Link href="/notifikasi" onClick={() => setIsNotificationsOpen(false)}>Lihat semua notifikasi</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

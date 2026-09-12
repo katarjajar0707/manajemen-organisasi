@@ -5,7 +5,7 @@ import { AppBottomNav } from '@/components/common/app-bottom-nav';
 import { AppMobileNav } from '@/components/common/app-mobile-nav';
 import { getProfile } from '@/lib/supabase/server';
 import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
-import { getUnreadNotificationCount } from '@/actions/notifikasi';
+import { getNotifikasi, getUnreadNotificationCount } from '@/actions/notifikasi';
 import { AdminQueryProvider } from '@/providers/admin-query-provider';
 import { UserPresenceTracker } from '@/components/common/user-presence-tracker';
 
@@ -23,8 +23,8 @@ async function AdminSidebarChrome() {
 }
 
 async function AdminHeaderChrome() {
-  const [profile, notificationCount] = await Promise.all([getProfile(), getUnreadNotificationCount()]);
-  return <AppHeader userName={profile?.nama} userRole={profile?.role} userAvatarUrl={profile?.foto_url} userDepartemen={profile?.bagian?.nama} notificationCount={notificationCount} />;
+  const [profile, notificationCount, notifications] = await Promise.all([getProfile(), getUnreadNotificationCount(), getNotifikasi(5)]);
+  return <AppHeader userName={profile?.nama} userRole={profile?.role} userAvatarUrl={profile?.foto_url} userDepartemen={profile?.bagian?.nama} notificationCount={notificationCount} initialNotifications={notifications} />;
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Suspense>
 
           {/* MAIN CONTENT — scrollable, mobile-optimized padding */}
-          <main className="app-scroll-container flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 min-w-0 max-w-full">
+          <main className="app-scroll-container flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3.5 pb-[calc(env(safe-area-inset-bottom)+7rem)] sm:p-5 sm:pb-[calc(env(safe-area-inset-bottom)+7rem)] md:p-6 md:pb-[calc(env(safe-area-inset-bottom)+7rem)] lg:p-8 lg:pb-8 min-w-0 max-w-full">
             <div className="max-w-7xl mx-auto w-full min-w-0">{children}</div>
           </main>
         </div>

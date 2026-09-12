@@ -2,88 +2,59 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LayoutGrid } from 'lucide-react';
 import { BOTTOM_NAV_ITEMS } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
-
-import { LayoutGrid } from 'lucide-react';
 import { useSidebarStore } from '@/store/sidebar-store';
 
 export function AppBottomNav() {
   const pathname = usePathname();
-  const toggleMobile = useSidebarStore((s) => s.toggleMobile);
-  const isMobileOpen = useSidebarStore((s) => s.isMobileOpen);
+  const toggleMobile = useSidebarStore((state) => state.toggleMobile);
+  const isMobileOpen = useSidebarStore((state) => state.isMobileOpen);
+  const profileItem = BOTTOM_NAV_ITEMS.find((item) => item.href === '/profil');
+  const regularItems = BOTTOM_NAV_ITEMS.filter((item) => item.href !== '/profil');
+  const leftItems = regularItems.slice(0, 2);
+  const rightItems = regularItems.slice(2);
+
+  const renderRegularItem = (item: (typeof BOTTOM_NAV_ITEMS)[number]) => {
+    const Icon = item.icon;
+    const isActive = pathname === item.href;
+
+    return (
+      <Link key={item.href} href={item.href} className={cn('group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[10px] font-medium transition-all duration-200 active:scale-95', isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+        <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg transition-colors', isActive ? 'bg-primary/10' : 'group-hover:bg-muted')}>
+          <Icon className={cn('h-4 w-4 transition-transform duration-200', isActive ? 'scale-110 stroke-[2.5]' : 'stroke-[1.8]')} />
+        </span>
+        <span className="max-w-full truncate px-1 leading-tight">{item.title}</span>
+      </Link>
+    );
+  };
 
   return (
-    <nav
-      className={cn(
-        'fixed bottom-0 left-0 right-0 z-40 lg:hidden',
-        'border-t border-slate-300 bg-white dark:border-zinc-700 dark:bg-zinc-950',
-        // Safe area padding untuk notched phones
-        'pb-[env(safe-area-inset-bottom,8px)]',
-      )}
-    >
-      {/* Nav items container */}
-      <div className="flex items-end justify-around px-2 pt-1.5 pb-2">
-        {BOTTOM_NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
+    <nav className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 px-3 lg:hidden" aria-label="Navigasi utama mobile">
+      <div className="pointer-events-auto mx-auto flex h-16 max-w-md items-stretch rounded-2xl border border-border/70 bg-background/95 px-1 shadow-[0_12px_32px_rgba(0,0,0,0.16)] backdrop-blur-xl dark:bg-background/90">
+        {leftItems.map(renderRegularItem)}
 
+        {profileItem && (() => {
+          const Icon = profileItem.icon;
+          const isActive = pathname === profileItem.href;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'group relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 transition-all duration-300 ease-out',
-                'active:scale-90',
-                isActive ? 'text-primary' : 'text-slate-600 hover:text-slate-950 dark:text-zinc-300 dark:hover:text-white',
-              )}
-            >
-              {/* Active background pill */}
-              <div
-                className={cn('relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out', isActive ? 'bg-primary/15 theme-shadow-strong scale-110' : 'group-hover:bg-foreground/[0.06] scale-100')}
-              >
-                {/* Active dot indicator above icon */}
-                <div className={cn('absolute -top-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-primary transition-all duration-300 ease-out', isActive ? 'w-3 opacity-100' : 'w-0 opacity-0')} />
-                <Icon className={cn('transition-all duration-300 ease-out', isActive ? 'h-[18px] w-[18px] stroke-[2.5] text-primary theme-drop-shadow' : 'h-4 w-4 stroke-[1.8] group-hover:stroke-2')} />
-              </div>
-              <span
-                className={cn(
-                  'text-[10px] leading-tight truncate max-w-[56px] transition-all duration-300 ease-out',
-                  isActive ? 'font-bold text-primary translate-y-0 opacity-100' : 'font-medium text-slate-600 translate-y-0.5 dark:text-zinc-300',
-                )}
-              >
-                {item.title}
+            <Link href={profileItem.href} aria-current={isActive ? 'page' : undefined} className="group relative flex min-w-0 flex-1 flex-col items-center justify-end pb-1 text-[10px] font-semibold text-primary transition-transform duration-200 active:scale-95">
+              <span className={cn('absolute -top-5 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background bg-primary text-primary-foreground shadow-[0_10px_22px_var(--primary-glow)] transition-all duration-200 group-hover:-translate-y-0.5 group-focus-visible:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-primary/35 group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background', isActive && 'ring-2 ring-primary/25 ring-offset-2 ring-offset-background')}>
+                <Icon className={cn('h-5 w-5 transition-transform duration-200', isActive && 'scale-110 stroke-[2.5]')} />
               </span>
+              <span className="leading-tight">Profil</span>
             </Link>
           );
-        })}
+        })()}
 
-        {/* Button Menu Lengkap (Drawer) */}
-        <button
-          type="button"
-          onClick={toggleMobile}
-          className={cn(
-            'group relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 transition-all duration-300 ease-out',
-            'active:scale-90',
-            isMobileOpen ? 'text-primary' : 'text-slate-600 hover:text-slate-950 dark:text-zinc-300 dark:hover:text-white',
-          )}
-        >
-          {/* Active background pill */}
-          <div
-            className={cn('relative flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ease-out', isMobileOpen ? 'bg-primary/15 theme-shadow-strong scale-110' : 'group-hover:bg-foreground/[0.06] scale-100')}
-          >
-            {/* Active dot indicator above icon */}
-            <div className={cn('absolute -top-1 left-1/2 -translate-x-1/2 h-1 rounded-full bg-primary transition-all duration-300 ease-out', isMobileOpen ? 'w-3 opacity-100' : 'w-0 opacity-0')} />
-            <LayoutGrid className={cn('transition-all duration-300 ease-out', isMobileOpen ? 'h-[18px] w-[18px] stroke-[2.5] text-primary theme-drop-shadow' : 'h-4 w-4 stroke-[1.8] group-hover:stroke-2')} />
-          </div>
-          <span
-            className={cn(
-              'text-[10px] leading-tight truncate max-w-[56px] transition-all duration-300 ease-out',
-              isMobileOpen ? 'font-bold text-primary translate-y-0 opacity-100' : 'font-medium text-slate-600 translate-y-0.5 dark:text-zinc-300',
-            )}
-          >
-            Menu
+        {rightItems.map(renderRegularItem)}
+
+        <button type="button" onClick={toggleMobile} aria-expanded={isMobileOpen} aria-label="Buka menu lengkap" className={cn('group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[10px] font-medium transition-all duration-200 active:scale-95', isMobileOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+          <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg transition-colors', isMobileOpen ? 'bg-primary/10' : 'group-hover:bg-muted')}>
+            <LayoutGrid className={cn('h-4 w-4 transition-transform duration-200', isMobileOpen ? 'scale-110 stroke-[2.5]' : 'stroke-[1.8]')} />
           </span>
+          <span className="max-w-full truncate px-1 leading-tight">Menu</span>
         </button>
       </div>
     </nav>

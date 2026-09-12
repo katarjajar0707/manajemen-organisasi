@@ -22,7 +22,7 @@ export async function getMyProfile() {
 
   // Kedua query hanya bergantung pada user.id, jadi jalankan dalam satu round-trip paralel.
   const [{ data: profile }, { data: anggotaData }] = await Promise.all([
-    supabase.from('profiles').select('*, bagian:bagian_id(id, nama, slug)').eq('id', user.id).single(),
+    supabase.from('profiles').select('id, nama, username, foto_url, bio, role, created_at, nomor_wa, bagian:bagian_id(id, nama, slug)').eq('id', user.id).single(),
     // Ambil kontak dari tabel anggota untuk memastikan nomor WhatsApp sinkron
     supabase.from('anggota').select('kontak').eq('id', user.id).maybeSingle(),
   ]);
