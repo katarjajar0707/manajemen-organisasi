@@ -1,11 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { CircleDollarSign, FileText, Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { Check, CircleDollarSign, Copy, FileText, Landmark, MessageCircle, Share2, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 import type { PublicKeuanganReportData } from '@/actions/transparansi';
 
@@ -20,8 +27,66 @@ function formatTanggal(tanggal: string): string {
 
 export function PublicLaporanKeuangan({ settings, report }: { settings?: PengaturanSistemData; report?: PublicKeuanganReportData }) {
   const [kategoriAktif, setKategoriAktif] = useState('Semua');
+  const [copied, setCopied] = useState(false);
+  const [canNativeShare, setCanNativeShare] = useState(false);
   const orgName = settings?.profil.nama || 'Karang Taruna';
   const isAvailable = Boolean(report);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      setCanNativeShare(true);
+    }
+  }, []);
+
+  const handleCopyUrl = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopied(true);
+      toast.success('Tautan berhasil disalin ke clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Gagal menyalin tautan:', err);
+      toast.error('Gagal menyalin tautan');
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const text = `Laporan Transparansi Keuangan - ${orgName}\n\nLihat rincian arus kas dan laporan keuangan terbuka di tautan:\n${url}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleNativeShare = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Laporan Keuangan | ${orgName}`,
+          text: `Informasi arus kas dan transparansi keuangan ${orgName}`,
+          url: url,
+        });
+      }
+    } catch (err: unknown) {
+      if ((err as Error)?.name !== 'AbortError') {
+        console.error('Gagal berbagi:', err);
+      }
+    }
+  };
+
   const transaksi = useMemo(() => report?.transaksi.filter((item) => kategoriAktif === 'Semua' || item.kategori === kategoriAktif) || [], [kategoriAktif, report]);
   const ringkasan = useMemo(() => {
     const masuk = transaksi.filter((item) => item.jenis === 'masuk').reduce((total, item) => total + item.jumlah, 0);
@@ -33,11 +98,59 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
     <div className="min-h-[calc(100vh-4.25rem)]">
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:space-y-8 sm:py-10 md:px-8">
-        <section className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-medium text-primary"><Landmark className="h-4 w-4" /> Transparansi publik</div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Laporan Keuangan</h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">Informasi arus kas {orgName} yang disajikan secara terbuka. Halaman ini hanya untuk melihat data dan tidak menyediakan pengubahan transaksi.</p>
-        </section>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <section className="space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-primary">
+              <Landmark className="h-4 w-4" /> Transparansi publik
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Laporan Keuangan</h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              Informasi arus kas {orgName} yang disajikan secara terbuka. Halaman ini hanya untuk melihat data dan tidak menyediakan pengubahan transaksi.
+            </p>
+          </section>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto sm:pt-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="group flex items-center gap-2 rounded-xl border-border/80 bg-background/60 shadow-xs backdrop-blur-xs transition-all hover:border-primary/40 hover:bg-secondary"
+                  title="Bagikan tautan halaman laporan keuangan"
+                  aria-label="Bagikan tautan laporan keuangan"
+                >
+                  <Share2 className="h-4 w-4 text-primary transition-transform group-hover:scale-110" />
+                  <span className="text-xs font-semibold">Bagikan</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/70 p-1.5 shadow-lg backdrop-blur-md">
+                <DropdownMenuItem
+                  onClick={handleCopyUrl}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors hover:bg-accent"
+                >
+                  {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                  <span>{copied ? 'Tersalin ke Clipboard' : 'Salin Tautan Halaman'}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleWhatsAppShare}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors hover:bg-accent"
+                >
+                  <MessageCircle className="h-4 w-4 text-emerald-500" />
+                  <span>Bagikan ke WhatsApp</span>
+                </DropdownMenuItem>
+                {canNativeShare && (
+                  <DropdownMenuItem
+                    onClick={handleNativeShare}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors hover:bg-accent"
+                  >
+                    <Share2 className="h-4 w-4 text-primary" />
+                    <span>Bagikan via Aplikasi Lain...</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
         {!isAvailable ? (
           <Card className="mx-auto max-w-xl border-border/70 text-center shadow-sm"><CardContent className="space-y-4 p-8"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileText className="h-6 w-6" /></span><div className="space-y-1"><h2 className="font-bold">Laporan belum tersedia untuk publik</h2><p className="text-sm text-muted-foreground">Publikasi laporan keuangan saat ini dinonaktifkan oleh pengurus organisasi.</p></div><Link href="/"><Button variant="outline" size="sm">Kembali ke Beranda</Button></Link></CardContent></Card>
