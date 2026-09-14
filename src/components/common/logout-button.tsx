@@ -41,16 +41,35 @@ export function LogoutButton({
       )}
       {...props}
     >
-      {isPending ? (
-        <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+      {description ? (
+        <>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive sm:h-9 sm:w-9">
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4" />
+            )}
+          </span>
+          {showText && (
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block text-sm font-medium">{isPending ? "Keluar..." : text}</span>
+              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">{description}</span>
+            </span>
+          )}
+        </>
       ) : (
-        <LogOut className="h-4 w-4 shrink-0" />
-      )}
-      {showText && (
-        <span className="min-w-0 text-left">
-          <span className="block">{isPending ? "Keluar..." : text}</span>
-          {description && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{description}</span>}
-        </span>
+        <>
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+          ) : (
+            <LogOut className="h-4 w-4 shrink-0" />
+          )}
+          {showText && (
+            <span className="min-w-0 text-left">
+              <span className="block">{isPending ? "Keluar..." : text}</span>
+            </span>
+          )}
+        </>
       )}
     </Button>
   );

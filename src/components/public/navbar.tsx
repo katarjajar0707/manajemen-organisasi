@@ -53,13 +53,13 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju' }: { orgLogoUrl?: str
   const closeMenu = () => setIsOpen(false);
 
   return (
-    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4">
+    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4 before:absolute before:inset-x-0 before:top-0 before:h-3 before:bg-background">
       <nav
         aria-label="Navigasi utama"
         className={cn(
           "relative mx-auto flex h-14 max-w-7xl items-center justify-between rounded-xl px-3 transition-all duration-300 sm:px-4",
-          isHome && !isScrolled
-            ? "border border-transparent bg-transparent shadow-none backdrop-blur-none md:border-border/80 md:bg-background/85 md:shadow-sm md:backdrop-blur-md"
+          isHome
+            ? "border border-border/80 bg-background shadow-sm"
             : "border border-border/80 bg-background/85 shadow-sm backdrop-blur-md"
         )}
       >

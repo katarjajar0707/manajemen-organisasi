@@ -47,6 +47,10 @@ interface LanyardProps {
   position?: [number, number, number];
   gravity?: [number, number, number];
   fov?: number;
+  /** Camera position override for desktop (≥1024px) viewports. */
+  desktopPosition?: [number, number, number];
+  /** FOV override for desktop (≥1024px) viewports. */
+  desktopFov?: number;
   transparent?: boolean;
   frontImage?: string | null;
   backImage?: string | null;
@@ -55,19 +59,51 @@ interface LanyardProps {
   lanyardWidth?: number;
 }
 
-function CameraSync({ isMobile, defaultPosition, defaultFov }: { isMobile: boolean; defaultPosition: [number, number, number]; defaultFov: number }) {
+function CameraSync({
+  defaultPosition,
+  defaultFov,
+  desktopPosition,
+  desktopFov
+}: {
+  defaultPosition: [number, number, number];
+  defaultFov: number;
+  desktopPosition: [number, number, number];
+  desktopFov: number;
+}) {
   const { camera } = useThree();
   useEffect(() => {
     const pCam = camera as THREE.PerspectiveCamera;
-    if (isMobile) {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    if (w < 768) {
       pCam.position.set(0, 0.46, 23);
       pCam.fov = 17.5;
+    } else if (w >= 1024) {
+      pCam.position.set(desktopPosition[0], desktopPosition[1], desktopPosition[2]);
+      pCam.fov = desktopFov;
     } else {
       pCam.position.set(defaultPosition[0], defaultPosition[1], defaultPosition[2]);
       pCam.fov = defaultFov;
     }
     pCam.updateProjectionMatrix();
-  }, [isMobile, camera, defaultPosition, defaultFov]);
+
+    const handleResize = () => {
+      const newW = window.innerWidth;
+      if (newW < 768) {
+        pCam.position.set(0, 0.46, 23);
+        pCam.fov = 17.5;
+      } else if (newW >= 1024) {
+        pCam.position.set(desktopPosition[0], desktopPosition[1], desktopPosition[2]);
+        pCam.fov = desktopFov;
+      } else {
+        pCam.position.set(defaultPosition[0], defaultPosition[1], defaultPosition[2]);
+        pCam.fov = defaultFov;
+      }
+      pCam.updateProjectionMatrix();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camera]);
   return null;
 }
 
@@ -75,6 +111,8 @@ export default function Lanyard({
   position = [0, 0, 30],
   gravity = [0, -40, 0],
   fov = 14,
+  desktopPosition = [0, 0.5, 26] as [number, number, number],
+  desktopFov = 13,
   transparent = true,
   frontImage = null,
   backImage = null,
@@ -83,29 +121,44 @@ export default function Lanyard({
   lanyardWidth = 1
 }: LanyardProps) {
   const [isMobile, setIsMobile] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    const handleResize = (): void => setIsMobile(window.innerWidth < 768);
+    const handleResize = (): void => {
+      const w = window.innerWidth;
+      setIsMobile(w < 768);
+      setIsDesktop(w >= 1024);
+    };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Canvas reads camera props only once on mount; CameraSync keeps it in sync
+  // on subsequent breakpoint changes.
+  const initCamPos: [number, number, number] = isMobile ? [0, 0.46, 23] : isDesktop ? desktopPosition : position;
+  const initCamFov = isMobile ? 17.5 : isDesktop ? desktopFov : fov;
+
   return (
     <div className="lanyard-wrapper">
       <Canvas
-        key={isMobile ? 'mobile' : 'desktop'}
-        camera={{ position: isMobile ? [0, 0.46, 23] : position, fov: isMobile ? 17.5 : fov }}
+        camera={{ position: initCamPos, fov: initCamFov }}
         dpr={[1, isMobile ? 1.5 : 2]}
         gl={{ alpha: transparent }}
         style={{ touchAction: 'none' }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
       >
-        <CameraSync isMobile={isMobile} defaultPosition={position} defaultFov={fov} />
+        <CameraSync
+          defaultPosition={position}
+          defaultFov={fov}
+          desktopPosition={desktopPosition}
+          desktopFov={desktopFov}
+        />
         <ambientLight intensity={Math.PI} />
         <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
           <Band
             isMobile={isMobile}
+            isDesktop={isDesktop}
             frontImage={frontImage}
             backImage={backImage}
             imageFit={imageFit}
@@ -152,6 +205,7 @@ interface BandProps {
   maxSpeed?: number;
   minSpeed?: number;
   isMobile?: boolean;
+  isDesktop?: boolean;
   frontImage?: string | null;
   backImage?: string | null;
   imageFit?: 'cover' | 'contain';
@@ -167,6 +221,7 @@ function Band({
   maxSpeed = 50,
   minSpeed = 0,
   isMobile = false,
+  isDesktop = false,
   frontImage = null,
   backImage = null,
   imageFit = 'cover',
@@ -270,13 +325,24 @@ function Band({
   const [dragged, drag] = useState<false | THREE.Vector3>(false);
   const [hovered, hover] = useState(false);
 
-  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1]);
-  useSphericalJoint(j3, card, [
-    [0, 0, 0],
-    [0, 1.45, 0]
-  ]);
+  const ropeJointParams = useMemo(
+    () => [[0, 0, 0], [0, 0, 0], 1] as [[0,0,0],[0,0,0],number],
+    []
+  );
+  useRopeJoint(fixed, j1, ropeJointParams);
+  useRopeJoint(j1, j2, ropeJointParams);
+  useRopeJoint(j2, j3, ropeJointParams);
+  // Scale the card visual group per breakpoint. The spherical joint anchor is
+  // kept at a stable value (1.45) that sits inside the CuboidCollider bounds
+  // (half-height 1.125 → top at +1.125). Rapier requires the joint anchor to
+  // be inside or very close to the collider; a value far outside causes NaN.
+  // Visually the rope terminates at j3 which already lines up near the clip.
+  const cardScale = isMobile ? 2.6 : isDesktop ? 2.8 : 2.25;
+  const sphericalJointParams = useMemo(
+    () => [[0, 0, 0], [0, 1.45, 0]] as [[0,0,0],[0,number,0]],
+    []
+  );
+  useSphericalJoint(j3, card, sphericalJointParams);
 
   useEffect(() => {
     if (hovered) {
@@ -299,20 +365,41 @@ function Band({
         z: vec.current.z - dragged.z
       });
     }
-    if (fixed.current) {
+    if (fixed.current && j1.current && j2.current && j3.current && card.current) {
       [j1, j2].forEach(ref => {
         const lerped = getLerped(ref.current);
-        const clampedDistance = Math.max(0.1, Math.min(1, lerped.distanceTo(ref.current.translation())));
-        lerped.lerp(ref.current.translation(), delta * (minSpeed + clampedDistance * (maxSpeed - minSpeed)));
+        const trans = ref.current.translation();
+        if (Number.isFinite(trans.x) && Number.isFinite(trans.y) && Number.isFinite(trans.z)) {
+          const clampedDistance = Math.max(0.1, Math.min(1, lerped.distanceTo(trans)));
+          lerped.lerp(trans, delta * (minSpeed + clampedDistance * (maxSpeed - minSpeed)));
+        }
       });
-      curve.points[0].copy(j3.current.translation());
-      curve.points[1].copy(getLerped(j2.current));
-      curve.points[2].copy(getLerped(j1.current));
-      curve.points[3].copy(fixed.current.translation());
-      band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
-      ang.current.copy(card.current.angvel());
-      rot.current.copy(card.current.rotation());
-      card.current.setAngvel({ x: ang.current.x, y: ang.current.y - rot.current.y * 0.25, z: ang.current.z }, true);
+      const p0 = j3.current.translation();
+      const p1 = getLerped(j2.current);
+      const p2 = getLerped(j1.current);
+      const p3 = fixed.current.translation();
+      if (
+        Number.isFinite(p0.x) && Number.isFinite(p0.y) && Number.isFinite(p0.z) &&
+        Number.isFinite(p1.x) && Number.isFinite(p1.y) && Number.isFinite(p1.z) &&
+        Number.isFinite(p2.x) && Number.isFinite(p2.y) && Number.isFinite(p2.z) &&
+        Number.isFinite(p3.x) && Number.isFinite(p3.y) && Number.isFinite(p3.z)
+      ) {
+        curve.points[0].copy(p0);
+        curve.points[1].copy(p1);
+        curve.points[2].copy(p2);
+        curve.points[3].copy(p3);
+        band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
+      }
+      const curAngvel = card.current.angvel();
+      const curRot = card.current.rotation();
+      if (
+        Number.isFinite(curAngvel.x) && Number.isFinite(curAngvel.y) && Number.isFinite(curAngvel.z) &&
+        Number.isFinite(curRot.x) && Number.isFinite(curRot.y) && Number.isFinite(curRot.z) && Number.isFinite(curRot.w)
+      ) {
+        ang.current.copy(curAngvel);
+        rot.current.copy(curRot);
+        card.current.setAngvel({ x: ang.current.x, y: ang.current.y - rot.current.y * 0.25, z: ang.current.z }, true);
+      }
     }
   });
 
@@ -337,7 +424,7 @@ function Band({
         >
           <CuboidCollider args={[0.8, 1.125, 0.01]} />
           <group
-            scale={isMobile ? 2.6 : 2.25}
+            scale={cardScale}
             position={[0, -1.2, -0.05]}
             onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); hover(true); }}
             onPointerOut={() => hover(false)}

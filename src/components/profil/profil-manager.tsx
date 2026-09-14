@@ -186,13 +186,58 @@ export function ProfilManager({ profile }: { profile: ProfileData }) {
       </Card>
 
       <Card>
-        <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3"><CardTitle>Aksi akun</CardTitle><CardDescription>Perbarui profil, keamanan, atau akhiri sesi Anda.</CardDescription></CardHeader>
-        <CardContent className="grid gap-2 p-4 pt-0 sm:grid-cols-2 sm:gap-3 sm:p-5 sm:pt-0 lg:grid-cols-3">
-          <Button type="button" variant="outline" onClick={openEditProfile} className="h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary sm:h-9 sm:w-9"><UserPen className="h-4 w-4" /></span><span><span className="block text-sm">Edit Profil</span><span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">Nama, username, kontak, dan bio</span></span></Button>
-          <Button type="button" variant="outline" onClick={() => { setFormError(null); setIsPasswordDialogOpen(true); }} className="h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 sm:h-9 sm:w-9"><KeyRound className="h-4 w-4" /></span><span><span className="block text-sm">Ganti Password</span><span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">Perbarui keamanan akses akun</span></span></Button>
-          <LogoutButton variant="outline" text="Keluar dari Akun" description="Akhiri sesi pada perangkat ini" className="h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3" />
+        <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
+          <CardTitle>Aksi akun</CardTitle>
+          <CardDescription>Perbarui profil, keamanan, atau akhiri sesi Anda.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-2 p-4 pt-0 sm:grid-cols-2 sm:gap-3 sm:p-5 sm:pt-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={openEditProfile}
+            className="h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary sm:h-9 sm:w-9">
+              <UserPen className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">Edit Profil</span>
+              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">
+                Nama, username, kontak, dan bio
+              </span>
+            </span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setFormError(null);
+              setIsPasswordDialogOpen(true);
+            }}
+            className="h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 sm:h-9 sm:w-9">
+              <KeyRound className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">Ganti Password</span>
+              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">
+                Perbarui keamanan akses akun
+              </span>
+            </span>
+          </Button>
+
           <ThemeToggle showLabel />
-          <ColorThemeSwitcher compact showDivider={false} label="Tema warna" />
+
+          <ColorThemeSwitcher compact showDivider={false} label="Tema Warna" />
+
+          <LogoutButton
+            variant="outline"
+            text="Keluar dari Akun"
+            description="Akhiri sesi pada perangkat ini"
+            className="h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3 sm:col-span-2 border-destructive/25 hover:border-destructive/40 hover:bg-destructive/10"
+          />
         </CardContent>
       </Card>
 

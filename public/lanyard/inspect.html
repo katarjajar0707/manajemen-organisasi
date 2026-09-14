@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><title>GLB Inspector</title></head>
+<body>
+<pre id="out">Loading...</pre>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const loader = new GLTFLoader();
+loader.load('/lanyard/card.glb', (gltf) => {
+  let txt = '=== card.glb Hierarchy Inspector ===\n\n';
+  function printNode(node, depth = 0) {
+    const indent = '  '.repeat(depth);
+    txt += `${indent}- ${node.name || 'unnamed'} (${node.type})\n`;
+    txt += `${indent}  pos: [${node.position.x.toFixed(4)}, ${node.position.y.toFixed(4)}, ${node.position.z.toFixed(4)}]\n`;
+    txt += `${indent}  rot: [${node.rotation.x.toFixed(4)}, ${node.rotation.y.toFixed(4)}, ${node.rotation.z.toFixed(4)}]\n`;
+    txt += `${indent}  scale: [${node.scale.x.toFixed(4)}, ${node.scale.y.toFixed(4)}, ${node.scale.z.toFixed(4)}]\n`;
+    if (node.isMesh) {
+      node.geometry.computeBoundingBox();
+      const bb = node.geometry.boundingBox;
+      txt += `${indent}  geoBB min: [${bb.min.x.toFixed(4)}, ${bb.min.y.toFixed(4)}, ${bb.min.z.toFixed(4)}]\n`;
+      txt += `${indent}  geoBB max: [${bb.max.x.toFixed(4)}, ${bb.max.y.toFixed(4)}, ${bb.max.z.toFixed(4)}]\n`;
+    }
+    node.children.forEach(c => printNode(c, depth + 1));
+  }
+  printNode(gltf.scene);
+  document.getElementById('out').textContent = txt;
+}, undefined, (err) => {
+  document.getElementById('out').textContent = 'Error: ' + err;
+});
+</script>
+</body>
+</html>

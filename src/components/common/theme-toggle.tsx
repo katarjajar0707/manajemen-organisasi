@@ -16,9 +16,32 @@ export function ThemeToggle({ showLabel = false, className }: { showLabel?: bool
 
   if (!mounted) {
     return (
-      <Button variant={showLabel ? 'outline' : 'ghost'} size={showLabel ? 'default' : 'icon'} className={cn(showLabel ? 'h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3' : 'h-9 w-9', className)} aria-label="Ganti tema terang atau gelap">
-        <Sun className="h-4 w-4" />
-        {showLabel && <span><span className="block text-sm">Tema tampilan</span><span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">Terang atau gelap</span></span>}
+      <Button
+        variant={showLabel ? 'outline' : 'ghost'}
+        size={showLabel ? 'default' : 'icon'}
+        className={cn(
+          showLabel
+            ? 'h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3'
+            : 'h-9 w-9',
+          className
+        )}
+        aria-label="Ganti tema terang atau gelap"
+      >
+        {showLabel ? (
+          <>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:bg-amber-400/10 dark:text-amber-400 sm:h-9 sm:w-9">
+              <Sun className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">Tema Tampilan</span>
+              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">
+                Sesuaikan tampilan aplikasi
+              </span>
+            </span>
+          </>
+        ) : (
+          <Sun className="h-4 w-4" />
+        )}
       </Button>
     );
   }
@@ -27,16 +50,42 @@ export function ThemeToggle({ showLabel = false, className }: { showLabel?: bool
     <Button
       variant={showLabel ? 'outline' : 'ghost'}
       size={showLabel ? 'default' : 'icon'}
-      className={cn(showLabel ? 'h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3' : 'h-9 w-9', className)}
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className={cn(
+        showLabel
+          ? 'h-auto min-h-16 justify-start gap-3 whitespace-normal px-3 py-2.5 text-left sm:min-h-20 sm:px-4 sm:py-3'
+          : 'h-9 w-9',
+        className
+      )}
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       aria-label="Toggle theme"
     >
-      {theme === "dark" ? (
-        <Sun className="h-4 w-4 transition-all" />
+      {showLabel ? (
+        <>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:bg-amber-400/10 dark:text-amber-400 sm:h-9 sm:w-9">
+            {theme === 'dark' ? (
+              <Sun className="h-4 w-4 transition-all" />
+            ) : (
+              <Moon className="h-4 w-4 transition-all" />
+            )}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">
+              {theme === 'dark' ? 'Gunakan Tema Terang' : 'Gunakan Tema Gelap'}
+            </span>
+            <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">
+              Sesuaikan tampilan aplikasi
+            </span>
+          </span>
+        </>
       ) : (
-        <Moon className="h-4 w-4 transition-all" />
+        <>
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4 transition-all" />
+          ) : (
+            <Moon className="h-4 w-4 transition-all" />
+          )}
+        </>
       )}
-      {showLabel && <span><span className="block text-sm">{theme === 'dark' ? 'Gunakan Tema Terang' : 'Gunakan Tema Gelap'}</span><span className="mt-0.5 block text-[11px] font-normal text-muted-foreground sm:text-xs">Sesuaikan tampilan aplikasi</span></span>}
     </Button>
   );
 }

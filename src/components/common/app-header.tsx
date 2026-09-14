@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Bell, Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User, Search } from 'lucide-react';
+import { ArrowRight, Bell, CheckCheck, Loader2, LogOut, Moon, PanelLeft, Settings, Sun, User, Search } from 'lucide-react';
 import { useSidebarStore } from '@/store/sidebar-store';
 import { cn } from '@/lib/utils';
 import React from 'react';
@@ -14,7 +14,7 @@ import { logout } from '@/actions/auth';
 import { GlobalSearchDialog } from '@/components/common/global-search-dialog';
 import { PreviewImage } from '@/components/common/preview-image';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
-import { getNotifikasi, markNotificationAsRead, type AppNotification } from '@/actions/notifikasi';
+import { getNotifikasi, markAllNotificationsAsRead, markNotificationAsRead, type AppNotification } from '@/actions/notifikasi';
 import { formatNotificationDate, notificationStyle } from '@/components/notifikasi/notification-presentation';
 
 // Map segment URL → label yang terbaca
@@ -113,6 +113,20 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
         }
       }
       router.push(notification.href);
+    });
+  };
+
+  const handleMarkAllRead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const unreadIds = notifications.filter((n) => !n.dibaca).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+    startNotificationsTransition(async () => {
+      const result = await markAllNotificationsAsRead(unreadIds);
+      if (result.success) {
+        setNotifications((current) => current.map((item) => ({ ...item, dibaca: true })));
+        setUnreadCount(0);
+        window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: 0 } }));
+      }
     });
   };
 
@@ -285,42 +299,125 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={8} className="w-[calc(100vw-1.5rem)] max-w-sm overflow-hidden p-0 sm:w-96">
-            <DropdownMenuLabel className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-              <span>Notifikasi</span>
-              <span className="text-xs font-medium text-muted-foreground">{unreadCount > 0 ? `${unreadCount} belum dibaca` : 'Semua terbaca'}</span>
+          <DropdownMenuContent
+            align="end"
+            sideOffset={8}
+            collisionPadding={12}
+            className="w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:max-w-sm sm:w-96 overflow-hidden p-0 rounded-xl shadow-xl border border-border/80"
+          >
+            <DropdownMenuLabel className="flex items-center justify-between border-b border-border/60 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold tracking-tight">Notifikasi</span>
+                {unreadCount > 0 && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/15 text-primary">
+                    {unreadCount} baru
+                  </span>
+                )}
+              </div>
+              {unreadCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={handleMarkAllRead}
+                  disabled={isNotificationsLoading}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-1.5 rounded hover:bg-primary/10 active:scale-95 disabled:opacity-50"
+                  title="Tandai semua sebagai sudah dibaca"
+                >
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  <span>Tandai dibaca</span>
+                </button>
+              ) : (
+                <span className="text-[11px] font-medium text-muted-foreground">Semua terbaca</span>
+              )}
             </DropdownMenuLabel>
-            <div className="max-h-[min(24rem,calc(100vh-10rem))] overflow-y-auto overscroll-contain">
+            <div className="max-h-[min(24rem,calc(100dvh-10rem))] overflow-y-auto overscroll-contain divide-y divide-border/50">
               {isNotificationsLoading && notifications.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-muted-foreground">Memuat notifikasi...</div>
+                <div className="flex flex-col items-center justify-center px-4 py-8 text-center text-sm text-muted-foreground gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-xs">Memuat notifikasi...</span>
+                </div>
               ) : notifications.length === 0 ? (
-                <div className="flex min-h-44 flex-col items-center justify-center px-5 py-8 text-center">
-                  <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground"><Bell className="h-4 w-4" /></span>
+                <div className="flex min-h-36 flex-col items-center justify-center px-4 py-6 text-center sm:min-h-44 sm:py-8">
+                  <span className="mb-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground sm:h-10 sm:w-10">
+                    <Bell className="h-4 w-4" />
+                  </span>
                   <p className="text-sm font-semibold">Belum ada notifikasi</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Pembaruan aktivitas organisasi akan muncul di sini.</p>
+                  <p className="mt-1 text-xs text-muted-foreground max-w-[16rem]">
+                    Pembaruan aktivitas organisasi akan muncul di sini.
+                  </p>
                 </div>
               ) : (
-                <div className="divide-y divide-border/60">
-                  {notifications.map((notification) => {
-                    const style = notificationStyle[notification.tipe];
-                    const Icon = style.icon;
-                    return (
-                      <DropdownMenuItem key={notification.id} onSelect={() => handleNotificationOpen(notification)} disabled={isNotificationsLoading} className={cn('flex min-h-20 items-start gap-3 rounded-none px-4 py-3 text-left focus:bg-muted/70', !notification.dibaca && 'bg-primary/[0.035]')}>
-                        <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', style.className)}><Icon className="h-4 w-4" /></span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-start gap-2"><span className={cn('line-clamp-1 text-sm', !notification.dibaca ? 'font-bold' : 'font-semibold')}>{notification.judul}</span>{!notification.dibaca && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-label="Belum dibaca" />}</span>
-                          {notification.pesan && <span className="mt-0.5 block line-clamp-2 text-xs leading-5 text-muted-foreground">{notification.pesan}</span>}
-                          <span suppressHydrationWarning className="mt-1 block text-[11px] text-muted-foreground">{style.label} · {formatNotificationDate(notification.createdAt)}</span>
+                notifications.map((notification) => {
+                  const style = notificationStyle[notification.tipe];
+                  const Icon = style.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      onSelect={() => handleNotificationOpen(notification)}
+                      disabled={isNotificationsLoading}
+                      className={cn(
+                        'flex items-start gap-2.5 sm:gap-3 rounded-none px-3.5 py-3 sm:px-4 text-left cursor-pointer transition-colors focus:bg-muted/70 active:bg-muted/80',
+                        !notification.dibaca
+                          ? 'bg-primary/[0.05] border-l-2 border-l-primary'
+                          : 'border-l-2 border-l-transparent hover:bg-muted/40'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg shadow-2xs',
+                          style.className
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-1.5">
+                          <span
+                            className={cn(
+                              'text-xs sm:text-sm leading-snug line-clamp-2',
+                              !notification.dibaca ? 'font-bold text-foreground' : 'font-semibold text-foreground/90'
+                            )}
+                          >
+                            {notification.judul}
+                          </span>
+                          {!notification.dibaca && (
+                            <span
+                              className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary ring-2 ring-primary/20"
+                              aria-label="Belum dibaca"
+                            />
+                          )}
                         </span>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </div>
+                        {notification.pesan && (
+                          <span className="mt-1 block text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                            {notification.pesan}
+                          </span>
+                        )}
+                        <span
+                          suppressHydrationWarning
+                          className="mt-1.5 flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground"
+                        >
+                          <span className="font-medium text-foreground/75">{style.label}</span>
+                          <span>·</span>
+                          <span>{formatNotificationDate(notification.createdAt)}</span>
+                        </span>
+                      </span>
+                    </DropdownMenuItem>
+                  );
+                })
               )}
             </div>
             <DropdownMenuSeparator className="my-0" />
-            <DropdownMenuItem asChild className="justify-center rounded-none px-4 py-3 font-semibold text-primary focus:bg-primary/10 focus:text-primary">
-              <Link href="/notifikasi" onClick={() => setIsNotificationsOpen(false)}>Lihat semua notifikasi</Link>
+            <DropdownMenuItem
+              asChild
+              className="group justify-center rounded-none px-4 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-primary focus:bg-primary/10 focus:text-primary active:bg-primary/15 cursor-pointer"
+            >
+              <Link
+                href="/notifikasi"
+                onClick={() => setIsNotificationsOpen(false)}
+                className="flex items-center justify-center gap-1.5 w-full"
+              >
+                <span>Lihat semua notifikasi</span>
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
