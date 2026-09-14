@@ -82,7 +82,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" suppressHydrationWarning className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-background text-foreground antialiased">
         <script
           dangerouslySetInnerHTML={{
             __html: `

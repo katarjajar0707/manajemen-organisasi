@@ -89,7 +89,7 @@ export function PwaInstallPrompt() {
 
   return (
     <>
-      <Button type="button" size="sm" variant="outline" onClick={openInstallFlow} disabled={installing} className="gap-1.5 text-xs h-8" aria-label="Install PWA">
+      <Button type="button" size="sm" variant="outline" onClick={openInstallFlow} disabled={installing} className="h-9 gap-1.5 text-xs" aria-label="Install PWA">
         <Download className="h-3.5 w-3.5" />
         {installing ? 'Menyiapkan...' : 'Install PWA'}
       </Button>

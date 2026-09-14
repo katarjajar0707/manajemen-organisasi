@@ -2,9 +2,6 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/common/theme-toggle';
-import { PwaInstallPrompt } from '@/components/common/pwa-install-prompt';
-import { PreviewImage } from '@/components/common/preview-image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,13 +18,6 @@ function formatRupiah(amount: number): string {
     currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function getInitials(name: string): string {
-  const parts = name.split(' ').filter(Boolean);
-  if (parts.length === 0) return 'KT';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
 }
 
 export function PublicDashboardClient({ initialData, settings }: { initialData: PublicTransparencyData; settings?: PengaturanSistemData }) {
@@ -83,19 +73,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
   // Jika portal publik dinonaktifkan oleh kebijakan organisasi
   if (settings?.keamanan && !settings.keamanan.portalPublikAktif) {
     return (
-      <div className="min-h-screen flex flex-col bg-background text-foreground">
-        <header className="flex h-16 w-full items-center justify-between border-b px-4 md:px-8 bg-background/80 backdrop-blur-md">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm">{getInitials(orgName)}</div>
-            <div>
-              <span className="font-bold text-sm sm:text-base">{orgName}</span>
-              {orgWilayah && <p className="text-[11px] text-muted-foreground">{orgWilayah}</p>}
-            </div>
-          </div>
-          <Link href="/login">
-            <Button size="sm">Masuk</Button>
-          </Link>
-        </header>
+      <div className="min-h-[calc(100vh-4.25rem)] flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto space-y-4">
           <div className="p-4 rounded-full bg-muted/60 text-muted-foreground">
             <Shield className="h-10 w-10" />
@@ -114,7 +92,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20">
+    <div className="flex min-h-[calc(100vh-4.25rem)] flex-col selection:bg-primary/20">
       {/* Banner Mode Maintenance jika aktif */}
       {settings?.keamanan?.modeMaintenance && (
         <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-800 dark:text-amber-200 px-4 py-2 text-xs text-center font-medium flex items-center justify-center gap-2">
@@ -122,39 +100,6 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
           <span>Mode pemeliharaan aktif. Akses publik sedang dibatasi.</span>
         </div>
       )}
-
-      {/* Header Publik */}
-      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b bg-background/80 px-4 md:px-8 backdrop-blur-md">
-        <div className="flex items-center gap-2.5">
-          {settings?.profil.logoUrl ? (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs bg-background shrink-0">
-              <PreviewImage src={settings.profil.logoUrl} alt={orgName} className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-extrabold shadow-sm shrink-0">{getInitials(orgName)}</div>
-          )}
-          <div>
-            <h1 className="text-sm sm:text-base font-bold leading-none tracking-tight">{orgName}</h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link href="/laporan-keuangan" aria-label="Laporan Keuangan">
-            <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground sm:px-3">
-              <Wallet className="h-3.5 w-3.5 text-primary" />
-              <span className="hidden sm:inline">Laporan Keuangan</span>
-            </Button>
-          </Link>
-          <ThemeToggle />
-          <PwaInstallPrompt />
-          <Link href="/login">
-            <Button size="sm" className="gap-1.5 shadow-xs bg-primary hover:bg-primary/90 text-xs h-8">
-              <span>Masuk</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
-        </div>
-      </header>
 
       {/* Main Content */}
       <main className="flex-1 space-y-12 pb-16">

@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, CircleDollarSign, FileText, Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
-import { ThemeToggle } from '@/components/common/theme-toggle';
-import { PwaInstallPrompt } from '@/components/common/pwa-install-prompt';
+import { CircleDollarSign, FileText, Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,10 +18,6 @@ function formatTanggal(tanggal: string): string {
   return new Date(`${tanggal}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function getInitials(name: string): string {
-  return name.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'KT';
-}
-
 export function PublicLaporanKeuangan({ settings, report }: { settings?: PengaturanSistemData; report?: PublicKeuanganReportData }) {
   const [kategoriAktif, setKategoriAktif] = useState('Semua');
   const orgName = settings?.profil.nama || 'Karang Taruna';
@@ -36,21 +30,7 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
   }, [transaksi]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md md:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary font-extrabold text-primary-foreground shadow-sm">{getInitials(orgName)}</span>
-          <span className="truncate text-sm font-bold tracking-tight sm:text-base">{orgName}</span>
-        </Link>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <Link href="/" aria-label="Kembali ke beranda">
-            <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs sm:px-3"><ArrowLeft className="h-3.5 w-3.5" /><span className="hidden sm:inline">Beranda</span></Button>
-          </Link>
-          <ThemeToggle />
-          <PwaInstallPrompt />
-          <Link href="/login"><Button variant="default" size="sm" className="h-8 gap-1.5 text-xs"><span>Masuk</span><ArrowRight className="h-3.5 w-3.5" /></Button></Link>
-        </div>
-      </header>
+    <div className="min-h-[calc(100vh-4.25rem)]">
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:space-y-8 sm:py-10 md:px-8">
         <section className="space-y-2">
