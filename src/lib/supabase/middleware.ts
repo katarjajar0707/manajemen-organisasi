@@ -20,7 +20,12 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith('/login');
-  const isPublicRoute = pathname === '/' || pathname === '/laporan-keuangan' || pathname === '/opengraph-image';
+  const isPublicRoute =
+    pathname === '/' ||
+    pathname === '/maintenance' ||
+    pathname === '/laporan-keuangan' ||
+    pathname === '/opengraph-image' ||
+    pathname.startsWith('/lanyard/');
   const isHealthRoute = pathname === '/api/health';
   const isSystemRoute = isHealthRoute || pathname === '/api/keep-alive';
 
