@@ -32,7 +32,9 @@ export function PwaInstallPrompt() {
     }, 0);
 
     const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
+      // Do not suppress Chrome's native install UI. Deferring this event without
+      // eventually calling `prompt()` causes the desktop console warning that the
+      // installation banner was prevented from appearing.
       setInstallPrompt(event as BeforeInstallPromptEvent);
     };
 

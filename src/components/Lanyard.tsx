@@ -80,6 +80,7 @@ export default function Lanyard({
         camera={{ position, fov }}
         dpr={[1, isMobile ? 1.5 : 2]}
         gl={{ alpha: transparent }}
+        style={{ touchAction: 'none' }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
       >
         <ambientLight intensity={Math.PI} />
@@ -160,10 +161,12 @@ function Band({
   const j3 = useRef<RapierRigidBody>(null!);
   const card = useRef<RapierRigidBody>(null!);
 
-  const vec = new THREE.Vector3();
-  const ang = new THREE.Vector3();
-  const rot = new THREE.Vector3();
-  const dir = new THREE.Vector3();
+  // Stable refs for scratch vectors — avoids allocating new objects every frame
+  // which previously caused drag calculations to use stale/wrong values.
+  const vec = useRef(new THREE.Vector3());
+  const ang = useRef(new THREE.Vector3());
+  const rot = useRef(new THREE.Vector3());
+  const dir = useRef(new THREE.Vector3());
 
   const segmentProps: RigidBodyProps = {
     type: 'dynamic',
@@ -267,14 +270,14 @@ function Band({
 
   useFrame((state, delta) => {
     if (dragged && typeof dragged !== 'boolean') {
-      vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
-      dir.copy(vec).sub(state.camera.position).normalize();
-      vec.add(dir.multiplyScalar(state.camera.position.length()));
+      vec.current.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
+      dir.current.copy(vec.current).sub(state.camera.position).normalize();
+      vec.current.add(dir.current.multiplyScalar(state.camera.position.length()));
       [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
       card.current?.setNextKinematicTranslation({
-        x: vec.x - dragged.x,
-        y: vec.y - dragged.y,
-        z: vec.z - dragged.z
+        x: vec.current.x - dragged.x,
+        y: vec.current.y - dragged.y,
+        z: vec.current.z - dragged.z
       });
     }
     if (fixed.current) {
@@ -288,9 +291,9 @@ function Band({
       curve.points[2].copy(getLerped(j1.current));
       curve.points[3].copy(fixed.current.translation());
       band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
-      ang.copy(card.current.angvel());
-      rot.copy(card.current.rotation());
-      card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z }, true);
+      ang.current.copy(card.current.angvel());
+      rot.current.copy(card.current.rotation());
+      card.current.setAngvel({ x: ang.current.x, y: ang.current.y - rot.current.y * 0.25, z: ang.current.z }, true);
     }
   });
 
@@ -317,15 +320,17 @@ function Band({
           <group
             scale={2.25}
             position={[0, -1.2, -0.05]}
-            onPointerOver={() => hover(true)}
+            onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); hover(true); }}
             onPointerOut={() => hover(false)}
             onPointerUp={(e: ThreeEvent<PointerEvent>) => {
+              e.stopPropagation();
               (e.target as Element).releasePointerCapture(e.pointerId);
               drag(false);
             }}
             onPointerDown={(e: ThreeEvent<PointerEvent>) => {
+              e.stopPropagation();
               (e.target as Element).setPointerCapture(e.pointerId);
-              drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
+              drag(new THREE.Vector3().copy(e.point).sub(vec.current.copy(card.current.translation())));
             }}
           >
             <mesh geometry={nodes.card.geometry}>
