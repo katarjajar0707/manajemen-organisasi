@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { LanyardHero } from '@/components/public/lanyard-hero';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -103,6 +104,8 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
 
       {/* Main Content */}
       <main className="flex-1 space-y-12 pb-16">
+        <LanyardHero orgName={orgName} />
+
         {/* Hero Section */}
         <section className="relative px-4 pt-14 pb-12 md:pt-20 md:pb-16 text-center max-w-4xl mx-auto space-y-5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-muted/40 text-xs text-muted-foreground shadow-xs">
