@@ -13,7 +13,7 @@ const Lanyard = dynamic(() => import('@/components/Lanyard'), {
 export function LanyardHero({ orgName }: { orgName: string }) {
   return (
     <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 md:px-8 lg:grid-cols-2 lg:gap-12 lg:py-14">
-      <div className="order-1 h-96 overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-primary/15 via-card to-background shadow-md lg:order-none lg:h-[42rem]">
+      <div className="order-1 h-[32rem] overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-primary/15 via-card to-background shadow-md lg:order-none lg:h-[42rem]">
         <Lanyard
           frontImage="/lanyard/kartu-depan.png"
           backImage="/lanyard/kartu-belakang.png"
