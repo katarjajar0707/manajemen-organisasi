@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, extend, useFrame, type ThreeElement, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, extend, useFrame, useThree, type ThreeElement, type ThreeEvent } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
 import {
   BallCollider,
@@ -55,6 +55,22 @@ interface LanyardProps {
   lanyardWidth?: number;
 }
 
+function CameraSync({ isMobile, defaultPosition, defaultFov }: { isMobile: boolean; defaultPosition: [number, number, number]; defaultFov: number }) {
+  const { camera } = useThree();
+  useEffect(() => {
+    const pCam = camera as THREE.PerspectiveCamera;
+    if (isMobile) {
+      pCam.position.set(0, 0.46, 23);
+      pCam.fov = 17.5;
+    } else {
+      pCam.position.set(defaultPosition[0], defaultPosition[1], defaultPosition[2]);
+      pCam.fov = defaultFov;
+    }
+    pCam.updateProjectionMatrix();
+  }, [isMobile, camera, defaultPosition, defaultFov]);
+  return null;
+}
+
 export default function Lanyard({
   position = [0, 0, 30],
   gravity = [0, -40, 0],
@@ -70,6 +86,7 @@ export default function Lanyard({
 
   useEffect(() => {
     const handleResize = (): void => setIsMobile(window.innerWidth < 768);
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -77,12 +94,14 @@ export default function Lanyard({
   return (
     <div className="lanyard-wrapper">
       <Canvas
-        camera={{ position, fov }}
+        key={isMobile ? 'mobile' : 'desktop'}
+        camera={{ position: isMobile ? [0, 0.46, 23] : position, fov: isMobile ? 17.5 : fov }}
         dpr={[1, isMobile ? 1.5 : 2]}
         gl={{ alpha: transparent }}
         style={{ touchAction: 'none' }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
       >
+        <CameraSync isMobile={isMobile} defaultPosition={position} defaultFov={fov} />
         <ambientLight intensity={Math.PI} />
         <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
           <Band
@@ -318,7 +337,7 @@ function Band({
         >
           <CuboidCollider args={[0.8, 1.125, 0.01]} />
           <group
-            scale={2.25}
+            scale={isMobile ? 2.6 : 2.25}
             position={[0, -1.2, -0.05]}
             onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); hover(true); }}
             onPointerOut={() => hover(false)}
@@ -358,7 +377,7 @@ function Band({
           useMap={1}
           map={repeatedTexture}
           repeat={[-4, 1]}
-          lineWidth={lanyardWidth}
+          lineWidth={lanyardWidth * (isMobile ? 1.35 : 1)}
         />
       </mesh>
     </>

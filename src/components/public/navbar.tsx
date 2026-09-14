@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PwaInstallPrompt } from '@/components/common/pwa-install-prompt';
@@ -15,9 +16,19 @@ const navigationItems = [
 ];
 
 export function Navbar({ orgLogoUrl, orgName = 'KartaTuju' }: { orgLogoUrl?: string | null; orgName?: string }) {
+  const pathname = usePathname();
+  const isHome = pathname === '/';
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
@@ -43,7 +54,15 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju' }: { orgLogoUrl?: str
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4">
-      <nav aria-label="Navigasi utama" className="relative mx-auto flex h-14 max-w-7xl items-center justify-between rounded-xl border border-border/80 bg-background/85 px-3 shadow-sm backdrop-blur-md sm:px-4">
+      <nav
+        aria-label="Navigasi utama"
+        className={cn(
+          "relative mx-auto flex h-14 max-w-7xl items-center justify-between rounded-xl px-3 transition-all duration-300 sm:px-4",
+          isHome && !isScrolled
+            ? "border border-transparent bg-transparent shadow-none backdrop-blur-none md:border-border/80 md:bg-background/85 md:shadow-sm md:backdrop-blur-md"
+            : "border border-border/80 bg-background/85 shadow-sm backdrop-blur-md"
+        )}
+      >
         <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
           {orgLogoUrl ? (
             <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-border/80 bg-background shadow-sm">

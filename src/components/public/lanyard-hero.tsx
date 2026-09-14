@@ -12,8 +12,8 @@ const Lanyard = dynamic(() => import('@/components/Lanyard'), {
 
 export function LanyardHero({ orgName }: { orgName: string }) {
   return (
-    <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 md:px-8 lg:grid-cols-2 lg:gap-12 lg:py-14">
-      <div className="order-1 h-[32rem] lg:order-none lg:h-[42rem]">
+    <section className="-mt-[calc(4.25rem+env(safe-area-inset-top,0px))] md:mt-0 mx-auto grid max-w-6xl items-center gap-8 px-4 pt-0 pb-10 md:px-8 md:py-10 lg:grid-cols-2 lg:gap-12 lg:py-14 overflow-x-clip">
+      <div className="order-1 -mx-4 w-[calc(100%+2rem)] h-[38rem] sm:mx-0 sm:w-full sm:h-[40rem] md:h-[32rem] lg:order-none lg:h-[42rem]">
         <Lanyard
           frontImage="/lanyard/kartu-depan.png"
           backImage="/lanyard/kartu-belakang.png"
