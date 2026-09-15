@@ -86,12 +86,12 @@ export function AppMobileNav({ userRole: propUserRole, userBagianSlug, orgLogoUr
         <div className="flex h-16 items-center justify-between px-4 border-b border-border/70 shrink-0">
           <div className="flex items-center gap-3">
             {orgLogoUrl ? (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs bg-background">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden border border-border/80 shadow-xs bg-background">
                 <PreviewImage src={orgLogoUrl} alt={orgName || 'Logo'} className="w-full h-full object-cover" />
               </div>
             ) : (
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-primary-foreground font-extrabold text-sm"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-primary-foreground font-extrabold text-sm"
                 style={{
                   backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
                   boxShadow: '0 0 16px var(--primary-glow)',

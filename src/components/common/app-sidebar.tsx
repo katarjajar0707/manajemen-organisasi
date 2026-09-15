@@ -50,12 +50,12 @@ export function AppSidebar({ userRole: propUserRole, userBagianSlug, orgLogoUrl,
         {/* ── PART 1: SIDEBAR HEADER (h-14, sejajar AppHeader) ── */}
         <div className={cn('flex h-14 items-center border-b border-border/60 shrink-0', isCollapsed ? 'justify-center px-0' : 'gap-3 px-4')}>
           {orgLogoUrl ? (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 overflow-hidden border border-border/80 shadow-xs bg-background">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full shrink-0 overflow-hidden border border-border/80 shadow-xs bg-background">
               <PreviewImage src={orgLogoUrl} alt={orgName || 'Logo'} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div
-              className={cn('flex h-8 w-8 items-center justify-center rounded-lg shrink-0', 'text-primary-foreground font-extrabold text-sm tracking-tight')}
+              className={cn('flex h-8 w-8 items-center justify-center rounded-full shrink-0', 'text-primary-foreground font-extrabold text-sm tracking-tight')}
               style={{
                 backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-strong)))',
                 boxShadow: '0 0 16px var(--primary-glow)',

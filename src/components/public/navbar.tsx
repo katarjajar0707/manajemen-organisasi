@@ -15,7 +15,7 @@ const navigationItems = [
   { href: '/laporan-keuangan', label: 'Transparansi' },
 ];
 
-export function Navbar({ orgLogoUrl, orgName = 'KartaTuju' }: { orgLogoUrl?: string | null; orgName?: string }) {
+export function Navbar({ orgLogoUrl, orgName = 'KartaTuju', isLoggedIn = false }: { orgLogoUrl?: string | null; orgName?: string; isLoggedIn?: boolean }) {
   const pathname = usePathname();
   const isHome = pathname === '/';
   const [isScrolled, setIsScrolled] = useState(false);
@@ -65,11 +65,11 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju' }: { orgLogoUrl?: str
       >
         <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
           {orgLogoUrl ? (
-            <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-border/80 bg-background shadow-sm">
+            <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border/80 bg-background shadow-sm">
               <PreviewImage src={orgLogoUrl} alt={`Logo ${orgName}`} className="h-full w-full object-cover" />
             </span>
           ) : (
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-extrabold text-primary-foreground shadow-sm" aria-hidden="true">KT</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground shadow-sm" aria-hidden="true">KT</span>
           )}
           <span className="text-sm font-bold tracking-tight text-foreground sm:text-base">{orgName}</span>
         </Link>
@@ -83,7 +83,7 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju' }: { orgLogoUrl?: str
           <div className="ml-2 flex items-center gap-2 border-l border-border/70 pl-3">
             <ThemeToggle />
             <Button asChild variant="default" size="sm" className="h-9 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90">
-              <Link href="/login">Masuk</Link>
+              {isLoggedIn ? <Link href="/dashboard">Dashboard</Link> : <Link href="/login">Masuk</Link>}
             </Button>
             <PwaInstallPrompt />
           </div>
@@ -107,7 +107,10 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju' }: { orgLogoUrl?: str
               <ThemeToggle />
             </div>
             <Button asChild variant="default" className="h-10 w-full justify-start bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" tabIndex={isOpen ? 0 : -1}>
-              <Link href="/login" onClick={closeMenu}>Masuk</Link>
+              {isLoggedIn
+                ? <Link href="/dashboard" onClick={closeMenu}>Dashboard</Link>
+                : <Link href="/login" onClick={closeMenu}>Masuk</Link>
+              }
             </Button>
             <div className="[&>button]:h-10 [&>button]:w-full [&>button]:justify-start">
               <PwaInstallPrompt />

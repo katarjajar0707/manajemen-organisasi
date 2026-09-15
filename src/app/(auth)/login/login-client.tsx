@@ -58,11 +58,11 @@ export function LoginClient({ settings }: { settings?: PengaturanSistemData }) {
         )}
         <div className="text-center space-y-1">
           {settings?.profil.logoUrl ? (
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden border border-border/80 bg-background mb-2 shadow-md">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full overflow-hidden border border-border/80 bg-background mb-2 shadow-md">
               <PreviewImage src={settings.profil.logoUrl} alt={orgName} className="w-full h-full object-cover" />
             </div>
           ) : (
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl mb-2 shadow-md">{getInitials(orgName)}</div>
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xl mb-2 shadow-md">{getInitials(orgName)}</div>
           )}
           <h1 className="text-2xl font-bold tracking-tight">Portal Masuk Pengurus</h1>
           <p className="text-sm font-medium text-foreground">{orgName}</p>
