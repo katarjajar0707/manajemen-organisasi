@@ -106,8 +106,6 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
       <main className="flex-1 space-y-12 pb-16">
         <LanyardHero orgName={orgName} />
 
-
-
         {/* Jadwal Kegiatan Publik */}
         <section className="px-4 md:px-8 max-w-6xl mx-auto space-y-4">
           <div>
@@ -285,25 +283,41 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
             </p>
             <p className="text-[11px]">{[settings?.profil.alamat, settings?.profil.kelurahan, settings?.profil.kota].filter(Boolean).join(' · ')}</p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
-            {settings?.profil.email && (
-              <a href={`mailto:${settings.profil.email}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
-                <Mail className="h-3.5 w-3.5 text-primary" />
-                <span>{settings.profil.email}</span>
-              </a>
-            )}
-            {settings?.profil.telepon && (
-              <span className="flex items-center gap-1">
-                <Phone className="h-3.5 w-3.5 text-primary" />
-                <span>{settings.profil.telepon}</span>
-              </span>
-            )}
-            {settings?.profil.instagram && (
-              <span className="flex items-center gap-1">
-                <Globe className="h-3.5 w-3.5 text-primary" />
-                <span>{settings.profil.instagram}</span>
-              </span>
-            )}
+          <div className="flex items-center justify-center gap-2">
+            <a
+              href="mailto:katarjajar0707@gmail.com"
+              aria-label="Kirim email ke Kartar Jajar"
+              title="Kirim email ke Kartar Jajar"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            >
+              <Mail className="h-5 w-5" aria-hidden="true" />
+            </a>
+            <a
+              href="https://wa.me/6285711256012"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Chat WhatsApp Kartar Jajar"
+              title="Chat WhatsApp Kartar Jajar"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="currentColor">
+                <path d="M12 2a9.9 9.9 0 0 0-8.56 14.88L2 22l5.27-1.38A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.08-1.12l-.29-.17-3.13.82.83-3.05-.19-.31A8 8 0 1 1 12 20Zm4.39-5.99c-.24-.12-1.43-.7-1.65-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-1.39-.69-2.3-1.23-3.21-2.79-.24-.42.24-.39.69-1.3.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.47-.4-.41-.54-.42h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.69 2.58 4.1 3.62.57.25 1.02.4 1.37.51.58.18 1.1.15 1.51.09.46-.07 1.43-.58 1.63-1.14.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z" />
+              </svg>
+            </a>
+            <a
+              href="https://instagram.com/kartatuju"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram Kartar Jajar"
+              title="Instagram Kartar Jajar"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect width="18" height="18" x="3" y="3" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            </a>
           </div>
         </div>
       </footer>

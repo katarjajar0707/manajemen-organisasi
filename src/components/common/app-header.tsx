@@ -16,6 +16,9 @@ import { PreviewImage } from '@/components/common/preview-image';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import { getNotifikasi, markAllNotificationsAsRead, markNotificationAsRead, type AppNotification } from '@/actions/notifikasi';
 import { formatNotificationDate, notificationStyle } from '@/components/notifikasi/notification-presentation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+const NOTIFICATIONS_QUERY_KEY = ['notifications', 5] as const;
 
 // Map segment URL → label yang terbaca
 const SEGMENT_LABELS: Record<string, string> = {
@@ -83,51 +86,71 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
   const [isLoggingOut, startLogoutTransition] = React.useTransition();
   const [imgError, setImgError] = React.useState(false);
   const [unreadCount, setUnreadCount] = React.useState(notificationCount);
-  const [notifications, setNotifications] = React.useState(initialNotifications);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
-  const [isNotificationsLoading, startNotificationsTransition] = React.useTransition();
+  const queryClient = useQueryClient();
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
 
-  const refreshNotifications = () => {
-    startNotificationsTransition(async () => {
-      const latestNotifications = await getNotifikasi(5);
-      setNotifications(latestNotifications);
-    });
-  };
+  const {
+    data: notifications = initialNotifications,
+    isLoading: isNotificationsLoading,
+    isFetching: isNotificationsFetching,
+  } = useQuery({
+    queryKey: NOTIFICATIONS_QUERY_KEY,
+    queryFn: () => getNotifikasi(5),
+    initialData: initialNotifications.length > 0 ? initialNotifications : undefined,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
+
+  const markNotificationAsReadMutation = useMutation({
+    mutationFn: markNotificationAsRead,
+    onSuccess: (result, notificationId) => {
+      if (!result.success) return;
+
+      queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (current = []) => current.map((item) => (item.id === notificationId ? { ...item, dibaca: true } : item)));
+      setUnreadCount((current) => Math.max(current - 1, 0));
+      window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: Math.max(unreadCount - 1, 0) } }));
+    },
+  });
+
+  const markAllNotificationsAsReadMutation = useMutation({
+    mutationFn: markAllNotificationsAsRead,
+    onSuccess: (result) => {
+      if (!result.success) return;
+
+      queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (current = []) => current.map((notification) => ({ ...notification, dibaca: true })));
+      setUnreadCount(0);
+      window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: 0 } }));
+    },
+  });
+
+  const isNotificationMutationPending = markNotificationAsReadMutation.isPending || markAllNotificationsAsReadMutation.isPending;
 
   const handleNotificationMenuChange = (open: boolean) => {
     setIsNotificationsOpen(open);
-    if (open) refreshNotifications();
   };
 
   const handleNotificationOpen = (notification: AppNotification) => {
     setIsNotificationsOpen(false);
-    startNotificationsTransition(async () => {
-      if (!notification.dibaca) {
-        const result = await markNotificationAsRead(notification.id);
-        if (result.success) {
-          setNotifications((current) => current.map((item) => (item.id === notification.id ? { ...item, dibaca: true } : item)));
-          setUnreadCount((current) => Math.max(current - 1, 0));
-          window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: Math.max(unreadCount - 1, 0) } }));
-        }
-      }
-      router.push(notification.href);
-    });
+    if (!notification.dibaca) {
+      void markNotificationAsReadMutation.mutateAsync(notification.id).finally(() => {
+        router.push(notification.href);
+      });
+      return;
+    }
+
+    router.push(notification.href);
   };
 
   const handleMarkAllRead = (e: React.MouseEvent) => {
     e.stopPropagation();
     const unreadIds = notifications.filter((n) => !n.dibaca).map((n) => n.id);
     if (unreadIds.length === 0) return;
-    startNotificationsTransition(async () => {
-      const result = await markAllNotificationsAsRead(unreadIds);
-      if (result.success) {
-        setNotifications((current) => current.map((item) => ({ ...item, dibaca: true })));
-        setUnreadCount(0);
-        window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: 0 } }));
-      }
-    });
+    void markAllNotificationsAsReadMutation.mutate(unreadIds);
   };
 
   const handleLogout = () => {
@@ -169,6 +192,7 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
       .channel('notifikasi-header')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifikasi' }, () => {
         setUnreadCount((current) => current + 1);
+        void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
       })
       .subscribe();
 
@@ -178,7 +202,7 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
       window.removeEventListener('notifications-read', handleNotificationsRead);
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
   // Listen to immediate custom events for avatar changes (optimistic updates from other components)
   React.useEffect(() => {
@@ -208,7 +232,7 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
   const toggleMobile = useSidebarStore((s) => s.toggleMobile);
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-border/50 bg-background/70 px-3 shadow-sm backdrop-blur-xl transition-colors duration-200 sm:px-4 dark:bg-background/65">
+    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-border/50 bg-background/30 px-3 shadow-sm backdrop-blur-sm transition-colors duration-200 sm:px-4 dark:bg-background/70">
       {/* ── Sisi Kiri: Toggle Sidebar + Breadcrumb ── */}
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
         {/* Mobile Hamburger Drawer Toggle */}
@@ -299,26 +323,18 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            sideOffset={8}
-            collisionPadding={12}
-            className="w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:max-w-sm sm:w-96 overflow-hidden p-0 rounded-xl shadow-xl border border-border/80"
-          >
+          <DropdownMenuContent align="end" sideOffset={8} collisionPadding={12} className="w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:max-w-sm sm:w-96 overflow-hidden p-0 rounded-xl shadow-xl border border-border/80">
             <DropdownMenuLabel className="flex items-center justify-between border-b border-border/60 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-muted/20">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold tracking-tight">Notifikasi</span>
-                {unreadCount > 0 && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/15 text-primary">
-                    {unreadCount} baru
-                  </span>
-                )}
+                {isNotificationsFetching && !isNotificationsLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" aria-label="Memperbarui notifikasi" />}
+                {unreadCount > 0 && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/15 text-primary">{unreadCount} baru</span>}
               </div>
               {unreadCount > 0 ? (
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
-                  disabled={isNotificationsLoading}
+                  disabled={isNotificationMutationPending}
                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-1.5 rounded hover:bg-primary/10 active:scale-95 disabled:opacity-50"
                   title="Tandai semua sebagai sudah dibaca"
                 >
@@ -341,9 +357,7 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
                     <Bell className="h-4 w-4" />
                   </span>
                   <p className="text-sm font-semibold">Belum ada notifikasi</p>
-                  <p className="mt-1 text-xs text-muted-foreground max-w-[16rem]">
-                    Pembaruan aktivitas organisasi akan muncul di sini.
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground max-w-[16rem]">Pembaruan aktivitas organisasi akan muncul di sini.</p>
                 </div>
               ) : (
                 notifications.map((notification) => {
@@ -353,48 +367,22 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
                     <DropdownMenuItem
                       key={notification.id}
                       onSelect={() => handleNotificationOpen(notification)}
-                      disabled={isNotificationsLoading}
+                      disabled={isNotificationMutationPending}
                       className={cn(
                         'flex items-start gap-2.5 sm:gap-3 rounded-none px-3.5 py-3 sm:px-4 text-left cursor-pointer transition-colors focus:bg-muted/70 active:bg-muted/80',
-                        !notification.dibaca
-                          ? 'bg-primary/[0.05] border-l-2 border-l-primary'
-                          : 'border-l-2 border-l-transparent hover:bg-muted/40'
+                        !notification.dibaca ? 'bg-primary/[0.05] border-l-2 border-l-primary' : 'border-l-2 border-l-transparent hover:bg-muted/40',
                       )}
                     >
-                      <span
-                        className={cn(
-                          'mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg shadow-2xs',
-                          style.className
-                        )}
-                      >
+                      <span className={cn('mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg shadow-2xs', style.className)}>
                         <Icon className="h-4 w-4" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-start justify-between gap-1.5">
-                          <span
-                            className={cn(
-                              'text-xs sm:text-sm leading-snug line-clamp-2',
-                              !notification.dibaca ? 'font-bold text-foreground' : 'font-semibold text-foreground/90'
-                            )}
-                          >
-                            {notification.judul}
-                          </span>
-                          {!notification.dibaca && (
-                            <span
-                              className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary ring-2 ring-primary/20"
-                              aria-label="Belum dibaca"
-                            />
-                          )}
+                          <span className={cn('text-xs sm:text-sm leading-snug line-clamp-2', !notification.dibaca ? 'font-bold text-foreground' : 'font-semibold text-foreground/90')}>{notification.judul}</span>
+                          {!notification.dibaca && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary ring-2 ring-primary/20" aria-label="Belum dibaca" />}
                         </span>
-                        {notification.pesan && (
-                          <span className="mt-1 block text-xs leading-relaxed text-muted-foreground line-clamp-2">
-                            {notification.pesan}
-                          </span>
-                        )}
-                        <span
-                          suppressHydrationWarning
-                          className="mt-1.5 flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground"
-                        >
+                        {notification.pesan && <span className="mt-1 block text-xs leading-relaxed text-muted-foreground line-clamp-2">{notification.pesan}</span>}
+                        <span suppressHydrationWarning className="mt-1.5 flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground">
                           <span className="font-medium text-foreground/75">{style.label}</span>
                           <span>·</span>
                           <span>{formatNotificationDate(notification.createdAt)}</span>
@@ -406,15 +394,8 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
               )}
             </div>
             <DropdownMenuSeparator className="my-0" />
-            <DropdownMenuItem
-              asChild
-              className="group justify-center rounded-none px-4 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-primary focus:bg-primary/10 focus:text-primary active:bg-primary/15 cursor-pointer"
-            >
-              <Link
-                href="/notifikasi"
-                onClick={() => setIsNotificationsOpen(false)}
-                className="flex items-center justify-center gap-1.5 w-full"
-              >
+            <DropdownMenuItem asChild className="group justify-center rounded-none px-4 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-primary focus:bg-primary/10 focus:text-primary active:bg-primary/15 cursor-pointer">
+              <Link href="/notifikasi" onClick={() => setIsNotificationsOpen(false)} className="flex items-center justify-center gap-1.5 w-full">
                 <span>Lihat semua notifikasi</span>
                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               </Link>

@@ -108,16 +108,8 @@ function buatTrenKeuangan(rawKeuangan: TransaksiKeuanganRingkas[], rentang: Rent
     if (rentang === 'bulanan') date.setMonth(now.getMonth() - (jumlahTitik - 1 - index), 1);
     if (rentang === 'tahunan') date.setFullYear(now.getFullYear() - (jumlahTitik - 1 - index), 0, 1);
 
-    const key = rentang === 'mingguan'
-      ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
-      : rentang === 'bulanan'
-        ? `${date.getFullYear()}-${date.getMonth()}`
-        : String(date.getFullYear());
-    const label = rentang === 'mingguan'
-      ? date.toLocaleDateString('id-ID', { weekday: 'short' })
-      : rentang === 'bulanan'
-        ? date.toLocaleDateString('id-ID', { month: 'short' })
-        : String(date.getFullYear());
+    const key = rentang === 'mingguan' ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` : rentang === 'bulanan' ? `${date.getFullYear()}-${date.getMonth()}` : String(date.getFullYear());
+    const label = rentang === 'mingguan' ? date.toLocaleDateString('id-ID', { weekday: 'short' }) : rentang === 'bulanan' ? date.toLocaleDateString('id-ID', { month: 'short' }) : String(date.getFullYear());
 
     return { key, label, masuk: 0, keluar: 0 };
   });
@@ -126,11 +118,7 @@ function buatTrenKeuangan(rawKeuangan: TransaksiKeuanganRingkas[], rentang: Rent
   rawKeuangan.forEach((item) => {
     const date = item.tanggal ? new Date(item.tanggal) : null;
     if (!date || Number.isNaN(date.getTime())) return;
-    const key = rentang === 'mingguan'
-      ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
-      : rentang === 'bulanan'
-        ? `${date.getFullYear()}-${date.getMonth()}`
-        : String(date.getFullYear());
+    const key = rentang === 'mingguan' ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` : rentang === 'bulanan' ? `${date.getFullYear()}-${date.getMonth()}` : String(date.getFullYear());
     const bucket = bucketByKey.get(key);
     if (!bucket) return;
     if (item.jenis === 'masuk') bucket.masuk += Number(item.jumlah) || 0;
@@ -157,12 +145,7 @@ export async function getPublicKeuanganReport(): Promise<PublicKeuanganReportDat
 
   try {
     const supabase = createPublicClient();
-    const { data, error } = await supabase
-      .from('catatan_keuangan')
-      .select('id, judul, keterangan, jenis, jumlah, tanggal, created_at')
-      .is('deleted_at', null)
-      .order('tanggal', { ascending: false })
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('catatan_keuangan').select('id, judul, keterangan, jenis, jumlah, tanggal, created_at').is('deleted_at', null).order('tanggal', { ascending: false }).order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching public financial report:', error);
@@ -352,9 +335,6 @@ export async function getAspirasiWarga(): Promise<AspirasiWargaItem[]> {
     const supabase = await createClient();
     const { data: profile } = await supabase.auth.getUser();
     if (!profile.user) return [];
-
-    const { data: currentProfile } = await supabase.from('profiles').select('role').eq('id', profile.user.id).single();
-    if (!currentProfile || !['admin', 'ketua'].includes(currentProfile.role)) return [];
 
     const { data, error } = await supabase.from('diskusi').select('id, judul, isi, created_at').eq('tipe', 'catatan_umum').like('judul', '[Aspirasi Warga]%').order('created_at', { ascending: false });
 
