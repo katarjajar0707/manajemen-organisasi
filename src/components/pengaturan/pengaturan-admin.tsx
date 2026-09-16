@@ -129,7 +129,7 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
   const [keamanan, setKeamanan] = useState<KeamananSistem>(
     initialSettings?.keamanan || {
       modePendaftaran: 'invite_only',
-      sessionTimeoutMinutes: '60',
+      sessionTimeoutMinutes: '10080',
       portalPublikAktif: true,
       transparansiKasPublik: true,
       modeMaintenance: false,
@@ -775,10 +775,10 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="30">30 Menit</SelectItem>
-                      <SelectItem value="60">1 Jam (Standar)</SelectItem>
-                      <SelectItem value="240">4 Jam</SelectItem>
-                      <SelectItem value="480">8 Jam</SelectItem>
+                      <SelectItem value="720">12 Jam</SelectItem>
+                      <SelectItem value="1440">24 Jam</SelectItem>
+                      <SelectItem value="10080">7 Hari (Standar)</SelectItem>
+                      <SelectItem value="43200">1 Bulan</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -76,7 +76,7 @@ const DEFAULT_PENGATURAN: PengaturanSistemData = {
   },
   keamanan: {
     modePendaftaran: 'invite_only',
-    sessionTimeoutMinutes: '60',
+    sessionTimeoutMinutes: '10080',
     portalPublikAktif: true,
     transparansiKasPublik: true,
     modeMaintenance: false,
