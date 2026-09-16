@@ -88,12 +88,25 @@ function InventarisMobileRowsSkeleton() {
   return (
     <div className="divide-y divide-border/60" aria-label="Memuat daftar inventaris">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="space-y-3 p-3.5">
-          <div className="h-3.5 w-24 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-          <div className="grid grid-cols-2 gap-2 border-t border-border/40 pt-2">
-            <div className="h-7 animate-pulse rounded bg-muted/60" />
-            <div className="h-7 animate-pulse rounded bg-muted/60" />
+        <div key={index} className="p-3.5 sm:p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <div className="flex gap-2">
+                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-14 animate-pulse rounded bg-muted" />
+              </div>
+              <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3.5 w-1/2 animate-pulse rounded bg-muted/70" />
+            </div>
+            <div className="h-16 w-16 sm:h-20 sm:w-20 animate-pulse rounded-xl bg-muted/60 shrink-0" />
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t border-border/40">
+            <div className="h-8 w-24 animate-pulse rounded-lg bg-muted/60" />
+            <div className="flex gap-1">
+              <div className="h-8 w-8 animate-pulse rounded-lg bg-muted/60" />
+              <div className="h-8 w-8 animate-pulse rounded-lg bg-muted/60" />
+              <div className="h-8 w-8 animate-pulse rounded-lg bg-muted/60" />
+            </div>
           </div>
         </div>
       ))}
@@ -627,10 +640,24 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             <Card className="bg-card/40 border-border/60">
               <CardContent className="p-3.5 space-y-3">
                 <div className="flex flex-col md:flex-row gap-3">
-                  {/* Search */}
                   <div className="relative flex-1">
-                    <Input placeholder="Cari nama barang, kategori, lokasi, atau peminjam..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
+                    <Input
+                      placeholder="Cari nama barang, kategori, lokasi, atau peminjam..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-8 h-9 text-sm"
+                    />
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                        aria-label="Bersihkan pencarian"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full md:flex md:w-auto">
@@ -717,69 +744,154 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                   ) : filteredItems.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground text-xs">Tidak ada data barang yang cocok dengan filter.</div>
                   ) : (
-                    filteredItems.map((item) => (
-                      <div key={item.id} className="p-3.5 space-y-2.5 odd:bg-muted/20 even:bg-background hover:bg-muted/20 transition-colors">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <Badge variant="outline" className="text-[10px] py-0">
+                    filteredItems.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className={`p-3.5 sm:p-4 space-y-3 transition-colors ${
+                          index % 2 === 0
+                            ? 'bg-background'
+                            : 'bg-muted/60 dark:bg-muted/35'
+                        } hover:bg-primary/5 dark:hover:bg-primary/10`}
+                      >
+                        {/* Baris Utama: Info di Kiri, Preview Gambar di Pojok Kanan */}
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Sisi Kiri: Badge Kategori, Status, Kondisi, Nama Barang, dan Info Jumlah/Lokasi */}
+                          <div className="min-w-0 flex-1 space-y-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium border-border/80">
                                 {item.kategori}
                               </Badge>
+                              <Badge
+                                variant={item.status === 'Tersedia' ? 'outline' : 'default'}
+                                className={`text-[10px] py-0 px-1.5 shrink-0 ${
+                                  item.status === 'Tersedia'
+                                    ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10 font-medium'
+                                    : 'bg-sky-500/15 text-sky-400 border border-sky-500/30 font-medium'
+                                }`}
+                              >
+                                {item.status}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] py-0 px-1.5 capitalize ${
+                                  item.kondisi === 'baik'
+                                    ? 'border-emerald-500/30 text-emerald-500/90'
+                                    : item.kondisi === 'rusak_ringan'
+                                    ? 'border-amber-500/30 text-amber-500/90'
+                                    : 'border-destructive/30 text-destructive'
+                                }`}
+                              >
+                                {item.kondisi.replace('_', ' ')}
+                              </Badge>
                             </div>
-                            <h4 className="font-semibold text-xs sm:text-sm text-foreground leading-snug break-words">{item.nama}</h4>
+
+                            <h4
+                              onClick={() => handleOpenDetail(item)}
+                              className="font-bold text-sm sm:text-base text-foreground leading-snug break-words cursor-pointer hover:text-primary transition-colors"
+                            >
+                              {item.nama}
+                            </h4>
+
+                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground flex-wrap pt-0.5">
+                              <span className="font-semibold text-foreground">
+                                {item.jumlah} <span className="font-normal text-muted-foreground">{item.satuan}</span>
+                              </span>
+                              <span>•</span>
+                              <span className="inline-flex items-center gap-1 text-[11px] truncate max-w-[140px]" title={item.lokasi}>
+                                <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+                                {item.lokasi}
+                              </span>
+                            </div>
                           </div>
-                          <Badge
-                            variant={item.status === 'Tersedia' ? 'outline' : 'default'}
-                            className={`text-[10px] shrink-0 ${item.status === 'Tersedia' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'}`}
+
+                          {/* Pojok Kanan: Preview Gambar Inventaris */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDetail(item)}
+                            className="shrink-0 relative group rounded-xl overflow-hidden border border-border/80 bg-muted/40 p-0 text-left focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-xs"
+                            title={item.fotoUrl ? 'Klik untuk memperbesar foto' : 'Rincian barang'}
                           >
-                            {item.status}
-                          </Badge>
+                            {item.fotoUrl ? (
+                              <div className="h-16 w-16 sm:h-20 sm:w-20 relative">
+                                <PreviewImage
+                                  src={item.fotoUrl}
+                                  alt={item.nama}
+                                  className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                                />
+                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Eye className="h-4 w-4 text-white drop-shadow" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="h-16 w-16 sm:h-20 sm:w-20 flex flex-col items-center justify-center text-muted-foreground/50 border border-dashed border-border/70 rounded-xl group-hover:text-muted-foreground group-hover:border-primary/40 transition-colors">
+                                <Package className="h-5 w-5 sm:h-6 sm:w-6" />
+                                <span className="text-[9px] mt-0.5 font-medium">No Foto</span>
+                              </div>
+                            )}
+                          </button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1 border-t border-border/40">
-                          <div>
-                            <span className="text-[11px] block">Jumlah:</span>
-                            <span className="font-medium text-foreground">
-                              {item.jumlah} {item.satuan}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[11px] block">Kondisi:</span>
-                            <span className="capitalize font-medium text-foreground">{item.kondisi.replace('_', ' ')}</span>
-                          </div>
-                        </div>
-
+                        {/* Info Pinjam (jika status Dipinjam) */}
                         {item.status === 'Dipinjam' && item.peminjam && (
-                          <div className="p-2 rounded bg-sky-500/5 border border-sky-500/20 text-xs text-sky-300">
-                            <div className="flex items-center gap-1 font-medium">
-                              <User className="h-3 w-3" />
-                              {item.peminjam}
+                          <div className="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-xs text-sky-700 dark:text-sky-300 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 font-medium truncate">
+                              <User className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400 shrink-0" />
+                              <span className="truncate">{item.peminjam}</span>
                             </div>
-                            <div className="text-[11px] text-muted-foreground mt-0.5">Rencana Kembali: {item.tglKembaliRencana || '-'}</div>
+                            <div className="text-[11px] text-muted-foreground shrink-0 flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-sky-500 dark:text-sky-400" />
+                              <span>Kembali: {item.tglKembaliRencana || '-'}</span>
+                            </div>
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {item.lokasi}
-                          </span>
+                        {/* Baris Tombol Aksi Mobile-First */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={`h-8 text-xs px-3 font-medium rounded-lg ${
+                              item.status === 'Tersedia'
+                                ? 'hover:bg-sky-500/10 hover:text-sky-500 border-border/80'
+                                : 'bg-sky-500/10 text-sky-500 dark:text-sky-400 border-sky-500/30 hover:bg-sky-500/20'
+                            }`}
+                            onClick={() => handleOpenPinjam(item)}
+                          >
+                            <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+                            {item.status === 'Tersedia' ? 'Pinjam' : 'Kembali'}
+                          </Button>
+
                           <div className="flex items-center gap-1">
-                            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => handleOpenPinjam(item)}>
-                              <ArrowRightLeft className="h-3 w-3 mr-1" />
-                              {item.status === 'Tersedia' ? 'Pinjam' : 'Kembali'}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
+                              onClick={() => handleOpenDetail(item)}
+                              title="Lihat Detail Barang"
+                              aria-label="Lihat Detail Barang"
+                            >
+                              <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDetail(item)}>
-                              <Eye className="h-3.5 w-3.5" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg"
+                              onClick={() => handleOpenEdit(item)}
+                              title="Edit Data Barang"
+                              aria-label="Edit Data Barang"
+                            >
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEdit(item)}>
-                              <Pencil className="h-3.5 w-3.5" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                              onClick={() => handleOpenDelete(item)}
+                              title="Hapus Barang"
+                              aria-label="Hapus Barang"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
-                            {(currentUserRole === 'admin' || currentUserRole === 'ketua') && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleOpenDelete(item)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -894,11 +1006,16 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                                   <Pencil className="h-4 w-4" />
                                 </Button>
 
-                                {(currentUserRole === 'admin' || currentUserRole === 'ketua') && (
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleOpenDelete(item)} title="Hapus Barang">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                                  onClick={() => handleOpenDelete(item)}
+                                  title="Hapus Barang"
+                                  aria-label="Hapus Barang"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -922,7 +1039,63 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                 <CardDescription>Log pencatatan siapa yang meminjam barang, tanggal pinjam, dan status pengembalian fisik.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
+                {/* Mobile View for Riwayat Peminjaman (< md) */}
+                <div className="md:hidden divide-y divide-border/60">
+                  {!dataReady ? (
+                    <div className="p-4 space-y-3">
+                      <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+                      <div className="h-3 w-1/3 bg-muted animate-pulse rounded" />
+                    </div>
+                  ) : riwayat.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground text-xs">Belum ada riwayat peminjaman barang tercatat.</div>
+                  ) : (
+                    riwayat.map((rec, index) => (
+                      <div
+                        key={rec.id}
+                        className={`p-3.5 space-y-2 transition-colors ${
+                          index % 2 === 0
+                            ? 'bg-background'
+                            : 'bg-muted/60 dark:bg-muted/35'
+                        } hover:bg-primary/5 dark:hover:bg-primary/10`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-semibold text-xs sm:text-sm text-foreground leading-snug break-words">
+                              {rec.namaBarang || 'Barang Inventaris'}
+                            </h4>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
+                              <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <span className="font-medium text-foreground">{rec.peminjam}</span>
+                              <span className="text-[11px] text-muted-foreground">({rec.jumlahPinjam} unit)</span>
+                            </p>
+                          </div>
+                          <Badge
+                            variant={rec.status === 'dipinjam' ? 'default' : 'outline'}
+                            className={`text-[10px] shrink-0 ${
+                              rec.status === 'dipinjam'
+                                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5'
+                            }`}
+                          >
+                            {rec.status === 'dipinjam' ? 'Dipinjam' : 'Kembali'}
+                          </Badge>
+                        </div>
+                        {rec.keterangan && (
+                          <p className="text-[11px] text-muted-foreground bg-muted/30 p-1.5 rounded border border-border/40">
+                            {rec.keterangan}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/30">
+                          <span>Pinjam: {rec.tanggalPinjam}</span>
+                          <span>Kembali: {rec.tanggalKembaliRencana}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Desktop View (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1215,20 +1388,35 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
                 <Textarea id="edit-keterangan" value={formData.keterangan} onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })} rows={2} />
               </div>
 
-              <DialogFooter className="gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isPending}>
-                  Batal
+              <DialogFooter className="flex-row items-center justify-between gap-2 pt-2 sm:justify-between">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive h-9 px-2.5 text-xs gap-1.5"
+                  onClick={() => {
+                    setIsEditOpen(false);
+                    if (selectedItem) handleOpenDelete(selectedItem);
+                  }}
+                  disabled={isPending || isUploading}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Hapus Barang</span>
                 </Button>
-                <Button type="submit" disabled={isPending || isUploading} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  {isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                      Memperbarui...
-                    </>
-                  ) : (
-                    'Simpan Perubahan'
-                  )}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isPending}>
+                    Batal
+                  </Button>
+                  <Button type="submit" disabled={isPending || isUploading} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    {isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                        Memperbarui...
+                      </>
+                    ) : (
+                      'Simpan Perubahan'
+                    )}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -1392,10 +1580,37 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
               </div>
             )}
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
-                Tutup
+            <DialogFooter className="flex-row items-center justify-between gap-2 pt-2 sm:justify-between">
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive h-9 px-2.5 text-xs gap-1.5"
+                onClick={() => {
+                  setIsDetailOpen(false);
+                  if (selectedItem) handleOpenDelete(selectedItem);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Hapus Barang</span>
               </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs"
+                  onClick={() => {
+                    setIsDetailOpen(false);
+                    if (selectedItem) handleOpenEdit(selectedItem);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                  Edit
+                </Button>
+                <Button variant="secondary" size="sm" className="h-9 text-xs" onClick={() => setIsDetailOpen(false)}>
+                  Tutup
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>

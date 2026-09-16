@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LanyardHero } from '@/components/public/lanyard-hero';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Wallet, Users, Calendar, ArrowRight, Shield, CheckCircle2, TrendingUp, TrendingDown, FileText, MapPin, Clock, MessageSquare, Sparkles, Award, HeartHandshake, Eye, Mail, Phone, Printer, AlertTriangle, Globe } from 'lucide-react';
-import { PublicTransparencyData, kirimAspirasiWarga } from '@/actions/transparansi';
+import { Calendar, ArrowRight, Shield, FileText, MapPin, Clock, Mail, Printer, AlertTriangle } from 'lucide-react';
+import { PublicTransparencyData } from '@/actions/transparansi';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 import DriftWall from '@/components/public/drift-wall';
 
@@ -37,7 +35,78 @@ const MEMBER_IMAGES = [
   '/lanyard/user/e0f607d9-0dcb-4009-bf59-1b7296ce25a8.png',
   '/lanyard/user/ea366256-7e1a-4f6e-b197-fde986be5372.png',
   '/lanyard/user/f30f163a-159d-49bc-b357-07ea1e947048.png',
-  '/lanyard/user/f3d9b2a8-84e0-4365-8a2a-265a704e1313.png',
+  '/lanyard/user/f7af9da9-15d9-4892-abac-8b1c00a578bf.png',
+  '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
+  '/lanyard/user/03412418-feec-420b-a0b5-8f6df7386aae.png',
+  '/lanyard/user/0bd44bf8-447c-4e6e-9721-d6014fa3a8c1.png',
+  '/lanyard/user/15d2875e-e12d-4508-9018-ddf429249c1b.png',
+  '/lanyard/user/3170f581-ac51-4802-9ba0-4901a4a32715.png',
+  '/lanyard/user/4beba624-2ba5-41f1-9672-cdb75b80a19e.png',
+  '/lanyard/user/4f6c3e0d-3836-43ab-b745-18c14a46f8ff.png',
+  '/lanyard/user/561a38a3-c983-4651-80a6-7e2aa2439608.png',
+  '/lanyard/user/6daedf2d-dd9b-4878-b0bf-d46a126dafcb.png',
+  '/lanyard/user/71597135-7fd2-41ad-8015-71e3139238ad.png',
+  '/lanyard/user/786c8556-2e03-4022-a5fa-1d9deef34abf.png',
+  '/lanyard/user/7bf1f387-1d9d-4ae5-9147-f57839735281.png',
+  '/lanyard/user/93816c43-cdb4-451a-b5a2-bcaf727146b2.png',
+  '/lanyard/user/9a5b9c30-5d81-4f36-b90e-5f81ab03f9de.png',
+  '/lanyard/user/a985054a-1753-4eca-acd7-39e9eefe8977.png',
+  '/lanyard/user/b522716f-465f-4c05-9db6-f5d46a763e60.png',
+  '/lanyard/user/bd9820b5-6a72-46d9-bd0a-73ea9cd718bc.png',
+  '/lanyard/user/c6271b9a-6d33-4957-accd-432b76421b9f.png',
+  '/lanyard/user/d9225e53-5121-4d9f-99dc-36faecc11f44.png',
+  '/lanyard/user/db3a9ea8-4008-450b-86f5-d9906df76bd6.png',
+  '/lanyard/user/e0f607d9-0dcb-4009-bf59-1b7296ce25a8.png',
+  '/lanyard/user/ea366256-7e1a-4f6e-b197-fde986be5372.png',
+  '/lanyard/user/f30f163a-159d-49bc-b357-07ea1e947048.png',
+  '/lanyard/user/f7af9da9-15d9-4892-abac-8b1c00a578bf.png',
+  '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
+  '/lanyard/user/03412418-feec-420b-a0b5-8f6df7386aae.png',
+  '/lanyard/user/0bd44bf8-447c-4e6e-9721-d6014fa3a8c1.png',
+  '/lanyard/user/15d2875e-e12d-4508-9018-ddf429249c1b.png',
+  '/lanyard/user/3170f581-ac51-4802-9ba0-4901a4a32715.png',
+  '/lanyard/user/4beba624-2ba5-41f1-9672-cdb75b80a19e.png',
+  '/lanyard/user/4f6c3e0d-3836-43ab-b745-18c14a46f8ff.png',
+  '/lanyard/user/561a38a3-c983-4651-80a6-7e2aa2439608.png',
+  '/lanyard/user/6daedf2d-dd9b-4878-b0bf-d46a126dafcb.png',
+  '/lanyard/user/71597135-7fd2-41ad-8015-71e3139238ad.png',
+  '/lanyard/user/786c8556-2e03-4022-a5fa-1d9deef34abf.png',
+  '/lanyard/user/7bf1f387-1d9d-4ae5-9147-f57839735281.png',
+  '/lanyard/user/93816c43-cdb4-451a-b5a2-bcaf727146b2.png',
+  '/lanyard/user/9a5b9c30-5d81-4f36-b90e-5f81ab03f9de.png',
+  '/lanyard/user/a985054a-1753-4eca-acd7-39e9eefe8977.png',
+  '/lanyard/user/b522716f-465f-4c05-9db6-f5d46a763e60.png',
+  '/lanyard/user/bd9820b5-6a72-46d9-bd0a-73ea9cd718bc.png',
+  '/lanyard/user/c6271b9a-6d33-4957-accd-432b76421b9f.png',
+  '/lanyard/user/d9225e53-5121-4d9f-99dc-36faecc11f44.png',
+  '/lanyard/user/db3a9ea8-4008-450b-86f5-d9906df76bd6.png',
+  '/lanyard/user/e0f607d9-0dcb-4009-bf59-1b7296ce25a8.png',
+  '/lanyard/user/ea366256-7e1a-4f6e-b197-fde986be5372.png',
+  '/lanyard/user/f30f163a-159d-49bc-b357-07ea1e947048.png',
+  '/lanyard/user/f7af9da9-15d9-4892-abac-8b1c00a578bf.png',
+  '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
+  '/lanyard/user/03412418-feec-420b-a0b5-8f6df7386aae.png',
+  '/lanyard/user/0bd44bf8-447c-4e6e-9721-d6014fa3a8c1.png',
+  '/lanyard/user/15d2875e-e12d-4508-9018-ddf429249c1b.png',
+  '/lanyard/user/3170f581-ac51-4802-9ba0-4901a4a32715.png',
+  '/lanyard/user/4beba624-2ba5-41f1-9672-cdb75b80a19e.png',
+  '/lanyard/user/4f6c3e0d-3836-43ab-b745-18c14a46f8ff.png',
+  '/lanyard/user/561a38a3-c983-4651-80a6-7e2aa2439608.png',
+  '/lanyard/user/6daedf2d-dd9b-4878-b0bf-d46a126dafcb.png',
+  '/lanyard/user/71597135-7fd2-41ad-8015-71e3139238ad.png',
+  '/lanyard/user/786c8556-2e03-4022-a5fa-1d9deef34abf.png',
+  '/lanyard/user/7bf1f387-1d9d-4ae5-9147-f57839735281.png',
+  '/lanyard/user/93816c43-cdb4-451a-b5a2-bcaf727146b2.png',
+  '/lanyard/user/9a5b9c30-5d81-4f36-b90e-5f81ab03f9de.png',
+  '/lanyard/user/a985054a-1753-4eca-acd7-39e9eefe8977.png',
+  '/lanyard/user/b522716f-465f-4c05-9db6-f5d46a763e60.png',
+  '/lanyard/user/bd9820b5-6a72-46d9-bd0a-73ea9cd718bc.png',
+  '/lanyard/user/c6271b9a-6d33-4957-accd-432b76421b9f.png',
+  '/lanyard/user/d9225e53-5121-4d9f-99dc-36faecc11f44.png',
+  '/lanyard/user/db3a9ea8-4008-450b-86f5-d9906df76bd6.png',
+  '/lanyard/user/e0f607d9-0dcb-4009-bf59-1b7296ce25a8.png',
+  '/lanyard/user/ea366256-7e1a-4f6e-b197-fde986be5372.png',
+  '/lanyard/user/f30f163a-159d-49bc-b357-07ea1e947048.png',
   '/lanyard/user/f7af9da9-15d9-4892-abac-8b1c00a578bf.png',
   '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
 ].map((path) => ({ image: path }));
@@ -50,16 +119,53 @@ function formatRupiah(amount: number): string {
   }).format(amount);
 }
 
+/** Responsive wrapper: ukuran tile lebih kecil di mobile (<640 px). */
+function DriftWallSection() {
+  const [isMobile, setIsMobile] = useState(true);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  return (
+    <section aria-label="Galeri Anggota" className="relative mt-4">
+      <div className="text-center mb-2 px-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">Tim Kami</p>
+        <h2 className="text-2xl font-bold tracking-tight mt-1">Meet the Gang — Orang-Orang Baik di Balik Semua Ini</h2>
+      </div>
+      <div style={{ height: isMobile ? 380 : 480 }}>
+        <DriftWall
+          items={MEMBER_IMAGES}
+          columns={isMobile ? 4 : 5}
+          tileWidth={isMobile ? 130 : 180}
+          tileHeight={isMobile ? 162 : 220}
+          gap={isMobile ? 10 : 14}
+          radius={14}
+          tilt={14}
+          turn={-10}
+          perspective={1200}
+          depth={100}
+          speed={36}
+          direction="up"
+          variance={0.4}
+          parallax={0.5}
+          lift={isMobile ? 40 : 56}
+          fade={0.55}
+          dim={0.5}
+          grayscale
+          overlayColor="hsl(220 20% 4%)"
+        />
+      </div>
+    </section>
+  );
+}
+
 export function PublicDashboardClient({ initialData, settings }: { initialData: PublicTransparencyData; settings?: PengaturanSistemData }) {
   const [data] = useState<PublicTransparencyData>(initialData);
-
-  // Aspirasi Warga State
-  const [namaWarga, setNamaWarga] = useState('');
-  const [rtWarga, setRtWarga] = useState(settings?.profil.unitWilayah || 'RT 01 / RW 05');
-  const [pesanAspirasi, setPesanAspirasi] = useState('');
-  const [isSent, setIsSent] = useState(false);
-  const [aspirasiError, setAspirasiError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
   // Download / Cetak Modal
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
@@ -67,32 +173,6 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
   const orgName = settings?.profil.nama || 'Karang Taruna';
   const orgWilayah = [settings?.profil.unitWilayah, settings?.profil.kelurahan].filter(Boolean).join(' · ');
   const isKasPublik = settings?.keamanan?.transparansiKasPublik ?? true;
-
-  const handleSubmitAspirasi = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!namaWarga.trim() || !pesanAspirasi.trim()) return;
-
-    setAspirasiError(null);
-    startTransition(async () => {
-      const result = await kirimAspirasiWarga({
-        nama: namaWarga,
-        rt: rtWarga,
-        pesan: pesanAspirasi,
-      });
-
-      if (!result.success) {
-        setAspirasiError(result.error || 'Aspirasi gagal dikirim.');
-        return;
-      }
-
-      setIsSent(true);
-      setTimeout(() => {
-        setNamaWarga('');
-        setPesanAspirasi('');
-        setIsSent(false);
-      }, 5000);
-    });
-  };
 
   const handlePrintRekap = () => {
     if (typeof window !== 'undefined') {
@@ -179,159 +259,8 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
           )}
         </section>
 
-        {/* Sekretariat & Saluran Komunikasi Resmi */}
-        <section className="px-4 md:px-8 max-w-6xl mx-auto space-y-4">
-          <div>
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight">Sekretariat & Saluran Komunikasi Resmi</h3>
-            <p className="text-xs text-muted-foreground">Hubungi pengurus atau kunjungi sekretariat {orgName} untuk layanan dan koordinasi warga.</p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="border bg-card/60">
-              <CardHeader className="pb-2 flex flex-row items-center gap-3">
-                <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0">
-                  <MapPin className="h-4 w-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-xs font-semibold">Alamat Sekretariat</CardTitle>
-                  <p className="text-[11px] text-muted-foreground">Balai Pertemuan Warga</p>
-                </div>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">{settings?.profil.alamat || 'Balai Warga'}</p>
-                <p>{[settings?.profil.kelurahan, settings?.profil.kecamatan, settings?.profil.kota].filter(Boolean).join(', ')}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border bg-card/60">
-              <CardHeader className="pb-2 flex flex-row items-center gap-3">
-                <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 shrink-0">
-                  <Mail className="h-4 w-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-xs font-semibold">Email Resmi</CardTitle>
-                  <p className="text-[11px] text-muted-foreground">Persuratan & Undangan</p>
-                </div>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground space-y-1">
-                <a href={`mailto:${settings?.profil.email || ''}`} className="font-medium text-foreground hover:text-primary transition-colors block truncate">
-                  {settings?.profil.email || '-'}
-                </a>
-                <p>Korespondensi resmi pengurus</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border bg-card/60">
-              <CardHeader className="pb-2 flex flex-row items-center gap-3">
-                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <Phone className="h-4 w-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-xs font-semibold">Kontak & WhatsApp</CardTitle>
-                  <p className="text-[11px] text-muted-foreground">Layanan Cepat Warga</p>
-                </div>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">{settings?.profil.telepon || '-'}</p>
-                <p>Respon pesan & konfirmasi agenda</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border bg-card/60">
-              <CardHeader className="pb-2 flex flex-row items-center gap-3">
-                <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 shrink-0">
-                  <Globe className="h-4 w-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-xs font-semibold">Media Sosial</CardTitle>
-                  <p className="text-[11px] text-muted-foreground">Publikasi & Dokumentasi</p>
-                </div>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">{settings?.profil.instagram || '-'}</p>
-                <p>Instagram & kanal publikasi</p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Form Aspirasi & Kotak Saran Warga */}
-        <section id="aspirasi" className="px-4 md:px-8 max-w-4xl mx-auto pt-4">
-          <Card className="border shadow-sm bg-card/60">
-            <CardHeader className="text-center pb-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-1">
-                <HeartHandshake className="h-5 w-5" />
-              </div>
-              <CardTitle className="text-xl">Kanal Aspirasi & Masukan Warga</CardTitle>
-              <CardDescription className="text-xs max-w-md mx-auto">Punya ide lomba, masukan sarana prasarana, atau saran untuk kemajuan kampung? Sampaikan kepada pengurus di sini.</CardDescription>
-            </CardHeader>
-
-            <CardContent>
-              {isSent && (
-                <div className="mb-4 p-3.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center gap-2 text-xs font-medium animate-in fade-in">
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                  <span>Aspirasi Anda berhasil dikirimkan! Terima kasih atas partisipasi aktif membangun lingkungan bersama.</span>
-                </div>
-              )}
-              {aspirasiError && <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs font-medium text-destructive">{aspirasiError}</div>}
-
-              <form onSubmit={handleSubmitAspirasi} className="space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium">Nama Anda / Warga</label>
-                    <Input value={namaWarga} onChange={(e) => setNamaWarga(e.target.value)} placeholder="Contoh: Pak Bambang / Warga RT 02" className="text-xs" required />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium">Domisili RT / Wilayah</label>
-                    <Input value={rtWarga} onChange={(e) => setRtWarga(e.target.value)} placeholder="Contoh: RT 03 / RW 05" className="text-xs" required />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium">Pesan / Saran / Aspirasi</label>
-                  <Textarea rows={4} value={pesanAspirasi} onChange={(e) => setPesanAspirasi(e.target.value)} placeholder="Tuliskan aspirasi, usulan program, atau kebutuhan warga secara detail..." className="text-xs" required />
-                </div>
-
-                <Button type="submit" loading={isPending} className="w-full gap-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
-                  <span>Kirimkan Aspirasi Sekarang</span>
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </section>
-
         {/* DriftWall — galeri foto pengurus */}
-        <section aria-label="Galeri Anggota" className="relative mt-4">
-          <div className="text-center mb-2 px-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">Tim Kami</p>
-            <h2 className="text-2xl font-bold tracking-tight mt-1">Meet the Gang — Orang-Orang Baik di Balik Semua Ini</h2>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">Orang-orang solid.</p>
-          </div>
-          <div style={{ height: 480 }}>
-            <DriftWall
-              items={MEMBER_IMAGES}
-              columns={5}
-              tileWidth={180}
-              tileHeight={220}
-              gap={14}
-              radius={16}
-              tilt={14}
-              turn={-10}
-              perspective={1200}
-              depth={100}
-              speed={36}
-              direction="up"
-              variance={0.4}
-              parallax={0.5}
-              lift={56}
-              fade={0.55}
-              dim={0.5}
-              grayscale
-              overlayColor="hsl(220 20% 4%)"
-            />
-          </div>
-        </section>
+        <DriftWallSection />
       </main>
 
       {/* Footer */}

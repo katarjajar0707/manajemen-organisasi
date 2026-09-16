@@ -24,6 +24,7 @@ export async function updateSession(request: NextRequest) {
     pathname === '/' ||
     pathname === '/maintenance' ||
     pathname === '/laporan-keuangan' ||
+    pathname === '/kontak' ||
     pathname === '/opengraph-image' ||
     pathname.startsWith('/lanyard/');
   const isHealthRoute = pathname === '/api/health';

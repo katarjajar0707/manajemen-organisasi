@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 const navigationItems = [
   { href: '/', label: 'Beranda' },
   { href: '/laporan-keuangan', label: 'Transparansi' },
+  { href: '/kontak', label: 'Kontak' },
 ];
 
 export function Navbar({ orgLogoUrl, orgName = 'KartaTuju', isLoggedIn = false }: { orgLogoUrl?: string | null; orgName?: string; isLoggedIn?: boolean }) {
@@ -75,11 +76,23 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju', isLoggedIn = false }
         </Link>
 
         <div className="hidden items-center gap-1 lg:flex">
-          {navigationItems.map((item) => (
-            <Link key={item.href} href={item.href} className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              {item.label}
-            </Link>
-          ))}
+          {navigationItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isActive
+                    ? "bg-secondary text-foreground font-semibold"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
           <div className="ml-2 flex items-center gap-2 border-l border-border/70 pl-3">
             <ThemeToggle />
             <Button asChild variant="default" size="sm" className="h-9 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90">
@@ -95,11 +108,25 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju', isLoggedIn = false }
 
         <div id="public-navigation-menu" ref={menuRef} className={cn('absolute right-0 top-[calc(100%+0.75rem)] w-64 origin-top-right rounded-xl border border-border/80 bg-popover/95 p-2 shadow-md backdrop-blur-md transition-all duration-200 ease-out lg:hidden', isOpen ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none -translate-y-2 scale-95 opacity-0')} aria-hidden={!isOpen}>
           <div className="space-y-1">
-            {navigationItems.map((item) => (
-              <Link key={item.href} href={item.href} onClick={closeMenu} tabIndex={isOpen ? 0 : -1} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {item.label}
-              </Link>
-            ))}
+            {navigationItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMenu}
+                  tabIndex={isOpen ? 0 : -1}
+                  className={cn(
+                    "block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isActive
+                      ? "bg-secondary text-foreground font-semibold"
+                      : "text-foreground/80 hover:bg-secondary hover:text-foreground"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
           <div className="mt-2 space-y-2 border-t border-border/70 pt-2">
             <div className="flex items-center justify-between rounded-lg px-3 py-1.5 text-sm font-medium text-foreground">

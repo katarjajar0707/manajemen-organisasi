@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, getProfile } from "@/lib/supabase/server";
+import { createClient, createAdminClient, getProfile } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export type KondisiBarang = "baik" | "rusak_ringan" | "rusak_berat";
@@ -234,22 +234,18 @@ export async function updateInventaris(
 }
 
 /**
- * Menghapus data barang inventaris (hanya admin/ketua).
+ * Menghapus data barang inventaris.
  */
 export async function deleteInventaris(id: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient();
     const profile = await getProfile();
 
     if (!profile) {
-      return { success: false, error: "Unauthorized: Silakan login." };
+      return { success: false, error: "Unauthorized: Silakan login terlebih dahulu." };
     }
 
-    if (profile.role !== "admin" && profile.role !== "ketua") {
-      return { success: false, error: "Hanya Admin dan Ketua yang berhak menghapus data inventaris." };
-    }
-
-    const { error } = await supabase.from("inventaris").delete().eq("id", id);
+    const adminSupabase = await createAdminClient();
+    const { error } = await adminSupabase.from("inventaris").delete().eq("id", id);
 
     if (error) {
       console.error("Error deleting inventaris:", error);
