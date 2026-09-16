@@ -1,6 +1,8 @@
+/* eslint-disable react/no-unknown-property */
 'use client';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, extend, useFrame, useThree, type ThreeElement, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, extend, useFrame, type ThreeElement, type ThreeEvent } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
 import {
   BallCollider,
@@ -15,12 +17,9 @@ import {
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import * as THREE from 'three';
 
-import './Lanyard.css';
-
-// Next.js serves these binary assets from `public`, avoiding a custom Webpack
-// loader or Vite-specific asset configuration for `.glb` files.
+// In Next.js, static files located in public/lanyard are served at /lanyard/
 const CARD_GLB = '/lanyard/card.glb';
-const DEFAULT_LANYARD_IMAGE = '/lanyard/lanyard.png';
+const DEFAULT_LANYARD = '/lanyard/lanyard.png';
 
 extend({ MeshLineGeometry, MeshLineMaterial });
 
@@ -43,127 +42,61 @@ const BLANK_PIXEL =
 const FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 0.755 };
 const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
 
-interface LanyardProps {
+export interface LanyardProps {
   position?: [number, number, number];
   gravity?: [number, number, number];
   fov?: number;
-  /** Camera position override for desktop (≥1024px) viewports. */
-  desktopPosition?: [number, number, number];
-  /** FOV override for desktop (≥1024px) viewports. */
-  desktopFov?: number;
   transparent?: boolean;
   frontImage?: string | null;
   backImage?: string | null;
   imageFit?: 'cover' | 'contain';
   lanyardImage?: string | null;
   lanyardWidth?: number;
-}
-
-function CameraSync({
-  defaultPosition,
-  defaultFov,
-  desktopPosition,
-  desktopFov
-}: {
-  defaultPosition: [number, number, number];
-  defaultFov: number;
-  desktopPosition: [number, number, number];
-  desktopFov: number;
-}) {
-  const { camera } = useThree();
-  useEffect(() => {
-    const pCam = camera as THREE.PerspectiveCamera;
-    const w = typeof window !== 'undefined' ? window.innerWidth : 1280;
-    if (w < 768) {
-      pCam.position.set(0, 0.46, 23);
-      pCam.fov = 17.5;
-    } else if (w >= 1024) {
-      pCam.position.set(desktopPosition[0], desktopPosition[1], desktopPosition[2]);
-      pCam.fov = desktopFov;
-    } else {
-      pCam.position.set(defaultPosition[0], defaultPosition[1], defaultPosition[2]);
-      pCam.fov = defaultFov;
-    }
-    pCam.updateProjectionMatrix();
-
-    const handleResize = () => {
-      const newW = window.innerWidth;
-      if (newW < 768) {
-        pCam.position.set(0, 0.46, 23);
-        pCam.fov = 17.5;
-      } else if (newW >= 1024) {
-        pCam.position.set(desktopPosition[0], desktopPosition[1], desktopPosition[2]);
-        pCam.fov = desktopFov;
-      } else {
-        pCam.position.set(defaultPosition[0], defaultPosition[1], defaultPosition[2]);
-        pCam.fov = defaultFov;
-      }
-      pCam.updateProjectionMatrix();
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camera]);
-  return null;
+  cardGLB?: string;
+  className?: string;
 }
 
 export default function Lanyard({
   position = [0, 0, 30],
   gravity = [0, -40, 0],
-  fov = 14,
-  desktopPosition = [0, 0.5, 26] as [number, number, number],
-  desktopFov = 13,
+  fov = 20,
   transparent = true,
   frontImage = null,
   backImage = null,
   imageFit = 'cover',
   lanyardImage = null,
-  lanyardWidth = 1
+  lanyardWidth = 1,
+  cardGLB = CARD_GLB,
+  className = ''
 }: LanyardProps) {
-  const [isMobile, setIsMobile] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
 
   useEffect(() => {
-    const handleResize = (): void => {
-      const w = window.innerWidth;
-      setIsMobile(w < 768);
-      setIsDesktop(w >= 1024);
-    };
-    handleResize();
+    const handleResize = (): void => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Canvas reads camera props only once on mount; CameraSync keeps it in sync
-  // on subsequent breakpoint changes.
-  const initCamPos: [number, number, number] = isMobile ? [0, 0.46, 23] : isDesktop ? desktopPosition : position;
-  const initCamFov = isMobile ? 17.5 : isDesktop ? desktopFov : fov;
-
   return (
-    <div className="lanyard-wrapper">
+    <div
+      className={`relative z-0 w-full h-full min-h-[20rem] flex justify-center items-center transform scale-100 origin-center select-none touch-none ${className}`}
+    >
       <Canvas
-        camera={{ position: initCamPos, fov: initCamFov }}
+        camera={{ position, fov }}
         dpr={[1, isMobile ? 1.5 : 2]}
         gl={{ alpha: transparent }}
-        style={{ touchAction: 'none' }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
       >
-        <CameraSync
-          defaultPosition={position}
-          defaultFov={fov}
-          desktopPosition={desktopPosition}
-          desktopFov={desktopFov}
-        />
         <ambientLight intensity={Math.PI} />
         <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
           <Band
             isMobile={isMobile}
-            isDesktop={isDesktop}
             frontImage={frontImage}
             backImage={backImage}
             imageFit={imageFit}
             lanyardImage={lanyardImage}
             lanyardWidth={lanyardWidth}
+            cardGLB={cardGLB}
           />
         </Physics>
         <Environment blur={0.75}>
@@ -205,12 +138,12 @@ interface BandProps {
   maxSpeed?: number;
   minSpeed?: number;
   isMobile?: boolean;
-  isDesktop?: boolean;
   frontImage?: string | null;
   backImage?: string | null;
   imageFit?: 'cover' | 'contain';
   lanyardImage?: string | null;
   lanyardWidth?: number;
+  cardGLB?: string;
 }
 
 type LanyardRigidBody = RapierRigidBody & {
@@ -221,12 +154,12 @@ function Band({
   maxSpeed = 50,
   minSpeed = 0,
   isMobile = false,
-  isDesktop = false,
   frontImage = null,
   backImage = null,
   imageFit = 'cover',
   lanyardImage = null,
-  lanyardWidth = 1
+  lanyardWidth = 1,
+  cardGLB = CARD_GLB
 }: BandProps) {
   const band = useRef<THREE.Mesh<InstanceType<typeof MeshLineGeometry>, InstanceType<typeof MeshLineMaterial>>>(null!);
   const fixed = useRef<RapierRigidBody>(null!);
@@ -235,12 +168,10 @@ function Band({
   const j3 = useRef<RapierRigidBody>(null!);
   const card = useRef<RapierRigidBody>(null!);
 
-  // Stable refs for scratch vectors — avoids allocating new objects every frame
-  // which previously caused drag calculations to use stale/wrong values.
-  const vec = useRef(new THREE.Vector3());
-  const ang = useRef(new THREE.Vector3());
-  const rot = useRef(new THREE.Vector3());
-  const dir = useRef(new THREE.Vector3());
+  const vec = useRef(new THREE.Vector3()).current;
+  const ang = useRef(new THREE.Vector3()).current;
+  const rot = useRef(new THREE.Vector3()).current;
+  const dir = useRef(new THREE.Vector3()).current;
 
   const segmentProps: RigidBodyProps = {
     type: 'dynamic',
@@ -254,18 +185,11 @@ function Band({
     if (!body.lerped) {
       body.lerped = new THREE.Vector3().copy(body.translation());
     }
-
     return body.lerped;
   };
 
-  const { nodes, materials } = useGLTF(CARD_GLB) as any;
-  const texture = useTexture(lanyardImage || DEFAULT_LANYARD_IMAGE);
-  const repeatedTexture = useMemo(() => {
-    const nextTexture = texture.clone();
-    nextTexture.wrapS = nextTexture.wrapT = THREE.RepeatWrapping;
-    nextTexture.needsUpdate = true;
-    return nextTexture;
-  }, [texture]);
+  const { nodes, materials } = useGLTF(cardGLB) as any;
+  const texture = useTexture(lanyardImage || DEFAULT_LANYARD);
   // useTexture must be called unconditionally; use a blank pixel when an image
   // isn't supplied for a given face, then skip compositing it below.
   const frontTex = useTexture(frontImage || BLANK_PIXEL);
@@ -274,12 +198,15 @@ function Band({
   // Composite the front/back images into the card's texture atlas (front = left
   // half, back = right half). Each image is drawn aspect-preserving (no stretch).
   const cardMap = useMemo(() => {
-    const baseMap = materials.base.map as THREE.Texture;
+    const baseMap = materials.base?.map as THREE.Texture | undefined;
+    if (!baseMap) return null;
     if (!frontImage && !backImage) return baseMap;
 
     const baseImg = baseMap.image as any;
-    const W = baseImg.width;
-    const H = baseImg.height;
+    if (!baseImg) return baseMap;
+
+    const W = baseImg.width || 1024;
+    const H = baseImg.height || 1024;
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
@@ -307,8 +234,8 @@ function Band({
       ctx.restore();
     };
 
-    if (frontImage && frontTex.image) drawFitted(frontTex.image, FRONT_UV_RECT);
-    if (backImage && backTex.image) drawFitted(backTex.image, BACK_UV_RECT);
+    if (frontImage && frontTex?.image) drawFitted(frontTex.image, FRONT_UV_RECT);
+    if (backImage && backTex?.image) drawFitted(backTex.image, BACK_UV_RECT);
 
     const composite = new THREE.CanvasTexture(canvas);
     composite.colorSpace = THREE.SRGBColorSpace;
@@ -316,33 +243,22 @@ function Band({
     composite.anisotropy = 16;
     composite.needsUpdate = true;
     return composite;
-  }, [frontImage, backImage, imageFit, frontTex, backTex, materials.base.map]);
-  const [curve] = useState(() => {
-    const nextCurve = new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]);
-    nextCurve.curveType = 'chordal';
-    return nextCurve;
-  });
+  }, [frontImage, backImage, imageFit, frontTex, backTex, materials.base?.map]);
+
+  const [curve] = useState(
+    () =>
+      new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
+  );
   const [dragged, drag] = useState<false | THREE.Vector3>(false);
   const [hovered, hover] = useState(false);
 
-  const ropeJointParams = useMemo(
-    () => [[0, 0, 0], [0, 0, 0], 1] as [[0,0,0],[0,0,0],number],
-    []
-  );
-  useRopeJoint(fixed, j1, ropeJointParams);
-  useRopeJoint(j1, j2, ropeJointParams);
-  useRopeJoint(j2, j3, ropeJointParams);
-  // Scale the card visual group per breakpoint. The spherical joint anchor is
-  // kept at a stable value (1.45) that sits inside the CuboidCollider bounds
-  // (half-height 1.125 → top at +1.125). Rapier requires the joint anchor to
-  // be inside or very close to the collider; a value far outside causes NaN.
-  // Visually the rope terminates at j3 which already lines up near the clip.
-  const cardScale = isMobile ? 2.6 : isDesktop ? 2.8 : 2.25;
-  const sphericalJointParams = useMemo(
-    () => [[0, 0, 0], [0, 1.45, 0]] as [[0,0,0],[0,number,0]],
-    []
-  );
-  useSphericalJoint(j3, card, sphericalJointParams);
+  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
+  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
+  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1]);
+  useSphericalJoint(j3, card, [
+    [0, 0, 0],
+    [0, 1.45, 0]
+  ]);
 
   useEffect(() => {
     if (hovered) {
@@ -355,17 +271,17 @@ function Band({
 
   useFrame((state, delta) => {
     if (dragged && typeof dragged !== 'boolean') {
-      vec.current.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
-      dir.current.copy(vec.current).sub(state.camera.position).normalize();
-      vec.current.add(dir.current.multiplyScalar(state.camera.position.length()));
+      vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
+      dir.copy(vec).sub(state.camera.position).normalize();
+      vec.add(dir.multiplyScalar(state.camera.position.length()));
       [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
       card.current?.setNextKinematicTranslation({
-        x: vec.current.x - dragged.x,
-        y: vec.current.y - dragged.y,
-        z: vec.current.z - dragged.z
+        x: vec.x - dragged.x,
+        y: vec.y - dragged.y,
+        z: vec.z - dragged.z
       });
     }
-    if (fixed.current && j1.current && j2.current && j3.current && card.current) {
+    if (fixed.current && j1.current && j2.current && j3.current && card.current && band.current) {
       [j1, j2].forEach(ref => {
         const lerped = getLerped(ref.current);
         const trans = ref.current.translation();
@@ -394,18 +310,26 @@ function Band({
       const curRot = card.current.rotation();
       if (
         Number.isFinite(curAngvel.x) && Number.isFinite(curAngvel.y) && Number.isFinite(curAngvel.z) &&
-        Number.isFinite(curRot.x) && Number.isFinite(curRot.y) && Number.isFinite(curRot.z) && Number.isFinite(curRot.w)
+        Number.isFinite(curRot.x) && Number.isFinite(curRot.y) && Number.isFinite(curRot.z)
       ) {
-        ang.current.copy(curAngvel);
-        rot.current.copy(curRot);
-        card.current.setAngvel({ x: ang.current.x, y: ang.current.y - rot.current.y * 0.25, z: ang.current.z }, true);
+        ang.copy(curAngvel);
+        rot.copy(curRot);
+        card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z }, true);
       }
     }
   });
 
+  useEffect(() => {
+    curve.curveType = 'chordal';
+    if (texture) {
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.needsUpdate = true;
+    }
+  }, [curve, texture]);
+
   return (
     <>
-      <group position={[0, 4, 0]}>
+      <group position={[0, 4.4, 0]}>
         <RigidBody ref={fixed} {...segmentProps} type="fixed" />
         <RigidBody position={[0.5, 0, 0]} ref={j1} {...segmentProps} type="dynamic">
           <BallCollider args={[0.1]} />
@@ -424,49 +348,57 @@ function Band({
         >
           <CuboidCollider args={[0.8, 1.125, 0.01]} />
           <group
-            scale={cardScale}
+            scale={2.25}
             position={[0, -1.2, -0.05]}
-            onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); hover(true); }}
+            onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+              e.stopPropagation();
+              hover(true);
+            }}
             onPointerOut={() => hover(false)}
             onPointerUp={(e: ThreeEvent<PointerEvent>) => {
-              e.stopPropagation();
-              (e.target as Element).releasePointerCapture(e.pointerId);
+              (e.target as Element).releasePointerCapture?.(e.pointerId);
               drag(false);
             }}
             onPointerDown={(e: ThreeEvent<PointerEvent>) => {
-              e.stopPropagation();
-              (e.target as Element).setPointerCapture(e.pointerId);
-              drag(new THREE.Vector3().copy(e.point).sub(vec.current.copy(card.current.translation())));
+              (e.target as Element).setPointerCapture?.(e.pointerId);
+              drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
             }}
           >
-            <mesh geometry={nodes.card.geometry}>
-              <meshPhysicalMaterial
-                map={cardMap}
-                map-anisotropy={16}
-                clearcoat={isMobile ? 0 : 1}
-                clearcoatRoughness={0.15}
-                roughness={0.9}
-                metalness={0.8}
-              />
-            </mesh>
-            <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
-            <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
+            {nodes?.card?.geometry && (
+              <mesh geometry={nodes.card.geometry}>
+                <meshPhysicalMaterial
+                  map={cardMap}
+                  map-anisotropy={16}
+                  clearcoat={isMobile ? 0 : 1}
+                  clearcoatRoughness={0.15}
+                  roughness={0.9}
+                  metalness={0.8}
+                />
+              </mesh>
+            )}
+            {nodes?.clip?.geometry && (
+              <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
+            )}
+            {nodes?.clamp?.geometry && (
+              <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
+            )}
           </group>
         </RigidBody>
       </group>
       <mesh ref={band}>
         <meshLineGeometry />
         <meshLineMaterial
-          args={[{ resolution: new THREE.Vector2(1000, 1000) }]}
           color="white"
           depthTest={false}
           resolution={isMobile ? [1000, 2000] : [1000, 1000]}
-          useMap={1}
-          map={repeatedTexture}
+          useMap
+          map={texture}
           repeat={[-4, 1]}
-          lineWidth={lanyardWidth * (isMobile ? 1.35 : 1)}
+          lineWidth={lanyardWidth}
         />
       </mesh>
     </>
   );
 }
+
+useGLTF.preload(CARD_GLB);
