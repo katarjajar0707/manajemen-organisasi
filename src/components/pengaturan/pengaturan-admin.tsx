@@ -105,6 +105,7 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
       email: 'sekretariat.kt03@gmail.com',
       telepon: '+62 812-3456-7890',
       instagram: '@karangtaruna_rw03',
+      tiktok: '',
       logoUrl: null,
     },
   );
@@ -565,7 +566,7 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
                 </CardTitle>
                 <CardDescription>Kontak resmi pengurus untuk keperluan warga, instansi kelurahan, dan publik.</CardDescription>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-xs flex items-center gap-1.5">
                     <Mail className="h-3.5 w-3.5 text-muted-foreground" />
@@ -588,6 +589,21 @@ export function PengaturanAdmin({ initialSettings, initialStats, initialLogs = [
                     Instagram Organisasi
                   </Label>
                   <Input id="instagram" value={orgProfile.instagram} onChange={(e) => setOrgProfile({ ...orgProfile, instagram: e.target.value })} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="tiktok" className="text-xs flex items-center gap-1.5">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-muted-foreground" fill="currentColor">
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.27 6.27 0 0 0 1.9-4.48V8.71a8.28 8.28 0 0 0 4.87 1.57v-3.5a4.84 4.84 0 0 1-1-.09Z" />
+                    </svg>
+                    TikTok Organisasi
+                  </Label>
+                  <Input
+                    id="tiktok"
+                    placeholder="@username atau username"
+                    value={orgProfile.tiktok ?? ''}
+                    onChange={(e) => setOrgProfile({ ...orgProfile, tiktok: e.target.value })}
+                  />
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end border-t border-border/50 pt-4">

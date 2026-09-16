@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS public.pengaturan_sistem (
     email TEXT DEFAULT 'sekretariat.kt03@gmail.com',
     telepon TEXT DEFAULT '+62 812-3456-7890',
     instagram TEXT DEFAULT '@karangtaruna_rw03',
+    tiktok TEXT DEFAULT '',
     logo_url TEXT,
 
     -- 2. Operasional & Kebijakan

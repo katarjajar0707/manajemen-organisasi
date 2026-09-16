@@ -9,32 +9,39 @@ import TextType from '@/components/public/text-type';
 
 const Lanyard = dynamic(() => import('@/components/Lanyard'), {
   ssr: false,
-  loading: () => <div className="h-full min-h-80 animate-pulse rounded-2xl bg-muted/60" aria-label="Memuat animasi kartu organisasi" />,
+  loading: () => (
+    <div
+      className="h-full min-h-80 animate-pulse rounded-2xl bg-muted/60"
+      aria-label="Memuat animasi kartu organisasi"
+    />
+  ),
 });
 
 export function LanyardHero({ orgName }: { orgName: string }) {
   return (
     <section className="relative -mt-[calc(4.25rem+env(safe-area-inset-top,0px))] min-h-[100dvh] lg:min-h-screen w-full overflow-x-clip flex flex-col justify-end lg:justify-center">
-      {/* Background Lanyard Layer (Mundur 1 lapis ke belakang dan menyentuh paling atas layar) */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-auto flex items-start justify-center">
-        <Lanyard
-          position={[0, 0, 20]}
-          gravity={[0, -40, 0]}
-          frontImage="/lanyard/kartu-depan.png"
-          backImage="/lanyard/kartu-belakang.png"
-          lanyardImage="/lanyard/lanyard.png"
-          className="w-full h-full"
-        />
+      {/* Background Lanyard Layer (Mundur 1 lapis ke belakang; di tablet landscape ke atas digeser ke area kanan agar seimbang dengan card kiri) */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-auto flex items-start justify-center lg:justify-end">
+        <div className="w-full h-full lg:w-[56%] xl:w-[52%] 2xl:w-[48%] lg:translate-x-4 xl:translate-x-8 transition-all duration-300">
+          <Lanyard
+            position={[0, 0, 20]}
+            gravity={[0, -40, 0]}
+            frontImage="/lanyard/kartu-depan.png"
+            backImage="/lanyard/kartu-belakang.png"
+            lanyardImage="/lanyard/lanyard.png"
+            className="w-full h-full"
+          />
+        </div>
       </div>
 
-      {/* Hero Content Section (Glass Effect dengan Backdrop Blur menempel di bagian bawah layar mobile) */}
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-3 sm:px-6 md:px-8 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-8 lg:pb-0 pointer-events-none flex flex-col justify-end">
-        <div className="pointer-events-auto max-w-xl mx-auto lg:mx-0 w-full space-y-4 sm:space-y-6 text-center lg:text-left rounded-3xl border border-white/20 dark:border-white/10 bg-background/65 dark:bg-background/45 p-5 sm:p-8 lg:p-10 shadow-2xl backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 mt-[46vh] sm:mt-[36vh] md:mt-24 lg:mt-0">
+      {/* Hero Content Section (Mobile: menempel di bawah; Tablet Landscape ke atas: floating elegan di sisi kiri dengan glassmorphic card) */}
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-3 sm:px-6 md:px-8 lg:px-10 xl:px-12 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-8 lg:pb-0 pointer-events-none flex flex-col justify-end lg:justify-center lg:min-h-screen">
+        <div className="pointer-events-auto max-w-xl mx-auto lg:mx-0 w-full space-y-4 sm:space-y-6 lg:space-y-5 xl:space-y-6 text-center lg:text-left rounded-3xl border border-white/20 dark:border-white/10 bg-background/65 dark:bg-background/45 p-5 sm:p-8 lg:p-8 xl:p-10 2xl:p-12 shadow-2xl backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 mt-[46vh] sm:mt-[36vh] md:mt-24 lg:mt-0 lg:max-w-md xl:max-w-xl 2xl:max-w-2xl transition-all duration-300">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-xs">
             <Sparkles className="h-3.5 w-3.5" /> Bergerak Maju Bersama
           </div>
 
-          <h2 className="text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+          <h2 className="text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-3xl xl:text-4xl 2xl:text-5xl">
             <FoldText
               text={`Terhubung, transparan, dan bergerak bersama ${orgName}.`}
               splitBy="char"
@@ -49,7 +56,7 @@ export function LanyardHero({ orgName }: { orgName: string }) {
             />
           </h2>
 
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:mx-0 min-h-[2.75rem] sm:min-h-[3rem]">
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:text-sm xl:text-base lg:mx-0 min-h-[2.75rem] sm:min-h-[3rem]">
             <TextType
               as="span"
               text={[
@@ -65,7 +72,7 @@ export function LanyardHero({ orgName }: { orgName: string }) {
               cursorClassName="text-primary font-light"
               startOnVisible={true}
               loop={true}
-              className="text-sm sm:text-base"
+              className="text-sm sm:text-base lg:text-sm xl:text-base"
             />
           </p>
 

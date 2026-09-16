@@ -299,6 +299,14 @@ export function AdminDashboard({ profile, summaryData, announcements, diskusis, 
                     <span>{settings.profil.instagram}</span>
                   </span>
                 )}
+                {settings?.profil.tiktok && (
+                  <span className="flex items-center gap-1">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-pink-500 shrink-0" fill="currentColor">
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.27 6.27 0 0 0 1.9-4.48V8.71a8.28 8.28 0 0 0 4.87 1.57v-3.5a4.84 4.84 0 0 1-1-.09Z" />
+                    </svg>
+                    <span>{settings.profil.tiktok}</span>
+                  </span>
+                )}
               </div>
             </div>
             <Link href="/pengaturan" className="shrink-0">

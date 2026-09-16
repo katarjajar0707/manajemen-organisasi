@@ -111,8 +111,8 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
                 splitBy="word"
                 hinge="top"
                 trigger="scroll"
-                duration={0.6}
-                stagger={0.09}
+                duration={0.99}
+                stagger={0.08}
                 ease="power3.out"
                 perspective={700}
                 creaseShading={0.5}

@@ -15,6 +15,7 @@ export interface ProfilOrganisasi {
   email: string;
   telepon: string;
   instagram: string;
+  tiktok?: string;
   logoUrl?: string | null;
 }
 
@@ -59,6 +60,7 @@ const DEFAULT_PENGATURAN: PengaturanSistemData = {
     email: 'sekretariat.kt03@gmail.com',
     telepon: '+62 812-3456-7890',
     instagram: '@karangtaruna_rw03',
+    tiktok: '',
     logoUrl: null,
   },
   operasional: {
@@ -128,6 +130,7 @@ export async function getPengaturanSistem(): Promise<PengaturanSistemData> {
         email: data.email || DEFAULT_PENGATURAN.profil.email,
         telepon: data.telepon || DEFAULT_PENGATURAN.profil.telepon,
         instagram: data.instagram || DEFAULT_PENGATURAN.profil.instagram,
+        tiktok: data.tiktok ?? DEFAULT_PENGATURAN.profil.tiktok ?? '',
         logoUrl: data.logo_url || null,
       },
       operasional: {
@@ -186,6 +189,7 @@ export async function updatePengaturanProfil(payload: Partial<ProfilOrganisasi>)
     if (payload.email !== undefined) dbPayload.email = payload.email.trim();
     if (payload.telepon !== undefined) dbPayload.telepon = payload.telepon.trim();
     if (payload.instagram !== undefined) dbPayload.instagram = payload.instagram.trim();
+    if (payload.tiktok !== undefined) dbPayload.tiktok = payload.tiktok.trim();
     if (payload.logoUrl !== undefined) dbPayload.logo_url = payload.logoUrl;
 
     const { error } = await adminSupabase.from('pengaturan_sistem').upsert(dbPayload, { onConflict: 'id' });
@@ -195,6 +199,12 @@ export async function updatePengaturanProfil(payload: Partial<ProfilOrganisasi>)
         return {
           success: false,
           error: "Tabel 'pengaturan_sistem' belum dibuat. Silakan jalankan file migrasi '010_phase11_pengaturan_sistem.sql' di Supabase SQL Editor.",
+        };
+      }
+      if (error.message?.toLowerCase().includes('tiktok') || error.code === '42703') {
+        return {
+          success: false,
+          error: "Kolom 'tiktok' belum ada di database. Silakan jalankan migrasi '019_add_tiktok_to_pengaturan_sistem.sql' di Supabase SQL Editor.",
         };
       }
       return { success: false, error: error.message };

@@ -48,6 +48,13 @@ export function PublicKontakClient({ settings }: { settings?: PengaturanSistemDa
   const emailAddress = settings?.profil.email || '';
   const igUsername = settings?.profil.instagram?.replace('@', '').trim() || '';
   const igLink = igUsername ? `https://instagram.com/${igUsername}` : null;
+  const rawTiktok = settings?.profil.tiktok?.trim();
+  const tiktokUsername = rawTiktok?.replace(/^@/, '');
+  const tiktokLink = rawTiktok
+    ? (rawTiktok.startsWith('http://') || rawTiktok.startsWith('https://')
+        ? rawTiktok
+        : `https://www.tiktok.com/@${tiktokUsername}`)
+    : null;
 
   const fullAddress = [
     settings?.profil.alamat,
@@ -150,7 +157,7 @@ export function PublicKontakClient({ settings }: { settings?: PengaturanSistemDa
               splitBy="word"
               hinge="top"
               trigger="scroll"
-              duration={0.65}
+              duration={0.99}
               stagger={0.08}
               ease="power3.out"
               perspective={700}
@@ -305,6 +312,17 @@ export function PublicKontakClient({ settings }: { settings?: PengaturanSistemDa
                     className="inline-flex items-center gap-1 text-[11px] font-medium text-violet-600 dark:text-violet-400 hover:underline pt-1"
                   >
                     <span>Buka Akun Instagram</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {tiktokLink && (
+                  <a
+                    href={tiktokLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-pink-600 dark:text-pink-400 hover:underline pt-1 block"
+                  >
+                    <span>Buka Akun TikTok</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
@@ -477,6 +495,20 @@ export function PublicKontakClient({ settings }: { settings?: PengaturanSistemDa
                   <rect width="18" height="18" x="3" y="3" rx="5" />
                   <circle cx="12" cy="12" r="4" />
                   <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                </svg>
+              </a>
+            )}
+            {tiktokLink && (
+              <a
+                href={tiktokLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`TikTok ${orgName}`}
+                title={`TikTok ${orgName}`}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.27 6.27 0 0 0 1.9-4.48V8.71a8.28 8.28 0 0 0 4.87 1.57v-3.5a4.84 4.84 0 0 1-1-.09Z" />
                 </svg>
               </a>
             )}

@@ -190,6 +190,21 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
   const orgWilayah = [settings?.profil.unitWilayah, settings?.profil.kelurahan].filter(Boolean).join(' · ');
   const isKasPublik = settings?.keamanan?.transparansiKasPublik ?? true;
 
+  const emailAddress = settings?.profil.email || 'katarjajar0707@gmail.com';
+  const rawPhone = settings?.profil.telepon || '';
+  const cleanPhone = rawPhone.replace(/\D/g, '');
+  const waNumber = cleanPhone ? (cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone) : '6285711256012';
+  const waLink = waNumber ? `https://wa.me/${waNumber}` : null;
+  const igUsername = settings?.profil.instagram?.replace('@', '').trim();
+  const igLink = igUsername ? `https://instagram.com/${igUsername}` : 'https://instagram.com/kartatuju';
+  const rawTiktok = settings?.profil.tiktok?.trim();
+  const tiktokUsername = rawTiktok?.replace(/^@/, '');
+  const tiktokLink = rawTiktok
+    ? (rawTiktok.startsWith('http://') || rawTiktok.startsWith('https://')
+        ? rawTiktok
+        : `https://www.tiktok.com/@${tiktokUsername}`)
+    : null;
+
   const handlePrintRekap = () => {
     if (typeof window !== 'undefined') {
       window.print();
@@ -240,8 +255,8 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
                 splitBy="word"
                 hinge="top"
                 trigger="scroll"
-                duration={0.55}
-                stagger={0.07}
+                duration={0.99}
+                stagger={0.08}
                 ease="power3.out"
                 perspective={700}
                 creaseShading={0.5}
@@ -330,40 +345,60 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
             <p className="text-[11px]">{[settings?.profil.alamat, settings?.profil.kelurahan, settings?.profil.kota].filter(Boolean).join(' · ')}</p>
           </div>
           <div className="flex items-center justify-center gap-2">
-            <a
-              href="mailto:katarjajar0707@gmail.com"
-              aria-label="Kirim email ke Kartar Jajar"
-              title="Kirim email ke Kartar Jajar"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-            >
-              <Mail className="h-5 w-5" aria-hidden="true" />
-            </a>
-            <a
-              href="https://wa.me/6285711256012"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Chat WhatsApp Kartar Jajar"
-              title="Chat WhatsApp Kartar Jajar"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="currentColor">
-                <path d="M12 2a9.9 9.9 0 0 0-8.56 14.88L2 22l5.27-1.38A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.08-1.12l-.29-.17-3.13.82.83-3.05-.19-.31A8 8 0 1 1 12 20Zm4.39-5.99c-.24-.12-1.43-.7-1.65-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-1.39-.69-2.3-1.23-3.21-2.79-.24-.42.24-.39.69-1.3.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.47-.4-.41-.54-.42h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.69 2.58 4.1 3.62.57.25 1.02.4 1.37.51.58.18 1.1.15 1.51.09.46-.07 1.43-.58 1.63-1.14.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z" />
-              </svg>
-            </a>
-            <a
-              href="https://instagram.com/kartatuju"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram Kartar Jajar"
-              title="Instagram Kartar Jajar"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <rect width="18" height="18" x="3" y="3" rx="5" />
-                <circle cx="12" cy="12" r="4" />
-                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
-              </svg>
-            </a>
+            {emailAddress && (
+              <a
+                href={`mailto:${emailAddress}`}
+                aria-label={`Kirim email ke ${orgName}`}
+                title={`Kirim email ke ${orgName}`}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <Mail className="h-5 w-5" aria-hidden="true" />
+              </a>
+            )}
+            {waLink && (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Chat WhatsApp ${orgName}`}
+                title={`Chat WhatsApp ${orgName}`}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="currentColor">
+                  <path d="M12 2a9.9 9.9 0 0 0-8.56 14.88L2 22l5.27-1.38A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.08-1.12l-.29-.17-3.13.82.83-3.05-.19-.31A8 8 0 1 1 12 20Zm4.39-5.99c-.24-.12-1.43-.7-1.65-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-1.39-.69-2.3-1.23-3.21-2.79-.24-.42.24-.39.69-1.3.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.47-.4-.41-.54-.42h-.46c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.69 2.58 4.1 3.62.57.25 1.02.4 1.37.51.58.18 1.1.15 1.51.09.46-.07 1.43-.58 1.63-1.14.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28Z" />
+                </svg>
+              </a>
+            )}
+            {igLink && (
+              <a
+                href={igLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Instagram ${orgName}`}
+                title={`Instagram ${orgName}`}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect width="18" height="18" x="3" y="3" rx="5" />
+                  <circle cx="12" cy="12" r="4" />
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                </svg>
+              </a>
+            )}
+            {tiktokLink && (
+              <a
+                href={tiktokLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`TikTok ${orgName}`}
+                title={`TikTok ${orgName}`}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.29 0 .58.04.85.12V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.27 6.27 0 0 0 1.9-4.48V8.71a8.28 8.28 0 0 0 4.87 1.57v-3.5a4.84 4.84 0 0 1-1-.09Z" />
+                </svg>
+              </a>
+            )}
           </div>
         </div>
       </footer>
