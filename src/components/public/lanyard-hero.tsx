@@ -1,11 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import FoldText from '@/components/public/fold-text';
 import TextType from '@/components/public/text-type';
+import { createClient } from '@/lib/supabase/client';
 
 const Lanyard = dynamic(() => import('@/components/Lanyard'), {
   ssr: false,
@@ -17,7 +19,57 @@ const Lanyard = dynamic(() => import('@/components/Lanyard'), {
   ),
 });
 
-export function LanyardHero({ orgName }: { orgName: string }) {
+const DEFAULT_CARD_FRONT = '/lanyard/kartu-depan.png';
+
+export function LanyardHero({
+  orgName,
+  currentUserId,
+}: {
+  orgName: string;
+  currentUserId?: string | null;
+}) {
+  const [userId, setUserId] = useState<string | null>(currentUserId || null);
+  const [frontCardUrl, setFrontCardUrl] = useState<string>(DEFAULT_CARD_FRONT);
+
+  // Sinkronisasi status autentikasi user
+  useEffect(() => {
+    if (currentUserId) {
+      setUserId(currentUserId);
+      return;
+    }
+
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.id) {
+        setUserId(user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentUserId]);
+
+  // Validasi file kartu user: jika ada gunakan /lanyard/user/{userId}.png, jika belum/error fallback ke default
+  useEffect(() => {
+    if (!userId) {
+      setFrontCardUrl(DEFAULT_CARD_FRONT);
+      return;
+    }
+
+    const candidateUrl = `/lanyard/user/${userId}.png`;
+    const img = new Image();
+    img.src = candidateUrl;
+    img.onload = () => {
+      setFrontCardUrl(candidateUrl);
+    };
+    img.onerror = () => {
+      setFrontCardUrl(DEFAULT_CARD_FRONT);
+    };
+  }, [userId]);
+
   return (
     <section className="relative -mt-[calc(4.25rem+env(safe-area-inset-top,0px))] min-h-[100dvh] lg:min-h-screen w-full overflow-x-clip flex flex-col justify-end lg:justify-center">
       {/* Background Lanyard Layer (Mundur 1 lapis ke belakang; di tablet landscape ke atas digeser ke area kanan agar seimbang dengan card kiri) */}
@@ -26,7 +78,7 @@ export function LanyardHero({ orgName }: { orgName: string }) {
           <Lanyard
             position={[0, 0, 20]}
             gravity={[0, -40, 0]}
-            frontImage="/lanyard/kartu-depan.png"
+            frontImage={frontCardUrl}
             backImage="/lanyard/kartu-belakang.png"
             lanyardImage="/lanyard/lanyard.png"
             className="w-full h-full"

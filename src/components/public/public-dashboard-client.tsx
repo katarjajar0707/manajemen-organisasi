@@ -180,7 +180,15 @@ function DriftWallSection() {
   );
 }
 
-export function PublicDashboardClient({ initialData, settings }: { initialData: PublicTransparencyData; settings?: PengaturanSistemData }) {
+export function PublicDashboardClient({
+  initialData,
+  settings,
+  currentUserId,
+}: {
+  initialData: PublicTransparencyData;
+  settings?: PengaturanSistemData;
+  currentUserId?: string | null;
+}) {
   const [data] = useState<PublicTransparencyData>(initialData);
 
   // Download / Cetak Modal
@@ -244,7 +252,7 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
 
       {/* Main Content */}
       <main className="flex-1 space-y-12 pb-16">
-        <LanyardHero orgName={orgName} />
+        <LanyardHero orgName={orgName} currentUserId={currentUserId} />
 
         {/* Jadwal Kegiatan Publik */}
         <section className="px-4 md:px-8 max-w-6xl mx-auto space-y-4">
