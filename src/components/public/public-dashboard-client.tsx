@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LanyardHero } from '@/components/public/lanyard-hero';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar, ArrowRight, Shield, FileText, MapPin, Clock, Mail, Printer, AlertTriangle } from 'lucide-react';
+import { Calendar, ArrowRight, Shield, MapPin, Clock, Mail, AlertTriangle } from 'lucide-react';
 import { PublicTransparencyData } from '@/actions/transparansi';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 import DriftWall from '@/components/public/drift-wall';
@@ -40,98 +39,26 @@ const MEMBER_IMAGES = [
   '/lanyard/user/f30f163a-159d-49bc-b357-07ea1e947048.png',
   '/lanyard/user/f7af9da9-15d9-4892-abac-8b1c00a578bf.png',
   '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
-  '/lanyard/user/03412418-feec-420b-a0b5-8f6df7386aae.png',
-  '/lanyard/user/0bd44bf8-447c-4e6e-9721-d6014fa3a8c1.png',
-  '/lanyard/user/15d2875e-e12d-4508-9018-ddf429249c1b.png',
-  '/lanyard/user/3170f581-ac51-4802-9ba0-4901a4a32715.png',
-  '/lanyard/user/4beba624-2ba5-41f1-9672-cdb75b80a19e.png',
-  '/lanyard/user/4f6c3e0d-3836-43ab-b745-18c14a46f8ff.png',
-  '/lanyard/user/561a38a3-c983-4651-80a6-7e2aa2439608.png',
-  '/lanyard/user/6daedf2d-dd9b-4878-b0bf-d46a126dafcb.png',
-  '/lanyard/user/71597135-7fd2-41ad-8015-71e3139238ad.png',
-  '/lanyard/user/786c8556-2e03-4022-a5fa-1d9deef34abf.png',
-  '/lanyard/user/7bf1f387-1d9d-4ae5-9147-f57839735281.png',
-  '/lanyard/user/93816c43-cdb4-451a-b5a2-bcaf727146b2.png',
-  '/lanyard/user/9a5b9c30-5d81-4f36-b90e-5f81ab03f9de.png',
-  '/lanyard/user/a985054a-1753-4eca-acd7-39e9eefe8977.png',
-  '/lanyard/user/b522716f-465f-4c05-9db6-f5d46a763e60.png',
-  '/lanyard/user/bd9820b5-6a72-46d9-bd0a-73ea9cd718bc.png',
-  '/lanyard/user/c6271b9a-6d33-4957-accd-432b76421b9f.png',
-  '/lanyard/user/d9225e53-5121-4d9f-99dc-36faecc11f44.png',
-  '/lanyard/user/db3a9ea8-4008-450b-86f5-d9906df76bd6.png',
-  '/lanyard/user/e0f607d9-0dcb-4009-bf59-1b7296ce25a8.png',
-  '/lanyard/user/ea366256-7e1a-4f6e-b197-fde986be5372.png',
-  '/lanyard/user/f30f163a-159d-49bc-b357-07ea1e947048.png',
-  '/lanyard/user/f7af9da9-15d9-4892-abac-8b1c00a578bf.png',
-  '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
-  '/lanyard/user/03412418-feec-420b-a0b5-8f6df7386aae.png',
-  '/lanyard/user/0bd44bf8-447c-4e6e-9721-d6014fa3a8c1.png',
-  '/lanyard/user/15d2875e-e12d-4508-9018-ddf429249c1b.png',
-  '/lanyard/user/3170f581-ac51-4802-9ba0-4901a4a32715.png',
-  '/lanyard/user/4beba624-2ba5-41f1-9672-cdb75b80a19e.png',
-  '/lanyard/user/4f6c3e0d-3836-43ab-b745-18c14a46f8ff.png',
-  '/lanyard/user/561a38a3-c983-4651-80a6-7e2aa2439608.png',
-  '/lanyard/user/6daedf2d-dd9b-4878-b0bf-d46a126dafcb.png',
-  '/lanyard/user/71597135-7fd2-41ad-8015-71e3139238ad.png',
-  '/lanyard/user/786c8556-2e03-4022-a5fa-1d9deef34abf.png',
-  '/lanyard/user/7bf1f387-1d9d-4ae5-9147-f57839735281.png',
-  '/lanyard/user/93816c43-cdb4-451a-b5a2-bcaf727146b2.png',
-  '/lanyard/user/9a5b9c30-5d81-4f36-b90e-5f81ab03f9de.png',
-  '/lanyard/user/a985054a-1753-4eca-acd7-39e9eefe8977.png',
-  '/lanyard/user/b522716f-465f-4c05-9db6-f5d46a763e60.png',
-  '/lanyard/user/bd9820b5-6a72-46d9-bd0a-73ea9cd718bc.png',
-  '/lanyard/user/c6271b9a-6d33-4957-accd-432b76421b9f.png',
-  '/lanyard/user/d9225e53-5121-4d9f-99dc-36faecc11f44.png',
-  '/lanyard/user/db3a9ea8-4008-450b-86f5-d9906df76bd6.png',
-  '/lanyard/user/e0f607d9-0dcb-4009-bf59-1b7296ce25a8.png',
-  '/lanyard/user/ea366256-7e1a-4f6e-b197-fde986be5372.png',
-  '/lanyard/user/f30f163a-159d-49bc-b357-07ea1e947048.png',
-  '/lanyard/user/f7af9da9-15d9-4892-abac-8b1c00a578bf.png',
-  '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
-  '/lanyard/user/03412418-feec-420b-a0b5-8f6df7386aae.png',
-  '/lanyard/user/0bd44bf8-447c-4e6e-9721-d6014fa3a8c1.png',
-  '/lanyard/user/15d2875e-e12d-4508-9018-ddf429249c1b.png',
-  '/lanyard/user/3170f581-ac51-4802-9ba0-4901a4a32715.png',
-  '/lanyard/user/4beba624-2ba5-41f1-9672-cdb75b80a19e.png',
-  '/lanyard/user/4f6c3e0d-3836-43ab-b745-18c14a46f8ff.png',
-  '/lanyard/user/561a38a3-c983-4651-80a6-7e2aa2439608.png',
-  '/lanyard/user/6daedf2d-dd9b-4878-b0bf-d46a126dafcb.png',
-  '/lanyard/user/71597135-7fd2-41ad-8015-71e3139238ad.png',
-  '/lanyard/user/786c8556-2e03-4022-a5fa-1d9deef34abf.png',
-  '/lanyard/user/7bf1f387-1d9d-4ae5-9147-f57839735281.png',
-  '/lanyard/user/93816c43-cdb4-451a-b5a2-bcaf727146b2.png',
-  '/lanyard/user/9a5b9c30-5d81-4f36-b90e-5f81ab03f9de.png',
-  '/lanyard/user/a985054a-1753-4eca-acd7-39e9eefe8977.png',
-  '/lanyard/user/b522716f-465f-4c05-9db6-f5d46a763e60.png',
-  '/lanyard/user/bd9820b5-6a72-46d9-bd0a-73ea9cd718bc.png',
-  '/lanyard/user/c6271b9a-6d33-4957-accd-432b76421b9f.png',
-  '/lanyard/user/d9225e53-5121-4d9f-99dc-36faecc11f44.png',
-  '/lanyard/user/db3a9ea8-4008-450b-86f5-d9906df76bd6.png',
-  '/lanyard/user/e0f607d9-0dcb-4009-bf59-1b7296ce25a8.png',
-  '/lanyard/user/ea366256-7e1a-4f6e-b197-fde986be5372.png',
-  '/lanyard/user/f30f163a-159d-49bc-b357-07ea1e947048.png',
-  '/lanyard/user/f7af9da9-15d9-4892-abac-8b1c00a578bf.png',
-  '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
 ].map((path) => ({ image: path }));
 
-function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+// Cached formatter instance — avoids creating a new Intl.NumberFormat on each call
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  maximumFractionDigits: 0,
+});
+const formatRupiah = (amount: number): string => rupiahFormatter.format(amount);
 
 /** Responsive wrapper: ukuran tile lebih kecil di mobile (<640 px). */
 function DriftWallSection() {
-  const [isMobile, setIsMobile] = useState(true);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 639px)');
-    setIsMobile(mq.matches);
+    const mql = window.matchMedia('(max-width: 639px)');
     const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
+    setIsMobile(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
   }, []);
 
   return (
@@ -189,14 +116,10 @@ export function PublicDashboardClient({
   settings?: PengaturanSistemData;
   currentUserId?: string | null;
 }) {
-  const [data] = useState<PublicTransparencyData>(initialData);
-
-  // Download / Cetak Modal
-  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const data = initialData;
 
   const orgName = settings?.profil.nama || 'Karang Taruna';
   const orgWilayah = [settings?.profil.unitWilayah, settings?.profil.kelurahan].filter(Boolean).join(' · ');
-  const isKasPublik = settings?.keamanan?.transparansiKasPublik ?? true;
 
   const emailAddress = settings?.profil.email || 'katarjajar0707@gmail.com';
   const rawPhone = settings?.profil.telepon || '';
@@ -212,12 +135,6 @@ export function PublicDashboardClient({
         ? rawTiktok
         : `https://www.tiktok.com/@${tiktokUsername}`)
     : null;
-
-  const handlePrintRekap = () => {
-    if (typeof window !== 'undefined') {
-      window.print();
-    }
-  };
 
   // Jika portal publik dinonaktifkan oleh kebijakan organisasi
   if (settings?.keamanan && !settings.keamanan.portalPublikAktif) {
@@ -411,49 +328,7 @@ export function PublicDashboardClient({
         </div>
       </footer>
 
-      {/* Dialog Ringkasan Kas Resmi */}
-      {isKasPublik && (
-        <Dialog open={isDownloadOpen} onOpenChange={setIsDownloadOpen}>
-          <DialogContent className="max-w-md w-[95vw]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Laporan Ringkasan Kas Publik
-              </DialogTitle>
-              <DialogDescription className="text-xs">Transparansi saldo dan rekapitulasi keuangan {orgName}.</DialogDescription>
-            </DialogHeader>
 
-            <div className="space-y-3 py-2 text-xs">
-              <div className="p-3.5 rounded-lg bg-muted/40 border space-y-2">
-                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-medium">
-                  <span>Total Pemasukan Kas:</span>
-                  <span className="font-bold text-sm">{formatRupiah(data.keuangan.totalMasuk)}</span>
-                </div>
-                <div className="flex justify-between items-center text-rose-600 dark:text-rose-400 font-medium">
-                  <span>Total Pengeluaran Kas:</span>
-                  <span className="font-bold text-sm">{formatRupiah(data.keuangan.totalKeluar)}</span>
-                </div>
-                <div className="border-t border-border/60 pt-2 flex justify-between items-center text-foreground font-bold">
-                  <span>Saldo Akhir Kas:</span>
-                  <span className="text-base text-primary">{formatRupiah(data.keuangan.saldoAkhir)}</span>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-muted-foreground leading-relaxed">* Data kas ini disinkronkan secara realtime dari pencatatan bendahara umum dan diverifikasi untuk transparansi warga {orgName}.</p>
-            </div>
-
-            <DialogFooter className="gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsDownloadOpen(false)}>
-                Tutup
-              </Button>
-              <Button onClick={handlePrintRekap} className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
-                <Printer className="h-3.5 w-3.5" />
-                Cetak / Print
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 const navigationItems = [
   { href: '/', label: 'Beranda' },
-  { href: '/laporan-keuangan', label: 'Transparansi' },
+  { href: '/laporan-keuangan', label: 'Keuangan' },
   { href: '/kontak', label: 'Kontak' },
 ];
 

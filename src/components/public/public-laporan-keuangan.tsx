@@ -17,6 +17,7 @@ import FoldText from '@/components/public/fold-text';
 import TextType from '@/components/public/text-type';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 import type { PublicKeuanganReportData } from '@/actions/transparansi';
+import { cn } from '@/lib/utils';
 
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
@@ -186,10 +187,26 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
           <Card className="mx-auto max-w-xl border-border/70 text-center shadow-sm"><CardContent className="space-y-4 p-8"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground"><FileText className="h-6 w-6" /></span><div className="space-y-1"><h2 className="font-bold">Laporan belum tersedia untuk publik</h2><p className="text-sm text-muted-foreground">Publikasi laporan keuangan saat ini dinonaktifkan oleh pengurus organisasi.</p></div><Link href="/"><Button variant="outline" size="sm">Kembali ke Beranda</Button></Link></CardContent></Card>
         ) : (
           <>
-            <section className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-              <SummaryCard title="Kas Masuk" amount={ringkasan.masuk} icon={<TrendingUp className="h-4 w-4" />} className="text-emerald-600 dark:text-emerald-400" />
-              <SummaryCard title="Kas Keluar" amount={ringkasan.keluar} icon={<TrendingDown className="h-4 w-4" />} className="text-rose-600 dark:text-rose-400" />
-              <SummaryCard title="Saldo Kas" amount={ringkasan.sisa} icon={<Wallet className="h-4 w-4" />} className="text-primary" />
+            <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+              <SummaryCard
+                title="Saldo Aktif"
+                amount={ringkasan.sisa}
+                icon={<Wallet className="h-4 w-4" />}
+                className="text-primary"
+                wrapperClassName="col-span-2 sm:col-span-1"
+              />
+              <SummaryCard
+                title="Kas Masuk"
+                amount={ringkasan.masuk}
+                icon={<TrendingUp className="h-4 w-4" />}
+                className="text-emerald-600 dark:text-emerald-400"
+              />
+              <SummaryCard
+                title="Kas Keluar"
+                amount={ringkasan.keluar}
+                icon={<TrendingDown className="h-4 w-4" />}
+                className="text-rose-600 dark:text-rose-400"
+              />
             </section>
 
             <Card className="overflow-hidden border-border/70 shadow-sm">
@@ -217,8 +234,32 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
   );
 }
 
-function SummaryCard({ title, amount, icon, className }: { title: string; amount: number; icon: React.ReactNode; className: string }) {
-  return <Card className="border-border/70 shadow-sm"><CardContent className="flex items-center gap-3 p-4 sm:p-5"><span className={`rounded-xl bg-muted p-2.5 ${className}`}>{icon}</span><div className="min-w-0"><p className="text-xs text-muted-foreground">{title}</p><p className={`mt-1 truncate text-lg font-bold sm:text-xl ${className}`}>{formatRupiah(amount)}</p></div></CardContent></Card>;
+function SummaryCard({
+  title,
+  amount,
+  icon,
+  className,
+  wrapperClassName,
+}: {
+  title: string;
+  amount: number;
+  icon: React.ReactNode;
+  className: string;
+  wrapperClassName?: string;
+}) {
+  return (
+    <Card className={cn("border-border/70 shadow-sm", wrapperClassName)}>
+      <CardContent className="flex items-center gap-3 p-4 sm:p-5">
+        <span className={`rounded-xl bg-muted p-2.5 ${className}`}>{icon}</span>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">{title}</p>
+          <p className={`mt-1 truncate text-lg font-bold sm:text-xl ${className}`}>
+            {formatRupiah(amount)}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function FilterButton({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {

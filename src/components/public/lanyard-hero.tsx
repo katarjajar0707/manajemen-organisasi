@@ -31,25 +31,27 @@ export function LanyardHero({
   const [userId, setUserId] = useState<string | null>(currentUserId || null);
   const [frontCardUrl, setFrontCardUrl] = useState<string>(DEFAULT_CARD_FRONT);
 
-  // Sinkronisasi status autentikasi user
+  // Sinkronisasi status autentikasi user — skip Supabase client jika server sudah memberikan userId
   useEffect(() => {
     if (currentUserId) {
       setUserId(currentUserId);
       return;
     }
 
+    let cancelled = false;
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.id) {
-        setUserId(user.id);
-      }
+      if (!cancelled && user?.id) setUserId(user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id || null);
+      if (!cancelled) setUserId(session?.user?.id || null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [currentUserId]);
 
   // Validasi file kartu user: jika ada gunakan /lanyard/user/{userId}.png, jika belum/error fallback ke default
@@ -59,15 +61,13 @@ export function LanyardHero({
       return;
     }
 
+    let cancelled = false;
     const candidateUrl = `/lanyard/user/${userId}.png`;
     const img = new Image();
     img.src = candidateUrl;
-    img.onload = () => {
-      setFrontCardUrl(candidateUrl);
-    };
-    img.onerror = () => {
-      setFrontCardUrl(DEFAULT_CARD_FRONT);
-    };
+    img.onload = () => { if (!cancelled) setFrontCardUrl(candidateUrl); };
+    img.onerror = () => { if (!cancelled) setFrontCardUrl(DEFAULT_CARD_FRONT); };
+    return () => { cancelled = true; };
   }, [userId]);
 
   return (

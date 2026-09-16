@@ -91,6 +91,20 @@ const DriftWall = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const [reduced, setReduced] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { rootMargin: '120px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     setReduced(prefersReducedMotion());
@@ -150,6 +164,13 @@ const DriftWall = ({
   );
 
   useEffect(() => {
+    if (!isVisible) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      lastTsRef.current = null;
+      return;
+    }
+
     const animate = (ts: number) => {
       if (lastTsRef.current === null) lastTsRef.current = ts;
       const dt = Math.min(0.05, Math.max(0, ts - lastTsRef.current) / 1000);
@@ -197,7 +218,7 @@ const DriftWall = ({
       rafRef.current = null;
       lastTsRef.current = null;
     };
-  }, [baseVelocities, columnMeta, pauseOnHover, parallax, reduced, applyPlaneTransform]);
+  }, [isVisible, baseVelocities, columnMeta, pauseOnHover, parallax, reduced, applyPlaneTransform]);
 
   const activate = useCallback((id: string, index: number): void => {
     activeIdRef.current = id;

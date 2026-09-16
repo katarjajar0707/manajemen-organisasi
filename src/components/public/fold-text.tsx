@@ -8,6 +8,17 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
+// Inject FoldText styles once at module level (not per-render)
+let _stylesInjected = false;
+function ensureFoldTextStyles() {
+  if (_stylesInjected || typeof document === 'undefined') return;
+  _stylesInjected = true;
+  const style = document.createElement('style');
+  style.setAttribute('data-fold-text', '');
+  style.textContent = FOLD_TEXT_STYLES;
+  document.head.appendChild(style);
+}
+
 type SplitBy = 'char' | 'word' | 'line';
 type Hinge = 'top' | 'bottom' | 'left' | 'right';
 type Trigger = 'mount' | 'hover' | 'scroll' | 'loop';
@@ -56,99 +67,7 @@ const renderWhitespace = (value: string, key: string): ReactNode[] =>
     );
   });
 
-const FOLD_TEXT_STYLES = `.fold-text {
-  display: inline-block;
-  color: var(--fold-text-color, currentColor);
-  font-size: var(--fold-text-font-size, inherit);
-  font-weight: var(--fold-text-font-weight, inherit);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  white-space: pre-wrap;
-  user-select: text;
-}
-
-.fold-text-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.fold-text-visual {
-  display: inline;
-}
-
-.fold-text-line {
-  display: block;
-}
-
-.fold-text-whitespace {
-  display: inline;
-}
-
-.fold-text-segment {
-  display: inline-block;
-  line-height: inherit;
-  perspective: var(--fold-perspective, 700px);
-  transform-style: preserve-3d;
-  vertical-align: baseline;
-}
-
-.fold-text-segment[data-fold-split='line'] {
-  display: block;
-}
-
-.fold-text-piece {
-  position: relative;
-  display: inline-block;
-  color: inherit;
-  line-height: inherit;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  will-change: transform, opacity;
-}
-
-.fold-text-piece::after {
-  content: '';
-  position: absolute;
-  inset: -0.08em -0.02em;
-  pointer-events: none;
-  opacity: var(--fold-crease, 0);
-  mix-blend-mode: multiply;
-  border-radius: 0.08em;
-}
-
-.fold-text-piece[data-fold-hinge='top']::after {
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.22) 42%, rgba(255, 255, 255, 0.26) 100%);
-}
-
-.fold-text-piece[data-fold-hinge='bottom']::after {
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.22) 42%, rgba(255, 255, 255, 0.26) 100%);
-}
-
-.fold-text-piece[data-fold-hinge='left']::after {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.22) 42%, rgba(255, 255, 255, 0.26) 100%);
-}
-
-.fold-text-piece[data-fold-hinge='right']::after {
-  background: linear-gradient(270deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.22) 42%, rgba(255, 255, 255, 0.26) 100%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fold-text-piece {
-    transform: none !important;
-  }
-
-  .fold-text-piece::after {
-    opacity: 0 !important;
-  }
-}
-`;
+const FOLD_TEXT_STYLES = `.fold-text{display:inline-block;color:var(--fold-text-color,currentColor);font-size:var(--fold-text-font-size,inherit);font-weight:var(--fold-text-font-weight,inherit);line-height:1.15;letter-spacing:-.02em;white-space:pre-wrap;user-select:text}.fold-text-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.fold-text-visual{display:inline}.fold-text-line{display:block}.fold-text-whitespace{display:inline}.fold-text-segment{display:inline-block;line-height:inherit;perspective:var(--fold-perspective,700px);transform-style:preserve-3d;vertical-align:baseline}.fold-text-segment[data-fold-split='line']{display:block}.fold-text-piece{position:relative;display:inline-block;color:inherit;line-height:inherit;transform-style:preserve-3d;backface-visibility:hidden;will-change:transform,opacity}.fold-text-piece::after{content:'';position:absolute;inset:-.08em -.02em;pointer-events:none;opacity:var(--fold-crease,0);mix-blend-mode:multiply;border-radius:.08em}.fold-text-piece[data-fold-hinge='top']::after{background:linear-gradient(180deg,rgba(0,0,0,.58) 0%,rgba(0,0,0,.22) 42%,rgba(255,255,255,.26) 100%)}.fold-text-piece[data-fold-hinge='bottom']::after{background:linear-gradient(0deg,rgba(0,0,0,.58) 0%,rgba(0,0,0,.22) 42%,rgba(255,255,255,.26) 100%)}.fold-text-piece[data-fold-hinge='left']::after{background:linear-gradient(90deg,rgba(0,0,0,.58) 0%,rgba(0,0,0,.22) 42%,rgba(255,255,255,.26) 100%)}.fold-text-piece[data-fold-hinge='right']::after{background:linear-gradient(270deg,rgba(0,0,0,.58) 0%,rgba(0,0,0,.22) 42%,rgba(255,255,255,.26) 100%)}@media(prefers-reduced-motion:reduce){.fold-text-piece{transform:none!important}.fold-text-piece::after{opacity:0!important}}`;
 
 export const FoldText = ({
   text = 'Design unfolds',
@@ -309,16 +228,16 @@ export const FoldText = ({
     ...style,
   } as CSSProperties;
 
+  // Inject styles once (side-effect, not per-render <style> tag)
+  useEffect(() => { ensureFoldTextStyles(); }, []);
+
   return (
-    <>
-      <style>{FOLD_TEXT_STYLES}</style>
-      <span ref={rootRef} className={`fold-text ${className}`.trim()} style={rootStyle}>
-        <span className="fold-text-sr-only">{text}</span>
-        <span className="fold-text-visual" aria-hidden="true">
-          {segments}
-        </span>
+    <span ref={rootRef} className={`fold-text ${className}`.trim()} style={rootStyle}>
+      <span className="fold-text-sr-only">{text}</span>
+      <span className="fold-text-visual" aria-hidden="true">
+        {segments}
       </span>
-    </>
+    </span>
   );
 };
 

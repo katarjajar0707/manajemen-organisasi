@@ -550,11 +550,17 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
       return;
     }
 
-    const filterText = [filterJenis === 'masuk' ? 'Kas Masuk (Pemasukan)' : filterJenis === 'keluar' ? 'Kas Keluar (Pengeluaran)' : 'Semua Mutasi'].join(' | ');
+    const filterText = [
+      filterJenis === 'masuk' ? 'Kas Masuk (Pemasukan)' : filterJenis === 'keluar' ? 'Kas Keluar (Pengeluaran)' : 'Semua Mutasi',
+    ].join(' | ');
 
-    const totalMasukFiltered = filteredList.filter((t: any) => t.jenis === 'masuk').reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
+    const totalMasukFiltered = filteredList
+      .filter((t: any) => t.jenis === 'masuk')
+      .reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
 
-    const totalKeluarFiltered = filteredList.filter((t: any) => t.jenis === 'keluar').reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
+    const totalKeluarFiltered = filteredList
+      .filter((t: any) => t.jenis === 'keluar')
+      .reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
 
     const saldoFiltered = totalMasukFiltered - totalKeluarFiltered;
 
@@ -566,14 +572,22 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 
+    // Format tanggal: 01/sep/2026
+    const formatTanggalLaporan = (dateInput: string | Date | undefined | null): string => {
+      if (!dateInput) return '-';
+      const d = new Date(dateInput);
+      if (isNaN(d.getTime())) return '-';
+      const day = String(d.getDate()).padStart(2, '0');
+      const monthNames = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
+      const month = monthNames[d.getMonth()];
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
     const rowsHtml = filteredList
       .map((trx: any, idx: number) => {
-        const tgl = new Date(trx.created_at).toLocaleDateString('id-ID', {
-          day: '2-digit',
-          month: '2-digit',
-          year: '2-digit',
-        });
-        const jenisLabel = trx.jenis === 'masuk' ? 'Pemasukan' : 'Pengeluaran';
+        const tgl = formatTanggalLaporan(trx.tanggal || trx.created_at);
+        const jenisLabel = trx.jenis === 'masuk' ? 'Masuk' : 'Keluar';
         const nominalColor = trx.jenis === 'masuk' ? '#047857' : '#b91c1c';
         const cleanDesc = trx.displayKeterangan || trx.keterangan || '';
         const title = escapeHtml(trx.judul || 'Transaksi');
@@ -583,191 +597,211 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
 
         return `
           <tr>
-            <td style="text-align: center;">${idx + 1}</td>
-            <td style="white-space: nowrap;">${tgl}</td>
+            <td style="text-align: center; font-size: 8.5px; color: #64748b;">${idx + 1}</td>
+            <td style="text-align: center; white-space: nowrap; font-family: monospace; font-size: 9px; font-weight: 500;">${tgl}</td>
             <td style="vertical-align: top;">
-              <strong>${title}</strong>
+              <div style="font-weight: 600; color: #0f172a; line-height: 1.25;">${title}</div>
               ${description ? `<div class="description">${description}</div>` : ''}
             </td>
-            <td style="font-size: 11px; color: #475569;">${kategori}</td>
+            <td style="font-size: 8.5px; color: #475569;">${kategori}</td>
             <td style="text-align: center;">
-              <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background-color: ${trx.jenis === 'masuk' ? '#d1fae5' : '#fee2e2'}; color: ${trx.jenis === 'masuk' ? '#065f46' : '#991b1b'};">
+              <span style="display: inline-block; padding: 1.5px 6px; border-radius: 4px; font-size: 8.5px; font-weight: 600; background-color: ${trx.jenis === 'masuk' ? '#d1fae5' : '#fee2e2'}; color: ${trx.jenis === 'masuk' ? '#065f46' : '#991b1b'};">
                 ${jenisLabel}
               </span>
             </td>
-            <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${nominalColor};">
+            <td style="text-align: right; font-family: monospace; font-weight: 700; font-size: 9px; color: ${nominalColor};">
               ${formatRupiah(trx.jumlah)}
             </td>
-            <td style="font-size: 11px; color: #475569;">${author}</td>
+            <td style="font-size: 8.5px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${author}</td>
           </tr>
         `;
       })
       .join('');
 
-    const nowIndo = new Date().toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+    const printDate = formatTanggalLaporan(new Date());
+    const orgName = currentSettings?.profil?.nama || 'Karang Taruna';
 
     const htmlContent = `
       <!DOCTYPE html>
-      <html>
+      <html lang="id">
         <head>
           <meta charset="utf-8">
-          <title>Laporan Keuangan Karang Taruna - ${nowIndo}</title>
+          <title>Laporan Keuangan ${orgName} - ${printDate}</title>
           <style>
             @page {
-              /* Tujuh kolom laporan tidak cukup lega pada A4 potret. */
-              size: A4 landscape;
-              margin: 10mm 12mm;
+              size: A4 portrait;
+              margin: 10mm 12mm 12mm 12mm;
+            }
+            * {
+              box-sizing: border-box;
             }
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               color: #1e293b;
               margin: 0;
               padding: 0;
-              font-size: 11px;
-              line-height: 1.4;
+              font-size: 10px;
+              line-height: 1.35;
+              background-color: #ffffff;
             }
             .kop {
               text-align: center;
               border-bottom: 2px solid #0f172a;
-              padding-bottom: 12px;
-              margin-bottom: 18px;
+              padding-bottom: 10px;
+              margin-bottom: 14px;
             }
             .kop h2 {
               margin: 0;
-              font-size: 15px;
+              font-size: 12px;
               text-transform: uppercase;
-              letter-spacing: 1px;
+              letter-spacing: 1.5px;
               color: #475569;
+              font-weight: 600;
             }
             .kop h1 {
-              margin: 4px 0;
-              font-size: 20px;
+              margin: 3px 0;
+              font-size: 17px;
               color: #0f172a;
               letter-spacing: 0.5px;
+              font-weight: 800;
             }
             .kop p {
               margin: 0;
-              font-size: 11px;
+              font-size: 9.5px;
               color: #64748b;
             }
             .meta-box {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 16px;
-              font-size: 12px;
-              padding: 8px 12px;
+              align-items: center;
+              margin-bottom: 12px;
+              font-size: 9.5px;
+              padding: 7px 12px;
               background-color: #f8fafc;
               border: 1px solid #e2e8f0;
               border-radius: 6px;
             }
+            .meta-box div {
+              line-height: 1.4;
+            }
             .summary-cards {
               display: flex;
-              gap: 12px;
-              margin-bottom: 18px;
+              gap: 8px;
+              margin-bottom: 14px;
             }
             .card {
               flex: 1;
-              padding: 10px 14px;
+              padding: 8px 10px;
               border-radius: 6px;
               border: 1px solid #cbd5e1;
               background-color: #ffffff;
             }
             .card-title {
-              font-size: 10px;
+              font-size: 8.5px;
               text-transform: uppercase;
               color: #64748b;
-              font-weight: bold;
-              margin-bottom: 4px;
+              font-weight: 700;
+              margin-bottom: 2px;
+              letter-spacing: 0.3px;
             }
             .card-value {
-              font-size: 16px;
-              font-weight: bold;
+              font-size: 13px;
+              font-weight: 800;
+              font-family: monospace;
             }
             table {
               width: 100%;
               border-collapse: collapse;
-              margin-bottom: 25px;
+              margin-bottom: 20px;
               table-layout: fixed;
             }
-            col.no { width: 4%; }
-            col.tanggal { width: 10%; }
-            col.uraian { width: 31%; }
-            col.kategori { width: 15%; }
-            col.jenis { width: 12%; }
-            col.nominal { width: 16%; }
-            col.pencatat { width: 12%; }
+            col.no { width: 5%; }
+            col.tanggal { width: 14%; }
+            col.uraian { width: 33%; }
+            col.kategori { width: 13%; }
+            col.jenis { width: 11%; }
+            col.nominal { width: 14%; }
+            col.pencatat { width: 10%; }
             thead {
               display: table-header-group;
             }
             tfoot {
-              /* Total hanya dicetak sekali, di akhir tabel. */
               display: table-row-group;
             }
             tbody tr, tfoot tr {
               break-inside: avoid;
               page-break-inside: avoid;
             }
+            tbody tr:nth-child(even) {
+              background-color: #f8fafc;
+            }
             th {
               background-color: #f1f5f9;
               border: 1px solid #cbd5e1;
-              padding: 7px 6px;
-              font-size: 9px;
+              padding: 6px 4px;
+              font-size: 8.5px;
               text-transform: uppercase;
-              letter-spacing: 0.25px;
+              letter-spacing: 0.3px;
               color: #334155;
-              overflow-wrap: anywhere;
+              font-weight: 700;
+              text-align: left;
             }
             td {
               border: 1px solid #cbd5e1;
-              padding: 7px 6px;
-              font-size: 10px;
+              padding: 5px 5px;
+              font-size: 9px;
               overflow-wrap: anywhere;
               word-break: break-word;
-              vertical-align: top;
+              vertical-align: middle;
             }
             td .description {
-              margin-top: 3px;
+              margin-top: 2px;
               color: #64748b;
-              font-size: 10px;
-              line-height: 1.35;
+              font-size: 8px;
+              line-height: 1.25;
             }
             .tanda-tangan {
               display: flex;
               justify-content: space-between;
-              margin-top: 40px;
+              margin-top: 28px;
               page-break-inside: avoid;
+              break-inside: avoid;
             }
             .ttd-box {
-              width: 220px;
+              width: 180px;
               text-align: center;
-              font-size: 12px;
+              font-size: 10px;
+            }
+            .ttd-box p {
+              margin: 0;
+              line-height: 1.4;
             }
             .ttd-space {
-              height: 60px;
+              height: 52px;
             }
             @media print {
               body {
                 padding: 0;
+                background-color: transparent;
               }
               .no-print {
-                display: none;
+                display: none !important;
               }
             }
           </style>
         </head>
         <body>
-          <div class="no-print" style="margin-bottom: 15px; text-align: right;">
-            <button onclick="window.print()" style="padding: 8px 18px; background-color: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
-              🖨️ Cetak / Simpan sebagai PDF
+          <div class="no-print" style="margin-bottom: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+            <button onclick="window.close()" style="padding: 6px 14px; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+              ✕ Tutup
+            </button>
+            <button onclick="window.print()" style="padding: 6px 16px; background-color: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 6px;">
+              <span>🖨️</span> Cetak / Simpan PDF
             </button>
           </div>
 
           <div class="kop">
-            <h2>PENGURUS KARANG TARUNA</h2>
+            <h2>PENGURUS ${orgName.toUpperCase()}</h2>
             <h1>LAPORAN REKAPITULASI ARUS KAS KEUANGAN</h1>
             <p>Sistem Informasi Manajemen Organisasi & Transparansi Keuangan</p>
           </div>
@@ -778,22 +812,22 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
               <div><strong>Total Transaksi:</strong> ${filteredList.length} catatan</div>
             </div>
             <div style="text-align: right;">
-              <div><strong>Tanggal Cetak:</strong> ${nowIndo}</div>
+              <div><strong>Tanggal Cetak:</strong> ${printDate}</div>
               <div><strong>Status:</strong> Sah / Terverifikasi Sistem</div>
             </div>
           </div>
 
           <div class="summary-cards">
-            <div class="card" style="border-left: 4px solid #059669;">
+            <div class="card" style="border-left: 3.5px solid #059669;">
               <div class="card-title">Total Pemasukan</div>
               <div class="card-value" style="color: #059669;">${formatRupiah(totalMasukFiltered)}</div>
             </div>
-            <div class="card" style="border-left: 4px solid #dc2626;">
+            <div class="card" style="border-left: 3.5px solid #dc2626;">
               <div class="card-title">Total Pengeluaran</div>
               <div class="card-value" style="color: #dc2626;">${formatRupiah(totalKeluarFiltered)}</div>
             </div>
-            <div class="card" style="border-left: 4px solid #0284c7;">
-              <div class="card-title">Sisa Saldo Kas Organisasi</div>
+            <div class="card" style="border-left: 3.5px solid #0284c7;">
+              <div class="card-title">Sisa Saldo Kas</div>
               <div class="card-value" style="color: #0284c7;">${formatRupiah(saldo.sisa)}</div>
             </div>
           </div>
@@ -810,8 +844,8 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
             </colgroup>
             <thead>
               <tr>
-                <th>No</th>
-                <th>Tanggal</th>
+                <th style="text-align: center;">No</th>
+                <th style="text-align: center;">Tanggal</th>
                 <th>Uraian / Judul Transaksi</th>
                 <th>Kategori</th>
                 <th style="text-align: center;">Jenis</th>
@@ -824,8 +858,8 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
             </tbody>
             <tfoot>
               <tr style="background-color: #f8fafc; font-weight: bold;">
-                <td colspan="5" style="text-align: right; padding: 10px;">Total Mutasi (Data Sesuai Filter):</td>
-                <td style="text-align: right; font-family: monospace; color: ${saldoFiltered >= 0 ? '#047857' : '#b91c1c'};">
+                <td colspan="5" style="text-align: right; padding: 8px; font-size: 9px;">Total Mutasi (Data Sesuai Filter):</td>
+                <td style="text-align: right; font-family: monospace; font-weight: 700; font-size: 9.5px; color: ${saldoFiltered >= 0 ? '#047857' : '#b91c1c'};">
                   ${formatRupiah(saldoFiltered)}
                 </td>
                 <td></td>
