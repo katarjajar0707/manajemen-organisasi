@@ -79,16 +79,18 @@ export default function Lanyard({
 
   return (
     <div
-      className={`relative z-0 w-full h-full min-h-[20rem] flex justify-center items-center transform scale-100 origin-center select-none touch-none ${className}`}
+      className={`relative z-0 w-full h-full min-h-[20rem] flex justify-center items-center transform scale-100 origin-center select-none ${className}`}
+      style={{ touchAction: 'pan-y' }}
     >
       <Canvas
         camera={{ position, fov }}
         dpr={[1, isMobile ? 1.5 : 2]}
         gl={{ alpha: transparent }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
+        style={{ touchAction: 'none' }}
       >
         <ambientLight intensity={Math.PI} />
-        <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
+        <Physics gravity={gravity} timeStep={1 / 60}>
           <Band
             isMobile={isMobile}
             frontImage={frontImage}
@@ -175,10 +177,10 @@ function Band({
 
   const segmentProps: RigidBodyProps = {
     type: 'dynamic',
-    canSleep: true,
+    canSleep: false,
     colliders: false,
-    angularDamping: 4,
-    linearDamping: 4
+    angularDamping: 2,
+    linearDamping: 2
   };
 
   const getLerped = (body: LanyardRigidBody): THREE.Vector3 => {
@@ -356,11 +358,13 @@ function Band({
             }}
             onPointerOut={() => hover(false)}
             onPointerUp={(e: ThreeEvent<PointerEvent>) => {
-              (e.target as Element).releasePointerCapture?.(e.pointerId);
+              const target = e.nativeEvent?.target as HTMLElement | undefined;
+              target?.releasePointerCapture?.(e.pointerId);
               drag(false);
             }}
             onPointerDown={(e: ThreeEvent<PointerEvent>) => {
-              (e.target as Element).setPointerCapture?.(e.pointerId);
+              const target = e.nativeEvent?.target as HTMLElement | undefined;
+              target?.setPointerCapture?.(e.pointerId);
               drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
             }}
           >
