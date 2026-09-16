@@ -58,6 +58,13 @@ interface BendaharaManagerProps {
 
 const KEUANGAN_QUERY_KEY = ['keuangan', 'bendahara'] as const;
 
+const idNumberFormatter = new Intl.NumberFormat('id-ID');
+
+function formatRupiahCached(angka: number | string) {
+  const num = Math.round(Number(angka) || 0);
+  return `Rp ${num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+}
+
 interface BendaharaData {
   list: any[];
   saldo: { masuk: number; keluar: number; sisa: number };
@@ -131,21 +138,6 @@ async function fetchKeuanganTransactions(initialBagianId: string | null) {
   return (data || []).map(normalizeTransaction);
 }
 
-function ProgressLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium sm:text-[11px]">
-      {children}
-    </span>
-  );
-}
-
-function ProgressValue({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[10px] font-mono font-semibold text-emerald-800 dark:text-emerald-300 sm:text-[11px] truncate">
-      {children}
-    </span>
-  );
-}
 
 export function BendaharaManager({ initialList = [], initialSaldo, bagianId: initialBagianId = null, agendaCategories = [], settings: initialSettings, canManage = false, children }: BendaharaManagerProps) {
   const queryClient = useQueryClient();
@@ -216,25 +208,15 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const allCategories = useMemo(() => {
+    const seen = new Set<string>();
     const list: string[] = [];
-    (currentCategories || []).forEach((c) => {
-      const trimmed = c?.trim();
-      if (trimmed && !list.includes(trimmed)) {
-        list.push(trimmed);
-      }
-    });
-    (targetRabList || []).forEach((k) => {
-      const trimmed = k.judul?.trim();
-      if (trimmed && !list.includes(trimmed)) {
-        list.push(trimmed);
-      }
-    });
-    (kegiatanOptions || []).forEach((k) => {
-      const trimmed = k.judul?.trim();
-      if (trimmed && !list.includes(trimmed)) {
-        list.push(trimmed);
-      }
-    });
+    const add = (val?: string | null) => {
+      const t = val?.trim();
+      if (t && !seen.has(t)) { seen.add(t); list.push(t); }
+    };
+    (currentCategories || []).forEach(add);
+    (targetRabList || []).forEach((k) => add(k.judul));
+    (kegiatanOptions || []).forEach((k) => add(k.judul));
     return list;
   }, [currentCategories, targetRabList, kegiatanOptions]);
 
@@ -287,22 +269,14 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
   }, [activeKegiatanRab, jumlah, jenis]);
 
   const saldo = useMemo(() => {
-    const masuk = transactions.filter((item) => item.jenis === 'masuk').reduce((total, item) => total + Number(item.jumlah), 0);
-    const keluar = transactions.filter((item) => item.jenis === 'keluar').reduce((total, item) => total + Number(item.jumlah), 0);
+    let masuk = 0, keluar = 0;
+    for (const item of transactions) {
+      const amt = Number(item.jumlah) || 0;
+      if (item.jenis === 'masuk') masuk += amt; else keluar += amt;
+    }
     return { masuk, keluar, sisa: masuk - keluar };
   }, [transactions]);
 
-  const rabAggregate = useMemo(() => {
-    const withTarget = targetRabList.filter((item) => item.target_rab > 0);
-    if (withTarget.length === 0) return null;
-
-    const totalTargetRab = withTarget.reduce((sum, item) => sum + item.target_rab, 0);
-    const totalRealisasi = withTarget.reduce((sum, item) => sum + item.realisasi, 0);
-    const persentase = totalTargetRab > 0 ? Math.round((totalRealisasi / totalTargetRab) * 100) : 0;
-    const visualWidth = Math.min(Math.max(persentase, 0), 100);
-
-    return { totalTargetRab, totalRealisasi, persentase, visualWidth };
-  }, [targetRabList]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -376,10 +350,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     };
   }, [currentBagianId, queryClient]);
 
-  const formatRupiah = (angka: number | string) => {
-    const num = Math.round(Number(angka) || 0);
-    return `Rp ${num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-  };
+  const formatRupiah = formatRupiahCached;
 
   const handleOpenCreate = (tJenis: 'masuk' | 'keluar') => {
     setEditingId(null);
@@ -483,13 +454,8 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     }
   };
 
-  const filteredList = transactions.filter((item: any) => {
-    // Filter Jenis Transaksi (Masuk / Keluar)
-    if (filterJenis !== 'semua' && item.jenis !== filterJenis) {
-      return false;
-    }
-
-    // Search Query
+  const filteredList = useMemo(() => transactions.filter((item: any) => {
+    if (filterJenis !== 'semua' && item.jenis !== filterJenis) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -499,7 +465,16 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
       (item.kategori || '').toLowerCase().includes(q) ||
       (item.author?.nama || '').toLowerCase().includes(q)
     );
-  });
+  }), [transactions, filterJenis, searchQuery]);
+
+  // Cached filter counts — avoid 3x .filter() in JSX render
+  const filterCounts = useMemo(() => {
+    let masuk = 0, keluar = 0;
+    for (const item of transactions) {
+      if (item.jenis === 'masuk') masuk++; else keluar++;
+    }
+    return { total: transactions.length, masuk, keluar };
+  }, [transactions]);
 
   const totalPages = Math.max(1, Math.ceil(filteredList.length / rowsPerPage));
 
@@ -554,13 +529,13 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
       filterJenis === 'masuk' ? 'Kas Masuk (Pemasukan)' : filterJenis === 'keluar' ? 'Kas Keluar (Pengeluaran)' : 'Semua Mutasi',
     ].join(' | ');
 
-    const totalMasukFiltered = filteredList
-      .filter((t: any) => t.jenis === 'masuk')
-      .reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
-
-    const totalKeluarFiltered = filteredList
-      .filter((t: any) => t.jenis === 'keluar')
-      .reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
+    let totalMasukFiltered = 0;
+    let totalKeluarFiltered = 0;
+    for (const curr of filteredList) {
+      const amt = Number(curr.jumlah) || 0;
+      if (curr.jenis === 'masuk') totalMasukFiltered += amt;
+      else totalKeluarFiltered += amt;
+    }
 
     const saldoFiltered = totalMasukFiltered - totalKeluarFiltered;
 
@@ -595,8 +570,10 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
         const kategori = escapeHtml(trx.kategori || 'Kas General');
         const author = escapeHtml(trx.author?.nama || 'Admin');
 
+        const rowBg = idx % 2 === 1 ? 'background-color: #f8fafc;' : '';
+
         return `
-          <tr>
+          <tr style="${rowBg}">
             <td style="text-align: center; font-size: 8.5px; color: #64748b;">${idx + 1}</td>
             <td style="text-align: center; white-space: nowrap; font-family: monospace; font-size: 9px; font-weight: 500;">${tgl}</td>
             <td style="vertical-align: top;">
@@ -950,22 +927,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                 {dataReady ? formatRupiah(saldo.masuk) : <span className="inline-block h-7 w-32 animate-pulse rounded bg-muted" />}
               </div>
               <p className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Masuk</p>
-              {/* {dataReady && rabAggregate && (
-                <div className="mt-2.5 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40 space-y-1.5">
-                  <div className="flex items-center justify-between gap-1">
-                    <ProgressLabel>Realisasi Target RAB</ProgressLabel>
-                    <ProgressValue>
-                      {formatRupiah(rabAggregate.totalRealisasi)} / {formatRupiah(rabAggregate.totalTargetRab)} ({rabAggregate.persentase}%)
-                    </ProgressValue>
-                  </div>
-                  <div className="w-full bg-emerald-200/50 dark:bg-emerald-950/60 rounded-full h-1.5 overflow-hidden border border-emerald-300/30 dark:border-emerald-800/30">
-                    <div
-                      className="h-full rounded-full transition-all duration-500 bg-emerald-600 dark:bg-emerald-400"
-                      style={{ width: `${rabAggregate.visualWidth}%` }}
-                    />
-                  </div>
-                </div>
-              )} */}
+
             </CardContent>
           </Card>
 
@@ -1138,7 +1100,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                       filterJenis === 'semua' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    Semua ({dataReady ? transactions.length : '...'})
+                    Semua ({dataReady ? filterCounts.total : '...'})
                   </button>
                   <button
                     type="button"
@@ -1149,7 +1111,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                     )}
                   >
                     <TrendingUp className="h-3 w-3" />
-                    Masuk ({dataReady ? transactions.filter((i: any) => i.jenis === 'masuk').length : '...'})
+                    Masuk ({dataReady ? filterCounts.masuk : '...'})
                   </button>
                   <button
                     type="button"
@@ -1160,7 +1122,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                     )}
                   >
                     <TrendingDown className="h-3 w-3" />
-                    Keluar ({dataReady ? transactions.filter((i: any) => i.jenis === 'keluar').length : '...'})
+                    Keluar ({dataReady ? filterCounts.keluar : '...'})
                   </button>
                 </div>
 
@@ -1427,7 +1389,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                       // Hanya izinkan angka
                       const val = e.target.value.replace(/[^0-9]/g, '');
                       if (val) {
-                        setJumlah(new Intl.NumberFormat('id-ID').format(parseInt(val, 10)));
+                        setJumlah(idNumberFormatter.format(parseInt(val, 10)));
                       } else {
                         setJumlah('');
                       }

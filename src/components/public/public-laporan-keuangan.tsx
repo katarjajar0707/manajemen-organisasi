@@ -19,8 +19,10 @@ import type { PengaturanSistemData } from '@/actions/pengaturan';
 import type { PublicKeuanganReportData } from '@/actions/transparansi';
 import { cn } from '@/lib/utils';
 
+const idRupiahFormatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+
 function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
+  return idRupiahFormatter.format(amount);
 }
 
 function formatTanggal(tanggal: string): string {
@@ -92,8 +94,12 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
 
   const transaksi = useMemo(() => report?.transaksi.filter((item) => kategoriAktif === 'Semua' || item.kategori === kategoriAktif) || [], [kategoriAktif, report]);
   const ringkasan = useMemo(() => {
-    const masuk = transaksi.filter((item) => item.jenis === 'masuk').reduce((total, item) => total + item.jumlah, 0);
-    const keluar = transaksi.filter((item) => item.jenis === 'keluar').reduce((total, item) => total + item.jumlah, 0);
+    let masuk = 0;
+    let keluar = 0;
+    for (const item of transaksi) {
+      if (item.jenis === 'masuk') masuk += item.jumlah;
+      else keluar += item.jumlah;
+    }
     return { masuk, keluar, sisa: masuk - keluar };
   }, [transaksi]);
 
@@ -222,8 +228,8 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
               </CardHeader>
               <CardContent className="p-0">
                 {transaksi.length === 0 ? <div className="p-10 text-center text-sm text-muted-foreground">Belum ada transaksi pada kategori ini.</div> : <>
-                  <div className="divide-y md:hidden">{transaksi.map((item) => <article key={item.id} className="space-y-2 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{item.judul}</p>{item.keterangan && <p className="mt-0.5 text-xs text-muted-foreground">{item.keterangan}</p>}</div><p className={`shrink-0 text-sm font-bold ${item.jenis === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{item.jenis === 'masuk' ? '+' : '-'}{formatRupiah(item.jumlah)}</p></div><div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground"><span>{formatTanggal(item.tanggal)}</span><Badge variant="outline" className="max-w-[55%] truncate text-[10px]">{item.kategori}</Badge></div></article>)}</div>
-                  <div className="hidden overflow-x-auto md:block"><table className="w-full text-sm"><thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wide text-muted-foreground"><tr><th className="px-5 py-3 font-semibold">Tanggal</th><th className="px-5 py-3 font-semibold">Uraian Transaksi</th><th className="px-5 py-3 font-semibold">Kategori</th><th className="px-5 py-3 font-semibold">Jenis</th><th className="px-5 py-3 text-right font-semibold">Nominal</th></tr></thead><tbody className="divide-y">{transaksi.map((item) => <tr key={item.id}><td className="whitespace-nowrap px-5 py-4 text-xs text-muted-foreground">{formatTanggal(item.tanggal)}</td><td className="px-5 py-4"><p className="font-semibold">{item.judul}</p>{item.keterangan && <p className="mt-0.5 max-w-md text-xs text-muted-foreground">{item.keterangan}</p>}</td><td className="px-5 py-4"><Badge variant="outline" className="text-[10px]">{item.kategori}</Badge></td><td className="px-5 py-4"><Badge className={item.jenis === 'masuk' ? 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-700 hover:bg-rose-500/10 dark:text-rose-400'}>{item.jenis === 'masuk' ? 'Pemasukan' : 'Pengeluaran'}</Badge></td><td className={`whitespace-nowrap px-5 py-4 text-right font-bold ${item.jenis === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{item.jenis === 'masuk' ? '+' : '-'}{formatRupiah(item.jumlah)}</td></tr>)}</tbody></table></div>
+                  <div className="divide-y md:hidden">{transaksi.map((item) => <article key={item.id} className="space-y-2 p-4 odd:bg-muted/15 even:bg-background transition-colors"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{item.judul}</p>{item.keterangan && <p className="mt-0.5 text-xs text-muted-foreground">{item.keterangan}</p>}</div><p className={`shrink-0 text-sm font-bold ${item.jenis === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{item.jenis === 'masuk' ? '+' : '-'}{formatRupiah(item.jumlah)}</p></div><div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground"><span>{formatTanggal(item.tanggal)}</span><Badge variant="outline" className="max-w-[55%] truncate text-[10px]">{item.kategori}</Badge></div></article>)}</div>
+                  <div className="hidden overflow-x-auto md:block"><table className="w-full text-sm"><thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wide text-muted-foreground"><tr><th className="px-5 py-3 font-semibold">Tanggal</th><th className="px-5 py-3 font-semibold">Uraian Transaksi</th><th className="px-5 py-3 font-semibold">Kategori</th><th className="px-5 py-3 font-semibold">Jenis</th><th className="px-5 py-3 text-right font-semibold">Nominal</th></tr></thead><tbody className="divide-y">{transaksi.map((item) => <tr key={item.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30 transition-colors"><td className="whitespace-nowrap px-5 py-4 text-xs text-muted-foreground">{formatTanggal(item.tanggal)}</td><td className="px-5 py-4"><p className="font-semibold">{item.judul}</p>{item.keterangan && <p className="mt-0.5 max-w-md text-xs text-muted-foreground">{item.keterangan}</p>}</td><td className="px-5 py-4"><Badge variant="outline" className="text-[10px]">{item.kategori}</Badge></td><td className="px-5 py-4"><Badge className={item.jenis === 'masuk' ? 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-700 hover:bg-rose-500/10 dark:text-rose-400'}>{item.jenis === 'masuk' ? 'Pemasukan' : 'Pengeluaran'}</Badge></td><td className={`whitespace-nowrap px-5 py-4 text-right font-bold ${item.jenis === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{item.jenis === 'masuk' ? '+' : '-'}{formatRupiah(item.jumlah)}</td></tr>)}</tbody></table></div>
                 </>}
               </CardContent>
             </Card>
