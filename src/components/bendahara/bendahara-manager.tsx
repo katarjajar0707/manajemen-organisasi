@@ -11,12 +11,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, AlertCircle, Paperclip, ExternalLink, FileText, FileDown, Eye, ImageIcon, Pencil } from 'lucide-react';
+import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, AlertCircle, Paperclip, ExternalLink, FileText, FileDown, Eye, ImageIcon, Pencil, Target, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { cn, isImageFile, isImageUrl } from '@/lib/utils';
 import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
-import { createTransaksi, deleteTransaksi, updateTransaksi } from '@/actions/keuangan';
+import {
+  createTransaksi,
+  deleteTransaksi,
+  updateTransaksi,
+  getKegiatanOptions,
+  getTargetRabKegiatanList,
+  type KegiatanOption,
+  type TargetRabKegiatanItem,
+} from '@/actions/keuangan';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 import { createClient } from '@/lib/supabase/client';
 
@@ -30,6 +39,7 @@ interface Transaksi {
   jumlah: number;
   tanggal: string;
   lampiran_url: string | null;
+  kegiatan_id?: string | null;
   author?: {
     nama: string;
     role: string;
@@ -101,7 +111,7 @@ function normalizeTransaction(item: any) {
   } else if (item.kategori) {
     kategori = item.kategori;
   }
-  return { ...item, kategori, displayKeterangan };
+  return { ...item, kategori, displayKeterangan, kegiatan_id: item.kegiatan_id || null };
 }
 
 async function fetchKeuanganTransactions(initialBagianId: string | null) {
@@ -119,6 +129,22 @@ async function fetchKeuanganTransactions(initialBagianId: string | null) {
 
   if (error) throw error;
   return (data || []).map(normalizeTransaction);
+}
+
+function ProgressLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium sm:text-[11px]">
+      {children}
+    </span>
+  );
+}
+
+function ProgressValue({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] font-mono font-semibold text-emerald-800 dark:text-emerald-300 sm:text-[11px] truncate">
+      {children}
+    </span>
+  );
 }
 
 export function BendaharaManager({ initialList = [], initialSaldo, bagianId: initialBagianId = null, agendaCategories = [], settings: initialSettings, canManage = false, children }: BendaharaManagerProps) {
@@ -148,6 +174,24 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
+
+  const TARGET_RAB_QUERY_KEY = useMemo(() => ['target-rab-kegiatan', currentBagianId] as const, [currentBagianId]);
+
+  const { data: targetRabList = [] } = useQuery<TargetRabKegiatanItem[]>({
+    queryKey: TARGET_RAB_QUERY_KEY,
+    queryFn: () => getTargetRabKegiatanList(currentBagianId),
+    staleTime: 5000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: kegiatanOptions = [] } = useQuery<KegiatanOption[]>({
+    queryKey: ['kegiatan-options'],
+    queryFn: () => getKegiatanOptions(),
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterJenis, setFilterJenis] = useState<'semua' | 'masuk' | 'keluar'>('semua');
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -155,6 +199,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+  const [isRabOpen, setIsRabOpen] = useState(false);
 
   // Form state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -178,14 +223,86 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
         list.push(trimmed);
       }
     });
+    (targetRabList || []).forEach((k) => {
+      const trimmed = k.judul?.trim();
+      if (trimmed && !list.includes(trimmed)) {
+        list.push(trimmed);
+      }
+    });
+    (kegiatanOptions || []).forEach((k) => {
+      const trimmed = k.judul?.trim();
+      if (trimmed && !list.includes(trimmed)) {
+        list.push(trimmed);
+      }
+    });
     return list;
-  }, [currentCategories]);
+  }, [currentCategories, targetRabList, kegiatanOptions]);
+
+  const activeKegiatanRab = useMemo(() => {
+    if (!selectedKategori || selectedKategori === 'Kas General' || selectedKategori === 'Kas General / Operasional') {
+      return null;
+    }
+    const cleanCat = selectedKategori.trim().toLowerCase();
+    const fromTarget = targetRabList.find((k) => k.judul?.trim().toLowerCase() === cleanCat);
+    if (fromTarget) return fromTarget;
+
+    const fromOptions = kegiatanOptions.find((k) => k.judul?.trim().toLowerCase() === cleanCat);
+    if (fromOptions) {
+      return {
+        id: fromOptions.id,
+        judul: fromOptions.judul,
+        target_rab: fromOptions.target_rab,
+        realisasi: 0,
+        persentase: 0,
+        tanggal_mulai: fromOptions.tanggal_mulai,
+        lokasi: null,
+      };
+    }
+    return null;
+  }, [selectedKategori, targetRabList, kegiatanOptions]);
+
+  const rabPreview = useMemo(() => {
+    if (!activeKegiatanRab || Number(activeKegiatanRab.target_rab) <= 0) return null;
+
+    const nominalNum = parseInt(jumlah.replace(/[^0-9]/g, ''), 10) || 0;
+    const target = Number(activeKegiatanRab.target_rab);
+    const currentRealisasi = Number(activeKegiatanRab.realisasi) || 0;
+    const currentPct = Number(activeKegiatanRab.persentase) || 0;
+
+    const deltaPct = target > 0 ? Math.round((nominalNum / target) * 100) : 0;
+    const newRealisasi = jenis === 'masuk' ? currentRealisasi + nominalNum : Math.max(0, currentRealisasi - nominalNum);
+    const newPct = target > 0 ? Math.round((newRealisasi / target) * 100) : 0;
+    const visualWidth = Math.min(Math.max(newPct, 0), 100);
+
+    return {
+      target,
+      currentRealisasi,
+      currentPct,
+      nominalNum,
+      deltaPct,
+      newRealisasi,
+      newPct,
+      visualWidth,
+    };
+  }, [activeKegiatanRab, jumlah, jenis]);
 
   const saldo = useMemo(() => {
     const masuk = transactions.filter((item) => item.jenis === 'masuk').reduce((total, item) => total + Number(item.jumlah), 0);
     const keluar = transactions.filter((item) => item.jenis === 'keluar').reduce((total, item) => total + Number(item.jumlah), 0);
     return { masuk, keluar, sisa: masuk - keluar };
   }, [transactions]);
+
+  const rabAggregate = useMemo(() => {
+    const withTarget = targetRabList.filter((item) => item.target_rab > 0);
+    if (withTarget.length === 0) return null;
+
+    const totalTargetRab = withTarget.reduce((sum, item) => sum + item.target_rab, 0);
+    const totalRealisasi = withTarget.reduce((sum, item) => sum + item.realisasi, 0);
+    const persentase = totalTargetRab > 0 ? Math.round((totalRealisasi / totalTargetRab) * 100) : 0;
+    const visualWidth = Math.min(Math.max(persentase, 0), 100);
+
+    return { totalTargetRab, totalRealisasi, persentase, visualWidth };
+  }, [targetRabList]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -236,6 +353,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
             next[index] = normalized;
             return next;
           });
+          queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
         })
         .subscribe(async (status) => {
           if (!active) return;
@@ -282,7 +400,12 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     setJenis(trx.jenis);
     setJudul(trx.judul || '');
     setKeterangan(trx.displayKeterangan || trx.keterangan || '');
-    setSelectedKategori(trx.kategori || 'Kas General');
+    const matchedKategori =
+      trx.kategori ||
+      (trx.kegiatan_id
+        ? targetRabList.find((k) => k.id === trx.kegiatan_id)?.judul || kegiatanOptions.find((k) => k.id === trx.kegiatan_id)?.judul
+        : 'Kas General');
+    setSelectedKategori(matchedKategori || 'Kas General');
     setJumlah(new Intl.NumberFormat('id-ID').format(Number(trx.jumlah) || 0));
     setFile(null);
     setError(null);
@@ -313,6 +436,9 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
       formData.append('keterangan', keterangan);
       formData.append('kategori', selectedKategori);
       formData.append('jumlah', cleanNominal);
+      if (activeKegiatanRab?.id) {
+        formData.append('kegiatan_id', activeKegiatanRab.id);
+      }
       if (file) {
         try {
           formData.append('lampiran', await convertHeicToJpeg(file));
@@ -333,6 +459,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
         // Reconcile immediately after the server action succeeds so the
         // submitting browser updates even when the realtime event is delayed.
         await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
+        await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
         toast.success(editingId ? 'Transaksi berhasil diperbarui.' : `Transaksi kas ${jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} berhasil disimpan.`);
         setIsDialogOpen(false);
         setEditingId(null);
@@ -348,6 +475,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
           toast.error('Gagal menghapus: ' + res.error);
         } else {
           await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
+          await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
           toast.success('Transaksi berhasil dihapus.');
         }
         setDeleteId(null);
@@ -788,6 +916,22 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                 {dataReady ? formatRupiah(saldo.masuk) : <span className="inline-block h-7 w-32 animate-pulse rounded bg-muted" />}
               </div>
               <p className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Masuk</p>
+              {/* {dataReady && rabAggregate && (
+                <div className="mt-2.5 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40 space-y-1.5">
+                  <div className="flex items-center justify-between gap-1">
+                    <ProgressLabel>Realisasi Target RAB</ProgressLabel>
+                    <ProgressValue>
+                      {formatRupiah(rabAggregate.totalRealisasi)} / {formatRupiah(rabAggregate.totalTargetRab)} ({rabAggregate.persentase}%)
+                    </ProgressValue>
+                  </div>
+                  <div className="w-full bg-emerald-200/50 dark:bg-emerald-950/60 rounded-full h-1.5 overflow-hidden border border-emerald-300/30 dark:border-emerald-800/30">
+                    <div
+                      className="h-full rounded-full transition-all duration-500 bg-emerald-600 dark:bg-emerald-400"
+                      style={{ width: `${rabAggregate.visualWidth}%` }}
+                    />
+                  </div>
+                </div>
+              )} */}
             </CardContent>
           </Card>
 
@@ -808,6 +952,118 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
             </CardContent>
           </Card>
         </div>
+
+        {/* Section: Target RAB Kegiatan */}
+        {targetRabList && targetRabList.length > 0 && (
+          <Collapsible open={isRabOpen} onOpenChange={setIsRabOpen} className="w-full">
+            <Card className="border shadow-xs overflow-hidden">
+              <CardHeader className={cn("py-3 bg-muted/20 transition-colors", isRabOpen && "border-b")}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="space-y-0.5">
+                    <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+                      <span className="p-1 rounded-md bg-primary/10 text-primary">
+                        <Target className="h-4 w-4" />
+                      </span>
+                      <span>Target RAB Kegiatan</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Realisasi pemasukan kas terhadap target Rencana Anggaran Biaya (RAB) agenda kegiatan
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <Badge variant="outline" className="text-xs font-mono w-fit bg-background">
+                      {targetRabList.length} Agenda dengan Target RAB
+                    </Badge>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                        title={isRabOpen ? "Sembunyikan Target RAB" : "Tampilkan Target RAB"}
+                      >
+                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isRabOpen && "rotate-180")} />
+                        <span className="sr-only">Toggle Target RAB</span>
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {targetRabList.map((item) => {
+                      const isAchieved = item.persentase >= 100;
+                      const visualWidth = Math.min(Math.max(item.persentase, 0), 100);
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="rounded-xl border bg-card/60 p-3.5 space-y-3 hover:border-primary/40 transition-all shadow-xs flex flex-col justify-between"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <h4 className="font-semibold text-xs sm:text-sm leading-snug line-clamp-1 text-foreground" title={item.judul}>
+                                  {item.judul}
+                                </h4>
+                                {item.is_estimasi && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] px-1.5 py-0 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium"
+                                    title="Realisasi sebagian atau seluruhnya dihitung dari pencocokan nama agenda pada keterangan catatan kas"
+                                  >
+                                    Estimasi
+                                  </Badge>
+                                )}
+                              </div>
+                              {item.lokasi && (
+                                <p className="text-[11px] text-muted-foreground truncate">{item.lokasi}</p>
+                              )}
+                            </div>
+                            <Badge
+                              variant={isAchieved ? "default" : "secondary"}
+                              className={cn(
+                                "text-[10px] shrink-0 font-semibold px-2 py-0.5",
+                                isAchieved
+                                  ? "bg-emerald-600 hover:bg-emerald-600 text-white"
+                                  : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                              )}
+                            >
+                              {isAchieved ? `Tercapai (${item.persentase}%)` : `${item.persentase}%`}
+                            </Badge>
+                          </div>
+
+                          {/* Custom Tailwind Progress Bar (div width %, capped visual max 100%) */}
+                          <div className="space-y-1.5 pt-1">
+                            <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden border border-border/40">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-500",
+                                  isAchieved
+                                    ? "bg-emerald-500"
+                                    : item.persentase >= 50
+                                      ? "bg-primary"
+                                      : "bg-amber-500"
+                                )}
+                                style={{ width: `${visualWidth}%` }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-xs gap-1">
+                              <span className="text-muted-foreground text-[10px] sm:text-[11px]">Realisasi vs Target:</span>
+                              <span className="font-semibold font-mono text-[11px] sm:text-xs text-foreground truncate">
+                                {formatRupiah(item.realisasi)} / {formatRupiah(item.target_rab)} ({item.persentase}%)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
 
         <Card>
           <CardHeader className="pb-4 border-b">
@@ -1070,21 +1326,63 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Kategori / Agenda Acara</Label>
+                  <Label className="text-xs font-semibold">Kategori / Agenda Acara</Label>
                   <Select value={selectedKategori} onValueChange={setSelectedKategori}>
                     <SelectTrigger className="min-w-0 text-xs">
                       <SelectValue placeholder="Pilih Kategori / Agenda" className="truncate" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Kas General">Kas General (Umum / Operasional)</SelectItem>
-                      {allCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          Agenda: {cat}
-                        </SelectItem>
-                      ))}
+                      {allCategories.map((cat) => {
+                        const matchRab =
+                          targetRabList.find((k) => k.judul?.trim().toLowerCase() === cat.trim().toLowerCase()) ||
+                          kegiatanOptions.find((k) => k.judul?.trim().toLowerCase() === cat.trim().toLowerCase());
+                        const hasRab = matchRab && matchRab.target_rab > 0;
+                        return (
+                          <SelectItem key={cat} value={cat}>
+                            Agenda: {cat} {hasRab ? `(Target RAB: ${formatRupiah(matchRab.target_rab)})` : ''}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   <p className="wrap-break-word text-[11px] text-muted-foreground">Pilih agenda sesuai acara yang dibuat, atau pilih Kas General untuk transaksi umum.</p>
+
+                  {/* Dynamic Target RAB Progress & Contribution Preview */}
+                  {rabPreview && (
+                    <div className="rounded-lg border bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-900/50 p-2.5 space-y-2 mt-1.5">
+                      <div className="flex items-center justify-between gap-1 flex-wrap">
+                        <span className="font-semibold text-xs text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                          <Target className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>Target RAB: {formatRupiah(rabPreview.target)}</span>
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-mono font-semibold px-2 py-0.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                        >
+                          {rabPreview.nominalNum > 0
+                            ? `${rabPreview.currentPct}% ➔ ${rabPreview.newPct}% (${jenis === 'masuk' ? '+' : '-'}${rabPreview.deltaPct}%)`
+                            : `${rabPreview.currentPct}% Tercapai`}
+                        </Badge>
+                      </div>
+
+                      <div className="w-full bg-emerald-200/50 dark:bg-emerald-950/60 rounded-full h-1.5 overflow-hidden border border-emerald-300/30 dark:border-emerald-800/30">
+                        <div
+                          className="h-full rounded-full transition-all duration-300 bg-emerald-600 dark:bg-emerald-400"
+                          style={{ width: `${rabPreview.visualWidth}%` }}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground gap-2">
+                        <span>Realisasi Saat Ini: {formatRupiah(rabPreview.currentRealisasi)}</span>
+                        {rabPreview.nominalNum > 0 && (
+                          <span className="font-semibold font-mono text-emerald-700 dark:text-emerald-300 truncate">
+                            {jenis === 'masuk' ? '+' : '-'} {formatRupiah(rabPreview.nominalNum)} ({rabPreview.deltaPct}%)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

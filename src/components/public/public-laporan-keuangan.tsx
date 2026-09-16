@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import FoldText from '@/components/public/fold-text';
+import TextType from '@/components/public/text-type';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 import type { PublicKeuanganReportData } from '@/actions/transparansi';
 
@@ -103,9 +105,37 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
             <div className="flex items-center gap-2 text-xs font-medium text-primary">
               <Landmark className="h-4 w-4" /> Transparansi publik
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Laporan Keuangan</h1>
-            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Informasi arus kas {orgName} yang disajikan secara terbuka. Halaman ini hanya untuk melihat data dan tidak menyediakan pengubahan transaksi.
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+              <FoldText
+                text="Laporan Keuangan"
+                splitBy="word"
+                hinge="top"
+                trigger="scroll"
+                duration={0.6}
+                stagger={0.09}
+                ease="power3.out"
+                perspective={700}
+                creaseShading={0.5}
+                color="currentColor"
+              />
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground min-h-[2.5rem]">
+              <TextType
+                as="span"
+                text={[
+                  `Informasi arus kas ${orgName} yang disajikan secara terbuka. Halaman ini hanya untuk melihat data dan tidak menyediakan pengubahan transaksi.`,
+                  "Data keuangan diperbarui secara real-time oleh bendahara dan tersedia untuk seluruh warga.",
+                  "Transparansi adalah fondasi kepercayaan. Setiap rupiah tercatat dan dapat ditelusuri.",
+                ]}
+                typingSpeed={38}
+                deletingSpeed={20}
+                pauseDuration={2800}
+                showCursor={true}
+                cursorCharacter="|"
+                cursorClassName="text-primary"
+                startOnVisible={true}
+                loop={true}
+              />
             </p>
           </section>
 

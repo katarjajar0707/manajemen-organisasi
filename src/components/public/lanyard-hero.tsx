@@ -4,6 +4,8 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import FoldText from '@/components/public/fold-text';
+import TextType from '@/components/public/text-type';
 
 const Lanyard = dynamic(() => import('@/components/Lanyard'), {
   ssr: false,
@@ -26,10 +28,37 @@ export function LanyardHero({ orgName }: { orgName: string }) {
           <Sparkles className="h-3.5 w-3.5" /> Bergerak Maju Bersama
         </div>
         <h2 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-          Terhubung, transparan, dan bergerak bersama {orgName}.
+          <FoldText
+            text={`Terhubung, transparan, dan bergerak bersama ${orgName}.`}
+            splitBy="char"
+            hinge="top"
+            trigger="scroll"
+            duration={0.65}
+            stagger={0.045}
+            ease="power3.out"
+            perspective={700}
+            creaseShading={0.55}
+            color="currentColor"
+          />
         </h2>
-        <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:mx-0">
-          Pantau informasi publik, arus kas, dan kegiatan organisasi dalam satu ruang yang terbuka untuk warga.
+        <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base lg:mx-0 min-h-[3rem]">
+          <TextType
+            as="span"
+            text={[
+              "Pantau informasi publik, arus kas, dan kegiatan organisasi dalam satu ruang yang terbuka untuk warga.",
+              "Transparansi keuangan real-time — dari bendahara langsung ke seluruh warga.",
+              "Agenda kegiatan, laporan kas, dan profil anggota — semua dalam satu platform.",
+            ]}
+            typingSpeed={40}
+            deletingSpeed={20}
+            pauseDuration={2800}
+            showCursor={true}
+            cursorCharacter="|"
+            cursorClassName="text-primary font-light"
+            startOnVisible={true}
+            loop={true}
+            className="text-sm sm:text-base"
+          />
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
           <Button asChild size="lg" className="gap-2 shadow-sm">

@@ -30,6 +30,122 @@ async function getKeuanganManageAccess(bagianSlug: string) {
   return access;
 }
 
+export interface KegiatanOption {
+  id: string;
+  judul: string;
+  target_rab: number;
+  tanggal_mulai: string;
+}
+
+export async function getKegiatanOptions(): Promise<KegiatanOption[]> {
+  const supabase = await createClient();
+  const { data: kegiatans, error } = await supabase
+    .from('kalender_kegiatan')
+    .select('id, judul, target_rab, tanggal_mulai')
+    .order('tanggal_mulai', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching kalender_kegiatan for options:', error);
+    return [];
+  }
+
+  return (kegiatans || []).map((k: any) => ({
+    id: k.id,
+    judul: k.judul,
+    target_rab: Number(k.target_rab) || 0,
+    tanggal_mulai: k.tanggal_mulai,
+  }));
+}
+
+export interface TargetRabKegiatanItem {
+  id: string;
+  judul: string;
+  target_rab: number;
+  realisasi: number;
+  persentase: number;
+  tanggal_mulai: string;
+  lokasi: string | null;
+  is_estimasi?: boolean;
+}
+
+export async function getTargetRabKegiatanList(bagianId?: string | null): Promise<TargetRabKegiatanItem[]> {
+  const supabase = await createClient();
+
+  // Ambil semua agenda kegiatan yang memiliki target RAB > 0 (kegiatan organisasi bersifat lintas bagian)
+  const { data: kegiatans, error: kError } = await supabase
+    .from('kalender_kegiatan')
+    .select('id, judul, target_rab, tanggal_mulai, lokasi, bagian_id')
+    .gt('target_rab', 0)
+    .order('tanggal_mulai', { ascending: false });
+  if (kError || !kegiatans || kegiatans.length === 0) {
+    if (kError) console.error('Error fetching target rab kegiatan:', kError);
+    return [];
+  }
+
+  const kegiatanIds = kegiatans.map((k) => k.id);
+
+  let trxQuery = supabase
+    .from('catatan_keuangan')
+    .select('kegiatan_id, jumlah, keterangan, bagian_id')
+    .eq('jenis', 'masuk')
+    .is('deleted_at', null);
+
+  if (bagianId) {
+    trxQuery = trxQuery.eq('bagian_id', bagianId);
+  }
+
+  const { data: trxs, error: tError } = await trxQuery;
+  if (tError) {
+    console.error('Error fetching realisasi for target rab:', tError);
+  }
+
+  const realisasiMap: Record<string, number> = {};
+  const hasFallbackMap: Record<string, boolean> = {};
+
+  (trxs || []).forEach((trx: any) => {
+    const nominal = Number(trx.jumlah) || 0;
+    if (trx.kegiatan_id && kegiatanIds.includes(trx.kegiatan_id)) {
+      realisasiMap[trx.kegiatan_id] = (realisasiMap[trx.kegiatan_id] || 0) + nominal;
+    } else {
+      const match = (trx.keterangan || '').match(/^\[Kategori:\s*([^\]]+)\]/i);
+      if (match) {
+        const catName = match[1].trim();
+        const foundKegiatan = kegiatans.find((k) => {
+          const titleMatch = k.judul?.trim().toLowerCase() === catName.toLowerCase();
+          if (!titleMatch) return false;
+          // Validasi ketat bagian_id agar tidak salah atribusi antar bagian
+          if (k.bagian_id && trx.bagian_id && k.bagian_id !== trx.bagian_id) {
+            return false;
+          }
+          return true;
+        });
+
+        if (foundKegiatan) {
+          realisasiMap[foundKegiatan.id] = (realisasiMap[foundKegiatan.id] || 0) + nominal;
+          hasFallbackMap[foundKegiatan.id] = true;
+        }
+      }
+    }
+  });
+
+  return kegiatans.map((k: any) => {
+    const target = Number(k.target_rab) || 0;
+    const realisasi = realisasiMap[k.id] || 0;
+    const persentase = target > 0 ? Math.round((realisasi / target) * 100) : 0;
+
+    return {
+      id: k.id,
+      judul: k.judul,
+      target_rab: target,
+      realisasi,
+      persentase,
+      tanggal_mulai: k.tanggal_mulai,
+      lokasi: k.lokasi || null,
+      is_estimasi: Boolean(hasFallbackMap[k.id]),
+    };
+  });
+}
+
 /**
  * Mengambil daftar kegiatan langsung dari kalender_kegiatan (/kegiatan)
  * sehingga menu bar kategori di /keuangan sinkron 1:1 dengan data kegiatan.
@@ -171,6 +287,9 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = '
       keteranganToSave = `[Kategori: ${kategori}] ${keteranganToSave}`.trim();
     }
 
+    const kegiatan_id_raw = formData.get('kegiatan_id') as string | null;
+    const kegiatan_id = kegiatan_id_raw && kegiatan_id_raw !== 'none' && kegiatan_id_raw.trim() !== '' ? kegiatan_id_raw.trim() : null;
+
     // Insert menggunakan adminSupabase untuk mencegah kegagalan RLS
     const { error: insertError } = await adminSupabase.from('catatan_keuangan').insert({
       bagian_id: bagian.id,
@@ -180,6 +299,7 @@ export async function createTransaksi(formData: FormData, bagianSlug: string = '
       jumlah,
       lampiran_url,
       dibuat_oleh: profile.id,
+      kegiatan_id: kegiatan_id,
     });
 
     if (insertError) {
@@ -256,6 +376,9 @@ export async function updateTransaksi(id: string, formData: FormData, bagianSlug
       keteranganToSave = `[Kategori: ${kategori}] ${keteranganToSave}`.trim();
     }
 
+    const kegiatan_id_raw = formData.get('kegiatan_id') as string | null;
+    const kegiatan_id = kegiatan_id_raw && kegiatan_id_raw !== 'none' && kegiatan_id_raw.trim() !== '' ? kegiatan_id_raw.trim() : null;
+
     const { error: updateError } = await adminSupabase
       .from('catatan_keuangan')
       .update({
@@ -264,6 +387,7 @@ export async function updateTransaksi(id: string, formData: FormData, bagianSlug
         keterangan: keteranganToSave || null,
         jumlah,
         lampiran_url,
+        kegiatan_id: kegiatan_id,
       })
       .eq('id', id);
 

@@ -274,6 +274,7 @@ interface KegiatanFormData {
   tanggalMulai: string;
   tanggalSelesai: string;
   lokasi: string;
+  targetRab: number;
 }
 
 function KegiatanFormDialog({
@@ -282,6 +283,7 @@ function KegiatanFormDialog({
   initial,
   isPending,
   errorMessage,
+  isAdminOrKetua = false,
   onClose,
   onSave,
 }: {
@@ -290,6 +292,7 @@ function KegiatanFormDialog({
   initial: Partial<KegiatanData> | null;
   isPending: boolean;
   errorMessage: string | null;
+  isAdminOrKetua?: boolean;
   onClose: () => void;
   onSave: (data: KegiatanFormData) => void;
 }) {
@@ -299,22 +302,28 @@ function KegiatanFormDialog({
     tanggalMulai: new Date().toISOString().split("T")[0],
     tanggalSelesai: new Date().toISOString().split("T")[0],
     lokasi: "Balai Warga RW 05",
+    targetRab: 0,
   };
 
   const [form, setForm] = useState<KegiatanFormData>(emptyForm);
+  const [rabDisplay, setRabDisplay] = useState("");
 
   useEffect(() => {
     if (open) {
       if (initial) {
+        const rab = initial.targetRab ? Number(initial.targetRab) : 0;
         setForm({
           judul: initial.judul || "",
           deskripsi: initial.deskripsi || "",
           tanggalMulai: initial.tanggalMulai || emptyForm.tanggalMulai,
           tanggalSelesai: initial.tanggalSelesai || initial.tanggalMulai || emptyForm.tanggalSelesai,
           lokasi: initial.lokasi || "Balai Warga RW 05",
+          targetRab: rab,
         });
+        setRabDisplay(rab > 0 ? new Intl.NumberFormat("id-ID").format(rab) : "");
       } else {
         setForm(emptyForm);
+        setRabDisplay("");
       }
     }
   }, [open, initial]);
@@ -396,6 +405,49 @@ function KegiatanFormDialog({
               className="text-xs"
             />
           </div>
+
+          {/* Target RAB (Rencana Anggaran Biaya) */}
+          {isAdminOrKetua ? (
+            <div className="space-y-1.5 pt-1 border-t">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Target RAB (Rp)</Label>
+                <span className="text-[10px] text-muted-foreground font-mono">Khusus Admin & Ketua</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-xs text-muted-foreground font-medium">Rp</span>
+                <Input
+                  type="text"
+                  placeholder="0"
+                  value={rabDisplay}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, "");
+                    if (val) {
+                      const num = parseInt(val, 10);
+                      setRabDisplay(new Intl.NumberFormat("id-ID").format(num));
+                      setForm((p) => ({ ...p, targetRab: num }));
+                    } else {
+                      setRabDisplay("");
+                      setForm((p) => ({ ...p, targetRab: 0 }));
+                    }
+                  }}
+                  className="pl-9 text-xs font-mono"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Target rencana anggaran biaya (RAB) kas untuk agenda ini. Akan dipantau realisasinya di modul Keuangan.
+              </p>
+            </div>
+          ) : (
+            form.targetRab > 0 && (
+              <div className="p-2.5 rounded-lg bg-muted/40 border text-xs space-y-1">
+                <span className="text-[11px] text-muted-foreground font-medium">Target RAB Terdaftar:</span>
+                <p className="font-semibold font-mono text-emerald-600 dark:text-emerald-400">
+                  Rp {new Intl.NumberFormat("id-ID").format(form.targetRab)}
+                </p>
+                <p className="text-[10px] text-muted-foreground">Hanya Admin dan Ketua yang berwenang mengubah nominal Target RAB.</p>
+              </div>
+            )
+          )}
         </div>
 
         <DialogFooter className="gap-2">
@@ -490,6 +542,7 @@ export function KegiatanManager({
       formData.set("tanggal_mulai", data.tanggalMulai);
       formData.set("tanggal_selesai", data.tanggalSelesai);
       formData.set("lokasi", data.lokasi);
+      formData.set("target_rab", String(data.targetRab || 0));
 
       if (formMode === "edit" && editTarget) {
         const res = await updateKegiatan(editTarget.id, formData);
@@ -504,6 +557,7 @@ export function KegiatanManager({
               ? {
                   ...k,
                   ...data,
+                  targetRab: data.targetRab || 0,
                   bagianNama: "Semua Bagian",
                   penanggungJawab: "Semua Bagian",
                 }
@@ -533,6 +587,7 @@ export function KegiatanManager({
           status: "Mendatang",
           dibuatOleh: currentUserId || "",
           createdAt: new Date().toISOString(),
+          targetRab: data.targetRab || 0,
         };
 
         setKegiatan([newK, ...kegiatan]);
@@ -703,6 +758,11 @@ export function KegiatanManager({
                           <Badge variant="secondary" className="text-[10px]">
                             {k.bagianNama}
                           </Badge>
+                          {k.targetRab > 0 && (
+                            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 font-mono font-semibold">
+                              Target RAB: Rp {new Intl.NumberFormat("id-ID").format(k.targetRab)}
+                            </Badge>
+                          )}
                         </div>
                         <h3 className="font-bold text-base text-foreground leading-snug">{k.judul}</h3>
                         <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
@@ -775,7 +835,14 @@ export function KegiatanManager({
                       >
                         {k.status}
                       </Badge>
-                      <span className="text-[11px] text-muted-foreground">{k.bagianNama}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        <span className="text-[11px] text-muted-foreground">{k.bagianNama}</span>
+                        {k.targetRab > 0 && (
+                          <Badge variant="outline" className="text-[9px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 font-mono font-semibold">
+                            RAB: Rp {new Intl.NumberFormat("id-ID").format(k.targetRab)}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <CardTitle className="text-sm font-bold leading-snug line-clamp-2">
                       {k.judul}
@@ -868,6 +935,7 @@ export function KegiatanManager({
         initial={editTarget}
         isPending={isPending}
         errorMessage={errorMessage}
+        isAdminOrKetua={isAdminOrKetua}
         onClose={() => setFormOpen(false)}
         onSave={handleSaveForm}
       />

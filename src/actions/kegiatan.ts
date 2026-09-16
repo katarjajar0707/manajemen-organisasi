@@ -3,6 +3,7 @@
 import { createClient, createAdminClient, getProfile } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { invalidatePublicTransparencyCache } from '@/lib/cache/transparansi';
+import { kegiatanSchema } from '@/validations/kegiatan';
 
 export interface KegiatanData {
   id: string;
@@ -20,6 +21,7 @@ export interface KegiatanData {
   status: 'Mendatang' | 'Berlangsung' | 'Selesai';
   dibuatOleh: string;
   createdAt: string;
+  targetRab: number;
 }
 
 /**
@@ -114,6 +116,7 @@ export async function getKegiatanList(filters?: { search?: string; status?: stri
       status,
       dibuatOleh: item.dibuat_oleh,
       createdAt: item.created_at,
+      targetRab: Number(item.target_rab) || 0,
     };
   });
 
@@ -203,9 +206,24 @@ export async function createKegiatan(formData: FormData) {
     const lokasi = formData.get('lokasi') as string;
     const bagian_id = (formData.get('bagian_id') as string) || null;
 
-    if (!judul || !deskripsi || !tanggalMulai) {
-      return { error: 'Judul, deskripsi, dan tanggal mulai kegiatan wajib diisi.' };
+    const targetRabRaw = formData.get('target_rab');
+    const parsed = kegiatanSchema.safeParse({
+      judul,
+      deskripsi,
+      tanggal_mulai: tanggalMulai,
+      tanggal_selesai: tanggalSelesai,
+      waktu_mulai: waktuMulai,
+      waktu_selesai: waktuSelesai,
+      lokasi,
+      bagian_id,
+      target_rab: targetRabRaw ?? 0,
+    });
+
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message || 'Data input kegiatan tidak valid.' };
     }
+
+    const { target_rab } = parsed.data;
 
     const startIso = new Date(`${tanggalMulai}T${waktuMulai}:00`).toISOString();
     const endIso = new Date(`${tanggalSelesai}T${waktuSelesai}:59`).toISOString();
@@ -221,6 +239,7 @@ export async function createKegiatan(formData: FormData) {
         lokasi: lokasi ? lokasi.trim() : null,
         bagian_id: bagian_id || null,
         dibuat_oleh: profile.id,
+        target_rab,
       })
       .select()
       .single();
@@ -260,10 +279,25 @@ export async function updateKegiatan(id: string, formData: FormData) {
     const waktuSelesai = (formData.get('waktu_selesai') as string) || '23:59';
     const lokasi = formData.get('lokasi') as string;
     const bagian_id = (formData.get('bagian_id') as string) || null;
+    const targetRabRaw = formData.get('target_rab');
 
-    if (!judul || !deskripsi || !tanggalMulai) {
-      return { error: 'Judul, deskripsi, dan tanggal mulai kegiatan wajib diisi.' };
+    const parsed = kegiatanSchema.safeParse({
+      judul,
+      deskripsi,
+      tanggal_mulai: tanggalMulai,
+      tanggal_selesai: tanggalSelesai,
+      waktu_mulai: waktuMulai,
+      waktu_selesai: waktuSelesai,
+      lokasi,
+      bagian_id,
+      target_rab: targetRabRaw ?? 0,
+    });
+
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message || 'Data input kegiatan tidak valid.' };
     }
+
+    const { target_rab } = parsed.data;
 
     const startIso = new Date(`${tanggalMulai}T${waktuMulai}:00`).toISOString();
     const endIso = new Date(`${tanggalSelesai}T${waktuSelesai}:59`).toISOString();
@@ -285,6 +319,7 @@ export async function updateKegiatan(id: string, formData: FormData) {
         tanggal_selesai: endIso,
         lokasi: lokasi ? lokasi.trim() : null,
         bagian_id: bagian_id || null,
+        target_rab,
       })
       .eq('id', id);
 

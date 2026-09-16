@@ -11,6 +11,9 @@ import { Calendar, ArrowRight, Shield, FileText, MapPin, Clock, Mail, Printer, A
 import { PublicTransparencyData } from '@/actions/transparansi';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
 import DriftWall from '@/components/public/drift-wall';
+import FoldText from '@/components/public/fold-text';
+import StarBorder from '@/components/public/star-border';
+import TextType from '@/components/public/text-type';
 
 const MEMBER_IMAGES = [
   '/lanyard/user/03412418-feec-420b-a0b5-8f6df7386aae.png',
@@ -135,7 +138,20 @@ function DriftWallSection() {
     <section aria-label="Galeri Anggota" className="relative mt-4">
       <div className="text-center mb-2 px-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">Tim Kami</p>
-        <h2 className="text-2xl font-bold tracking-tight mt-1">Meet the Gang — Orang-Orang Baik di Balik Semua Ini</h2>
+        <h2 className="text-2xl font-bold tracking-tight mt-1">
+          <FoldText
+            text="Meet the Gang"
+            splitBy="char"
+            hinge="top"
+            trigger="scroll"
+            duration={0.6}
+            stagger={0.05}
+            ease="power3.out"
+            perspective={700}
+            creaseShading={0.55}
+            color="currentColor"
+          />
+        </h2>
       </div>
       <div style={{ height: isMobile ? 380 : 480 }}>
         <DriftWall
@@ -218,8 +234,38 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
         {/* Jadwal Kegiatan Publik */}
         <section className="px-4 md:px-8 max-w-6xl mx-auto space-y-4">
           <div>
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight">Jadwal Kegiatan & Agenda Warga</h3>
-            <p className="text-xs text-muted-foreground">Ayo hadir dan ramaikan program-program kepemudaan bersama seluruh warga {orgWilayah || orgName}.</p>
+            <h3 className="text-lg sm:text-xl font-bold tracking-tight">
+              <FoldText
+                text="Jadwal Kegiatan & Agenda Warga"
+                splitBy="word"
+                hinge="top"
+                trigger="scroll"
+                duration={0.55}
+                stagger={0.07}
+                ease="power3.out"
+                perspective={700}
+                creaseShading={0.5}
+                color="currentColor"
+              />
+            </h3>
+            <p className="text-xs text-muted-foreground min-h-[2.5rem]">
+              <TextType
+                as="span"
+                text={[
+                  `Ayo hadir dan ramaikan program-program kepemudaan bersama seluruh warga ${orgWilayah || orgName}.`,
+                  "Informasi arus kas KartaTuju yang disajikan secara terbuka. Halaman ini hanya untuk melihat data dan tidak menyediakan pengubahan transaksi.",
+                  "Pintu komunikasi terbuka untuk seluruh warga RT 07 RW 07 · Kelurahan Jatijajar. Hubungi pengurus, kunjungi sekretariat, atau sampaikan saran dan aspirasi Anda secara langsung.",
+                ]}
+                typingSpeed={35}
+                deletingSpeed={18}
+                pauseDuration={2500}
+                showCursor={true}
+                cursorCharacter="|"
+                cursorClassName="text-primary"
+                startOnVisible={true}
+                loop={true}
+              />
+            </p>
           </div>
 
           {data.kegiatan.jadwalMendatang.length === 0 ? (
@@ -231,29 +277,39 @@ export function PublicDashboardClient({ initialData, settings }: { initialData: 
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.kegiatan.jadwalMendatang.map((item) => (
-                <Card key={item.id} className="hover:shadow-md transition-all border flex flex-col justify-between">
-                  <CardHeader className="pb-3">
-                    <Badge variant="outline" className="w-fit text-[10px] bg-primary/10 text-primary border-primary/20">
-                      {item.bagian}
-                    </Badge>
-                    <CardTitle className="text-base font-semibold mt-2 leading-snug">{item.judul}</CardTitle>
-                    {item.deskripsi && <CardDescription className="text-xs line-clamp-2 mt-1">{item.deskripsi}</CardDescription>}
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-1.5 text-xs text-muted-foreground">
-                    <p className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5 text-primary" />
-                      <span>{item.tanggal}</span>
-                    </p>
-                    <p className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-primary" />
-                      <span>{item.waktu}</span>
-                    </p>
-                    <p className="flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-primary" />
-                      <span>{item.lokasi}</span>
-                    </p>
-                  </CardContent>
-                </Card>
+                <StarBorder
+                  key={item.id}
+                  as="div"
+                  className="w-full"
+                  color="hsl(var(--primary))"
+                  secondColor="hsl(var(--star-secondary))"
+                  speed="7s"
+                  thickness={2}
+                >
+                  <Card className="hover:shadow-md transition-all border-0 flex flex-col justify-between rounded-[19px] bg-card">
+                    <CardHeader className="pb-3">
+                      <Badge variant="outline" className="w-fit text-[10px] bg-primary/10 text-primary border-primary/20">
+                        {item.bagian}
+                      </Badge>
+                      <CardTitle className="text-base font-semibold mt-2 leading-snug">{item.judul}</CardTitle>
+                      {item.deskripsi && <CardDescription className="text-xs line-clamp-2 mt-1">{item.deskripsi}</CardDescription>}
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-1.5 text-xs text-muted-foreground">
+                      <p className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                        <span>{item.tanggal}</span>
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-primary" />
+                        <span>{item.waktu}</span>
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-primary" />
+                        <span>{item.lokasi}</span>
+                      </p>
+                    </CardContent>
+                  </Card>
+                </StarBorder>
               ))}
             </div>
           )}

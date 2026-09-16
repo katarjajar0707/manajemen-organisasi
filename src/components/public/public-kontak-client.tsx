@@ -26,6 +26,8 @@ import {
 import { toast } from 'sonner';
 import { kirimAspirasiWarga } from '@/actions/transparansi';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
+import FoldText from '@/components/public/fold-text';
+import TextType from '@/components/public/text-type';
 
 export function PublicKontakClient({ settings }: { settings?: PengaturanSistemData }) {
   // Aspirasi Warga Form State
@@ -143,11 +145,36 @@ export function PublicKontakClient({ settings }: { settings?: PengaturanSistemDa
             <MessageSquare className="h-3.5 w-3.5" /> Pusat Layanan & Komunikasi
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
-            Kontak & Sekretariat Resmi
+            <FoldText
+              text="Kontak & Sekretariat Resmi"
+              splitBy="word"
+              hinge="top"
+              trigger="scroll"
+              duration={0.65}
+              stagger={0.08}
+              ease="power3.out"
+              perspective={700}
+              creaseShading={0.5}
+              color="currentColor"
+            />
           </h1>
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-muted-foreground leading-relaxed">
-            Pintu komunikasi terbuka untuk seluruh warga {orgWilayah || orgName}. Hubungi pengurus, kunjungi
-            sekretariat, atau sampaikan saran dan aspirasi Anda secara langsung.
+          <p className="max-w-2xl mx-auto text-sm sm:text-base text-muted-foreground leading-relaxed min-h-[3rem]">
+            <TextType
+              as="span"
+              text={[
+                `Pintu komunikasi terbuka untuk seluruh warga ${orgWilayah || orgName}. Hubungi pengurus, kunjungi sekretariat, atau sampaikan saran dan aspirasi Anda secara langsung.`,
+                "Kami siap mendengar. Setiap aspirasi dan masukan warga adalah prioritas kami.",
+                "Temukan kami di sekretariat, media sosial, atau kirim pesan langsung via WhatsApp.",
+              ]}
+              typingSpeed={38}
+              deletingSpeed={20}
+              pauseDuration={2800}
+              showCursor={true}
+              cursorCharacter="|"
+              cursorClassName="text-primary"
+              startOnVisible={true}
+              loop={true}
+            />
           </p>
         </section>
 
