@@ -108,7 +108,7 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju', isLoggedIn = false }
           {isOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
         </Button>
 
-        <div id="public-navigation-menu" ref={menuRef} className={cn('absolute right-0 top-[calc(100%+0.75rem)] w-64 origin-top-right rounded-xl border border-border/80 bg-popover/95 p-2 shadow-md backdrop-blur-md transition-all duration-200 ease-out lg:hidden', isOpen ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none -translate-y-2 scale-95 opacity-0')} aria-hidden={!isOpen}>
+        <div id="public-navigation-menu" ref={menuRef} className={cn('absolute right-0 top-[calc(100%+0.75rem)] w-64 origin-top-right rounded-md border border-border/80 bg-popover/95 p-2 shadow-md backdrop-blur-md transition-all duration-200 ease-out lg:hidden', isOpen ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none -translate-y-2 scale-95 opacity-0')} aria-hidden={!isOpen}>
           <div className="space-y-1">
             {navigationItems.map((item) => {
               const isActive = pathname === item.href;

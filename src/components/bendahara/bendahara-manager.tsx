@@ -10,6 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, AlertCircle, Paperclip, ExternalLink, FileText, FileDown, Eye, ImageIcon, Pencil, Target, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
@@ -491,26 +500,17 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     return filteredList.slice(start, start + rowsPerPage);
   }, [filteredList, currentPage, rowsPerPage]);
 
-  const pageButtons = useMemo(() => {
-    const buttons: number[] = [];
-    const maxVisible = 5;
-    let startPage = 1;
-    let endPage = totalPages;
-
-    if (totalPages > maxVisible) {
-      const half = Math.floor(maxVisible / 2);
-      startPage = Math.max(1, currentPage - half);
-      endPage = Math.min(totalPages, startPage + maxVisible - 1);
-      if (endPage - startPage + 1 < maxVisible) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
-      }
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
-
-    for (let page = startPage; page <= endPage; page += 1) {
-      buttons.push(page);
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 'ellipsis', totalPages];
     }
-
-    return buttons;
+    if (currentPage >= totalPages - 2) {
+      return [1, 'ellipsis', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages];
   }, [currentPage, totalPages]);
 
   const handleExportPDF = () => {
@@ -1251,7 +1251,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                   <div className="flex items-center justify-between gap-2 sm:justify-start">
                     <span className="text-xs text-muted-foreground">Baris per halaman</span>
                     <Select value={String(rowsPerPage)} onValueChange={(value) => setRowsPerPage(Number(value))}>
-                      <SelectTrigger className="h-8 w-[110px] text-xs">
+                      <SelectTrigger className="h-8 w-[90px] text-xs">
                         <SelectValue placeholder="10" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1262,34 +1262,44 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2 sm:justify-end">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="h-8 px-3 text-xs">
-                      Previous
-                    </Button>
-                    <span className="text-xs font-medium whitespace-nowrap">
-                      Halaman {currentPage} dari {totalPages}
+                    <span className="hidden text-xs text-muted-foreground sm:inline">
+                      (Total {filteredList.length} data)
                     </span>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="h-8 px-3 text-xs">
-                      Next
-                    </Button>
                   </div>
-                </div>
 
-                <div className="mt-3 hidden items-center justify-end gap-1 sm:flex">
-                  {pageButtons.map((page) => (
-                    <Button
-                      key={page}
-                      type="button"
-                      variant={page === currentPage ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className={cn('h-8 w-8 p-0 text-xs', page === currentPage && 'bg-primary text-primary-foreground hover:bg-primary/90')}
-                    >
-                      {page}
-                    </Button>
-                  ))}
+                  <Pagination className="mx-0 w-auto justify-center sm:justify-end">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                          disabled={currentPage === 1}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                      {pageNumbers.map((page, idx) => (
+                        <PaginationItem key={idx}>
+                          {page === 'ellipsis' ? (
+                            <PaginationEllipsis />
+                          ) : (
+                            <PaginationLink
+                              isActive={currentPage === page}
+                              onClick={() => setCurrentPage(page as number)}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                          disabled={currentPage === totalPages}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               </div>
             )}

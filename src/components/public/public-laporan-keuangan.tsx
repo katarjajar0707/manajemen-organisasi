@@ -4,8 +4,17 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Check, CircleDollarSign, Copy, FileText, Landmark, MessageCircle, Share2, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,6 +101,14 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
     }
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const handleFilterChange = (kategori: string) => {
+    setKategoriAktif(kategori);
+    setCurrentPage(1);
+  };
+
   const transaksi = useMemo(() => report?.transaksi.filter((item) => kategoriAktif === 'Semua' || item.kategori === kategoriAktif) || [], [kategoriAktif, report]);
   const ringkasan = useMemo(() => {
     let masuk = 0;
@@ -102,6 +119,30 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
     }
     return { masuk, keluar, sisa: masuk - keluar };
   }, [transaksi]);
+
+  const totalPages = Math.max(1, Math.ceil(transaksi.length / itemsPerPage));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedTransaksi = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+    return transaksi.slice(startIndex, startIndex + itemsPerPage);
+  }, [transaksi, safeCurrentPage, itemsPerPage]);
+
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, transaksi.length);
+
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (safeCurrentPage <= 3) {
+      return [1, 2, 3, 4, 'ellipsis', totalPages];
+    }
+    if (safeCurrentPage >= totalPages - 2) {
+      return [1, 'ellipsis', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, 'ellipsis', safeCurrentPage - 1, safeCurrentPage, safeCurrentPage + 1, 'ellipsis', totalPages];
+  }, [safeCurrentPage, totalPages]);
 
   return (
     <div className="min-h-[calc(100vh-4.25rem)]">
@@ -125,7 +166,7 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
                 splitBy="word"
                 hinge="top"
                 trigger="scroll"
-                duration={0.99}
+                duration={1.99}
                 stagger={0.08}
                 ease="power3.out"
                 perspective={700}
@@ -229,16 +270,58 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
                   <Badge variant="outline" className="w-fit text-[10px] text-muted-foreground">Baca saja</Badge>
                 </div>
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Filter kategori laporan keuangan">
-                  <FilterButton active={kategoriAktif === 'Semua'} onClick={() => setKategoriAktif('Semua')}>Semua</FilterButton>
-                  {(report?.kategori || []).map((kategori) => <FilterButton key={kategori} active={kategoriAktif === kategori} onClick={() => setKategoriAktif(kategori)}>{kategori}</FilterButton>)}
+                  <FilterButton active={kategoriAktif === 'Semua'} onClick={() => handleFilterChange('Semua')}>Semua</FilterButton>
+                  {(report?.kategori || []).map((kategori) => <FilterButton key={kategori} active={kategoriAktif === kategori} onClick={() => handleFilterChange(kategori)}>{kategori}</FilterButton>)}
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 {transaksi.length === 0 ? <div className="p-10 text-center text-sm text-muted-foreground">Belum ada transaksi pada kategori ini.</div> : <>
-                  <div className="divide-y md:hidden">{transaksi.map((item) => <article key={item.id} className="space-y-2 p-4 odd:bg-muted/15 even:bg-background transition-colors"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{item.judul}</p>{item.keterangan && <p className="mt-0.5 text-xs text-muted-foreground">{item.keterangan}</p>}</div><p className={`shrink-0 text-sm font-bold ${item.jenis === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{item.jenis === 'masuk' ? '+' : '-'}{formatRupiah(item.jumlah)}</p></div><div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground"><span>{formatTanggal(item.tanggal)}</span><Badge variant="outline" className="max-w-[55%] truncate text-[10px]">{item.kategori}</Badge></div></article>)}</div>
-                  <div className="hidden overflow-x-auto md:block"><table className="w-full text-sm"><thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wide text-muted-foreground"><tr><th className="px-5 py-3 font-semibold">Tanggal</th><th className="px-5 py-3 font-semibold">Uraian Transaksi</th><th className="px-5 py-3 font-semibold">Kategori</th><th className="px-5 py-3 font-semibold">Jenis</th><th className="px-5 py-3 text-right font-semibold">Nominal</th></tr></thead><tbody className="divide-y">{transaksi.map((item) => <tr key={item.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30 transition-colors"><td className="whitespace-nowrap px-5 py-4 text-xs text-muted-foreground">{formatTanggal(item.tanggal)}</td><td className="px-5 py-4"><p className="font-semibold">{item.judul}</p>{item.keterangan && <p className="mt-0.5 max-w-md text-xs text-muted-foreground">{item.keterangan}</p>}</td><td className="px-5 py-4"><Badge variant="outline" className="text-[10px]">{item.kategori}</Badge></td><td className="px-5 py-4"><Badge className={item.jenis === 'masuk' ? 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-700 hover:bg-rose-500/10 dark:text-rose-400'}>{item.jenis === 'masuk' ? 'Pemasukan' : 'Pengeluaran'}</Badge></td><td className={`whitespace-nowrap px-5 py-4 text-right font-bold ${item.jenis === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{item.jenis === 'masuk' ? '+' : '-'}{formatRupiah(item.jumlah)}</td></tr>)}</tbody></table></div>
+                  <div className="divide-y md:hidden">{paginatedTransaksi.map((item) => <article key={item.id} className="space-y-2 p-4 odd:bg-muted/15 even:bg-background transition-colors"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{item.judul}</p>{item.keterangan && <p className="mt-0.5 text-xs text-muted-foreground">{item.keterangan}</p>}</div><p className={`shrink-0 text-sm font-bold ${item.jenis === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{item.jenis === 'masuk' ? '+' : '-'}{formatRupiah(item.jumlah)}</p></div><div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground"><span>{formatTanggal(item.tanggal)}</span><Badge variant="outline" className="max-w-[55%] truncate text-[10px]">{item.kategori}</Badge></div></article>)}</div>
+                  <div className="hidden overflow-x-auto md:block"><table className="w-full text-sm"><thead className="bg-muted/40 text-left text-[11px] uppercase tracking-wide text-muted-foreground"><tr><th className="px-5 py-3 font-semibold">Tanggal</th><th className="px-5 py-3 font-semibold">Uraian Transaksi</th><th className="px-5 py-3 font-semibold">Kategori</th><th className="px-5 py-3 font-semibold">Jenis</th><th className="px-5 py-3 text-right font-semibold">Nominal</th></tr></thead><tbody className="divide-y">{paginatedTransaksi.map((item) => <tr key={item.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30 transition-colors"><td className="whitespace-nowrap px-5 py-4 text-xs text-muted-foreground">{formatTanggal(item.tanggal)}</td><td className="px-5 py-4"><p className="font-semibold">{item.judul}</p>{item.keterangan && <p className="mt-0.5 max-w-md text-xs text-muted-foreground">{item.keterangan}</p>}</td><td className="px-5 py-4"><Badge variant="outline" className="text-[10px]">{item.kategori}</Badge></td><td className="px-5 py-4"><Badge className={item.jenis === 'masuk' ? 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-700 hover:bg-rose-500/10 dark:text-rose-400'}>{item.jenis === 'masuk' ? 'Pemasukan' : 'Pengeluaran'}</Badge></td><td className={`whitespace-nowrap px-5 py-4 text-right font-bold ${item.jenis === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{item.jenis === 'masuk' ? '+' : '-'}{formatRupiah(item.jumlah)}</td></tr>)}</tbody></table></div>
                 </>}
               </CardContent>
+              {transaksi.length > 0 && (
+                <CardFooter className="flex flex-col items-center justify-between gap-3 border-t border-border/60 px-4 py-3 sm:flex-row sm:px-5">
+                  <p className="text-xs text-muted-foreground text-center sm:text-left">
+                    Menampilkan <span className="font-semibold text-foreground">{startIndex + 1}</span> - <span className="font-semibold text-foreground">{endIndex}</span> dari <span className="font-semibold text-foreground">{transaksi.length}</span> transaksi
+                  </p>
+                  {totalPages > 1 && (
+                    <Pagination className="mx-0 w-auto justify-center sm:justify-end">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={safeCurrentPage === 1}
+                            className={safeCurrentPage === 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        {pageNumbers.map((page, idx) => (
+                          <PaginationItem key={idx}>
+                            {page === 'ellipsis' ? (
+                              <PaginationEllipsis />
+                            ) : (
+                              <PaginationLink
+                                isActive={safeCurrentPage === page}
+                                onClick={() => setCurrentPage(page as number)}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            )}
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={safeCurrentPage === totalPages}
+                            className={safeCurrentPage === totalPages ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
+                </CardFooter>
+              )}
             </Card>
           </>
         )}
@@ -262,13 +345,31 @@ function SummaryCard({
 }) {
   return (
     <Card className={cn("border-border/70 shadow-sm", wrapperClassName)}>
-      <CardContent className="flex items-center gap-3 p-4 sm:p-5">
-        <span className={`rounded-xl bg-muted p-2.5 ${className}`}>{icon}</span>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{title}</p>
-          <p className={`mt-1 truncate text-lg font-bold sm:text-xl ${className}`}>
-            {formatRupiah(amount)}
-          </p>
+      <CardContent className="p-3.5 sm:p-5">
+        {/* Mobile Layout (< sm): Bagian atas (icon - title sejajar), Bagian bawah (nominal full kanan-kiri) */}
+        <div className="flex flex-col gap-2 sm:hidden">
+          <div className="flex items-center gap-2">
+            <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted p-1.5", className)}>
+              {icon}
+            </span>
+            <span className="truncate text-xs font-medium text-muted-foreground">{title}</span>
+          </div>
+          <div className="w-full min-w-0 pt-0.5">
+            <p className={cn("truncate text-base font-bold tracking-tight", className)}>
+              {formatRupiah(amount)}
+            </p>
+          </div>
+        </div>
+
+        {/* Desktop Layout (sm: and above): Icon di kiri, Judul & Nominal di kanan */}
+        <div className="hidden sm:flex sm:items-center sm:gap-3">
+          <span className={cn("rounded-xl bg-muted p-2.5", className)}>{icon}</span>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={cn("mt-1 truncate text-lg font-bold sm:text-xl", className)}>
+              {formatRupiah(amount)}
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

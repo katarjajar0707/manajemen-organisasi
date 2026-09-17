@@ -52,8 +52,8 @@ export function PublicKontakClient({ settings }: { settings?: PengaturanSistemDa
   const tiktokUsername = rawTiktok?.replace(/^@/, '');
   const tiktokLink = rawTiktok
     ? (rawTiktok.startsWith('http://') || rawTiktok.startsWith('https://')
-        ? rawTiktok
-        : `https://www.tiktok.com/@${tiktokUsername}`)
+      ? rawTiktok
+      : `https://www.tiktok.com/@${tiktokUsername}`)
     : null;
 
   const fullAddress = [
@@ -157,7 +157,7 @@ export function PublicKontakClient({ settings }: { settings?: PengaturanSistemDa
               splitBy="word"
               hinge="top"
               trigger="scroll"
-              duration={0.99}
+              duration={1.99}
               stagger={0.08}
               ease="power3.out"
               perspective={700}

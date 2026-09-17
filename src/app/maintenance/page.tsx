@@ -25,8 +25,8 @@ export default async function MaintenancePage() {
         <p className="mb-2 text-sm font-medium text-muted-foreground">{orgName}</p>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Bentar Ya..., Lagi Perbaikan.</h1>
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
-          Sistemnya lagi dibenerin nih..
-          <br /> Tunggu sebentar ya, biar nanti balik lagi dalam kondisi yang lebih oke!
+          Sistemnya lagi dibenerinn..
+          <br /> Sabarr ya, biar nanti balik lagi dalam kondisi yang lebih oke!
         </p>
         <div className="mt-7 border-t pt-6">
           <p className="mb-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">

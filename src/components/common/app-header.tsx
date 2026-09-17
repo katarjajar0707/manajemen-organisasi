@@ -323,7 +323,7 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={8} collisionPadding={12} className="w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:max-w-sm sm:w-96 overflow-hidden p-0 rounded-xl shadow-xl border border-border/80">
+          <DropdownMenuContent align="end" sideOffset={8} collisionPadding={12} className="w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:max-w-sm sm:w-96 overflow-hidden p-0 rounded-md shadow-xl border border-border/80">
             <DropdownMenuLabel className="flex items-center justify-between border-b border-border/60 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-muted/20">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold tracking-tight">Notifikasi</span>
