@@ -304,27 +304,31 @@ export function PublicKontakClient({ settings }: { settings?: PengaturanSistemDa
               <CardContent className="text-xs text-muted-foreground space-y-2 pt-1">
                 <p className="font-medium text-foreground truncate">{settings?.profil.instagram || '-'}</p>
                 <p>Instagram & dokumentasi kegiatan</p>
-                {igLink && (
-                  <a
-                    href={igLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-violet-600 dark:text-violet-400 hover:underline pt-1"
-                  >
-                    <span>Buka Akun Instagram</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-                {tiktokLink && (
-                  <a
-                    href={tiktokLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-pink-600 dark:text-pink-400 hover:underline pt-1 block"
-                  >
-                    <span>Buka Akun TikTok</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                {(igLink || tiktokLink) && (
+                  <div className="flex flex-col gap-2 pt-1">
+                    {igLink && (
+                      <a
+                        href={igLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-violet-600 dark:text-violet-400 hover:underline"
+                      >
+                        <span>Buka Akun Instagram</span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    )}
+                    {tiktokLink && (
+                      <a
+                        href={tiktokLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-pink-600 dark:text-pink-400 hover:underline"
+                      >
+                        <span>Buka Akun TikTok</span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

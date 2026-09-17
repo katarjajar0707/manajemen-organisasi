@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { PwaInstallPrompt } from '@/components/common/pwa-install-prompt';
 import { ThemeToggle } from '@/components/common/theme-toggle';
@@ -21,8 +22,14 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju', isLoggedIn = false }
   const isHome = pathname === '/';
   const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -131,10 +138,26 @@ export function Navbar({ orgLogoUrl, orgName = 'KartaTuju', isLoggedIn = false }
             })}
           </div>
           <div className="mt-2 space-y-2 border-t border-border/70 pt-2">
-            <div className="flex items-center justify-between rounded-lg px-3 py-1.5 text-sm font-medium text-foreground">
+            <button
+              type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              aria-label="Ganti tema tampilan"
+              tabIndex={isOpen ? 0 : -1}
+            >
               <span>Tema tampilan</span>
-              <ThemeToggle />
-            </div>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg text-foreground">
+                {mounted ? (
+                  theme === 'dark' ? (
+                    <Sun className="h-4 w-4 transition-all" />
+                  ) : (
+                    <Moon className="h-4 w-4 transition-all" />
+                  )
+                ) : (
+                  <Sun className="h-4 w-4" />
+                )}
+              </span>
+            </button>
             <Button asChild variant="default" className="h-10 w-full justify-start bg-primary text-primary-foreground shadow-sm hover:bg-primary/90" tabIndex={isOpen ? 0 : -1}>
               {isLoggedIn
                 ? <Link href="/dashboard" onClick={closeMenu}>Dashboard</Link>
