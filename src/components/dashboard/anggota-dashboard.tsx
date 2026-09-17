@@ -149,6 +149,9 @@ export function AnggotaDashboardProfile({ profile }: { profile: Profile }) {
   );
 }
 
+const MAX_DASHBOARD_SCHEDULE = 4;
+const MAX_DASHBOARD_DISCUSSIONS = 4;
+
 export function AnggotaDashboardDataSkeleton({ variant }: { variant: 'summary' | 'schedule' | 'discussion' }) {
   if (variant === 'summary') {
     return (
@@ -160,19 +163,39 @@ export function AnggotaDashboardDataSkeleton({ variant }: { variant: 'summary' |
         <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
           {[0, 1, 2].map((item) => <Skeleton key={item} className="h-24 rounded-xl" />)}
         </div>
-        <Skeleton className="mt-4 h-70 rounded-xl" />
+        <Skeleton className="mt-4 h-[288px] sm:h-[284px] rounded-xl" />
       </div>
     );
   }
 
+  if (variant === 'schedule') {
+    return (
+      <Card className="border-border/70 shadow-sm lg:col-span-3">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="mt-2 h-3 w-64" />
+        </CardHeader>
+        <CardContent className="space-y-2.5 pt-5">
+          {Array.from({ length: MAX_DASHBOARD_SCHEDULE }).map((_, index) => (
+            <Skeleton key={index} className="h-[66px] sm:h-[62px] rounded-xl" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className={variant === 'schedule' ? 'border-border/70 shadow-sm lg:col-span-3' : 'border-border/70 shadow-sm'}>
+    <Card className="border-border/70 shadow-sm">
       <CardHeader className="border-b border-border/60 pb-4">
         <Skeleton className="h-5 w-48" />
         <Skeleton className="mt-2 h-3 w-64" />
       </CardHeader>
-      <CardContent className="space-y-3 pt-5">
-        {[0, 1, 2].map((item) => <Skeleton key={item} className="h-16 rounded-xl" />)}
+      <CardContent className="pt-5">
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {Array.from({ length: MAX_DASHBOARD_DISCUSSIONS }).map((_, index) => (
+            <Skeleton key={index} className="h-[78px] sm:h-[74px] rounded-xl" />
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -229,7 +252,7 @@ export async function AnggotaDashboardSummary() {
 
 export async function AnggotaDashboardSchedule() {
   const summaryData = await getCachedPublicTransparencyData();
-  const kegiatanMendatang = summaryData.kegiatan.jadwalMendatang.slice(0, 4);
+  const kegiatanMendatang = summaryData.kegiatan.jadwalMendatang.slice(0, MAX_DASHBOARD_SCHEDULE);
 
   return (
     <Card className="border-border/70 shadow-sm lg:col-span-3">
@@ -259,7 +282,8 @@ export async function AnggotaDashboardSchedule() {
 
 export async function AnggotaDashboardDiscussions() {
   const diskusis = await getDiskusis();
-  const latestDiskusis = diskusis.slice(0, 4);
+  const latestDiskusis = diskusis.slice(0, MAX_DASHBOARD_DISCUSSIONS);
+
 
   return (
     <Card className="border-border/70 shadow-sm">
