@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Check, CircleDollarSign, Copy, FileText, Landmark, MessageCircle, Share2, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { AlertTriangle, Check, CircleDollarSign, Copy, FileText, Landmark, MessageCircle, Share2, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -105,6 +105,13 @@ export function PublicLaporanKeuangan({ settings, report }: { settings?: Pengatu
 
   return (
     <div className="min-h-[calc(100vh-4.25rem)]">
+      {/* Banner Mode Maintenance jika aktif */}
+      {settings?.keamanan?.modeMaintenance && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-800 dark:text-amber-200 px-4 py-2 text-xs text-center font-medium flex items-center justify-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+          <span>Mode pemeliharaan aktif. Akses publik sedang dibatasi.</span>
+        </div>
+      )}
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:space-y-8 sm:py-10 md:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

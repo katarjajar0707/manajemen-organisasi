@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/actions/auth';
@@ -23,20 +23,28 @@ export default async function MaintenancePage() {
           <Image src="/maintenance.gif" alt="" aria-hidden="true" width={48} height={48} unoptimized className="size-12 object-contain" />
         </div>
         <p className="mb-2 text-sm font-medium text-muted-foreground">{orgName}</p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Bentar Ya..., Lagi Maintenance</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Bentar Ya..., Lagi Perbaikan.</h1>
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
           Sistemnya lagi dibenerin nih..
           <br /> Tunggu sebentar ya, biar nanti balik lagi dalam kondisi yang lebih oke!
         </p>
         <div className="mt-7 border-t pt-6">
-          <p className="mb-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <p className="mb-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck aria-hidden="true" className="size-4" />
             Tenang.. nanti bisa di akses lagi...
           </p>
-          <Button asChild variant="outline">
-            <Link href="/login">Masuk sebagai Az</Link>
-          </Button>
-          <form action={logout} className="mt-3">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+            <Button asChild variant="default" className="w-full sm:w-auto">
+              <Link href="/" className="inline-flex items-center gap-2">
+                <ArrowLeft className="size-4" />
+                Kembali ke Beranda
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link href="/login">Masuk sebagai Admin</Link>
+            </Button>
+          </div>
+          <form action={logout} className="mt-4">
             <button type="submit" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">
               Keluar dulu
             </button>

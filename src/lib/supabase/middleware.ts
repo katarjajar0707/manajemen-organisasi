@@ -85,10 +85,18 @@ export async function updateSession(request: NextRequest) {
         isAdministrator = profile?.role === 'admin';
       }
 
-      // Keep the sign-in form reachable for an unauthenticated administrator.
-      // The login action below verifies the role and signs non-admin users out.
-      const isUnauthenticatedLogin = !user && isAuthRoute;
-      if (!isAdministrator && pathname !== '/maintenance' && !isUnauthenticatedLogin && !isSystemRoute) {
+      if (!isAdministrator) {
+        // Keep public routes (beranda, laporan keuangan, kontak, maintenance, static assets) accessible
+        if (isPublicRoute || isSystemRoute) {
+          return supabaseResponse;
+        }
+
+        // Keep the sign-in form reachable for an unauthenticated administrator
+        if (!user && isAuthRoute) {
+          return supabaseResponse;
+        }
+
+        // Redirect non-admin users trying to access protected or auth routes to the maintenance page
         const url = request.nextUrl.clone();
         url.pathname = '/maintenance';
         url.search = '';

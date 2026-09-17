@@ -13,6 +13,8 @@ export async function login(formData: FormData) {
     return { error: "Email dan password wajib diisi." };
   }
 
+  let redirectPath = '/dashboard';
+
   try {
     const supabase = await createClient();
 
@@ -35,7 +37,7 @@ export async function login(formData: FormData) {
 
       if (profileError || profile?.role !== 'admin') {
         await supabase.auth.signOut();
-        return { error: 'Mode pemeliharaan sedang aktif. Hanya Administrator yang dapat masuk.' };
+        redirectPath = '/maintenance';
       }
     }
 
@@ -47,7 +49,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/dashboard');
+  redirect(redirectPath);
 }
 
 export async function logout() {
