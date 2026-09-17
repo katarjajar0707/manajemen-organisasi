@@ -26,7 +26,7 @@ export async function syncProfilesToAnggota() {
       id: profile.id,
       nama: profile.nama || 'Pengurus',
       kontak: existing?.kontak || '-',
-      rt_rw: existing?.rt_rw || 'RT 01 / RW 05',
+      rt_rw: existing?.rt_rw || 'RT 07 / RW 07',
       jabatan: profile.role === 'ketua' ? 'Ketua' : profile.role === 'admin' ? 'Administrator' : 'Anggota',
       periode_id: existing?.periode_id || periode.id,
       bagian_id: profile.bagian_id || null,

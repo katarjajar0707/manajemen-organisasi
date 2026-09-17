@@ -32,7 +32,7 @@ import TextType from '@/components/public/text-type';
 export function PublicKontakClient({ settings }: { settings?: PengaturanSistemData }) {
   // Aspirasi Warga Form State
   const [namaWarga, setNamaWarga] = useState('');
-  const [rtWarga, setRtWarga] = useState(settings?.profil.unitWilayah || 'RT 01 / RW 05');
+  const [rtWarga, setRtWarga] = useState(settings?.profil.unitWilayah || 'RT 07 / RW 07');
   const [pesanAspirasi, setPesanAspirasi] = useState('');
   const [isSent, setIsSent] = useState(false);
   const [aspirasiError, setAspirasiError] = useState<string | null>(null);

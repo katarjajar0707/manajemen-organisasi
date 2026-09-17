@@ -87,7 +87,7 @@ export async function createUser(formData: FormData) {
   const bagian_id = (formData.get('bagian_id') as string)?.trim() || null;
   const nomor_wa = (formData.get('nomor_wa') as string)?.trim() || '';
   const kontak = (formData.get('kontak') as string)?.trim() || '-';
-  const rt_rw = (formData.get('rt_rw') as string)?.trim() || 'RT 01 / RW 05';
+  const rt_rw = (formData.get('rt_rw') as string)?.trim() || 'RT 07 / RW 07';
   const jabatanInput = (formData.get('jabatan') as string)?.trim();
   const jabatan = jabatanInput || (role === 'ketua' ? 'Ketua' : role === 'admin' ? 'Administrator' : 'Anggota');
 

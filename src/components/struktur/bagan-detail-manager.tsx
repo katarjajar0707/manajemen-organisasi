@@ -154,7 +154,7 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
     setEditingMember(null);
     setNama('');
     setJabatan(JABATAN_SUGGESTIONS[4] || 'Anggota Pelaksana');
-    setRt('RT 01 / RW 05');
+    setRt('RT 07 / RW 07');
     setKontak('');
     setStatus('Aktif');
     setErrorMessage(null);
@@ -212,9 +212,9 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
           periode_kepengurusan: prev.periode_kepengurusan.map((p: any) =>
             p.id === currentPeriode.id
               ? {
-                  ...p,
-                  anggota: p.anggota.map((m: any) => (m.id === editingMember.id ? { ...m, nama, jabatan, rt_rw: rt, kontak, status } : m)),
-                }
+                ...p,
+                anggota: p.anggota.map((m: any) => (m.id === editingMember.id ? { ...m, nama, jabatan, rt_rw: rt, kontak, status } : m)),
+              }
               : p,
           ),
         }));
@@ -240,9 +240,9 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
           periode_kepengurusan: prev.periode_kepengurusan.map((p: any) =>
             p.id === currentPeriode.id
               ? {
-                  ...p,
-                  anggota: [newAnggota, ...(p.anggota || [])],
-                }
+                ...p,
+                anggota: [newAnggota, ...(p.anggota || [])],
+              }
               : p,
           ),
         }));
@@ -267,9 +267,9 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
         periode_kepengurusan: prev.periode_kepengurusan.map((p: any) =>
           p.id === currentPeriode.id
             ? {
-                ...p,
-                anggota: (p.anggota || []).filter((m: any) => m.id !== deleteMemberId),
-              }
+              ...p,
+              anggota: (p.anggota || []).filter((m: any) => m.id !== deleteMemberId),
+            }
             : p,
         ),
       }));

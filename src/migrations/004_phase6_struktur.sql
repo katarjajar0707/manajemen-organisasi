@@ -198,11 +198,11 @@ BEGIN
             INSERT INTO public.anggota (
                 nama, kontak, rt_rw, jabatan, periode_id, bagian_id, status
             ) VALUES
-                ('Ahmad Zaki', '0812-3456-7890', 'RT 03 / RW 05', 'Ketua Karang Taruna', v_periode_id, v_bagian_id, 'Aktif'),
-                ('Siti Rahma', '0813-9876-5432', 'RT 02 / RW 05', 'Bendahara Umum', v_periode_id, v_bagian_id, 'Aktif'),
-                ('Dewi Anggraini', '0878-5566-7788', 'RT 01 / RW 05', 'Sekretaris I', v_periode_id, v_bagian_id, 'Aktif'),
-                ('Rian Pratama', '0857-1122-3344', 'RT 04 / RW 05', 'Koordinator Acara', v_periode_id, v_bagian_id, 'Aktif'),
-                ('Fajar Nugraha', '0819-3344-5566', 'RT 05 / RW 05', 'Divisi Perlengkapan', v_periode_id, v_bagian_id, 'Aktif');
+                ('Ahmad Zaki', '0812-3456-7890', 'RT 07 / RW 07', 'Ketua Karang Taruna', v_periode_id, v_bagian_id, 'Aktif'),
+                ('Siti Rahma', '0813-9876-5432', 'RT 07 / RW 07', 'Bendahara Umum', v_periode_id, v_bagian_id, 'Aktif'),
+                ('Dewi Anggraini', '0878-5566-7788', 'RT 07 / RW 07', 'Sekretaris I', v_periode_id, v_bagian_id, 'Aktif'),
+                ('Rian Pratama', '0857-1122-3344', 'RT 07 / RW 07', 'Koordinator Acara', v_periode_id, v_bagian_id, 'Aktif'),
+                ('Fajar Nugraha', '0819-3344-5566', 'RT 07 / RW 07', 'Divisi Perlengkapan', v_periode_id, v_bagian_id, 'Aktif');
         END IF;
     END IF;
 END $$;

@@ -46,7 +46,7 @@ export function UserFormModal({
       } else {
         res = await createUser(formData);
       }
-      
+
       if (res?.error) {
         setError(res.error);
       } else {
@@ -85,7 +85,7 @@ export function UserFormModal({
                 <span>{error}</span>
               </div>
             )}
-            
+
             {/* Nama Lengkap */}
             <div className="grid gap-2">
               <Label htmlFor="nama">Nama Lengkap</Label>
@@ -122,7 +122,7 @@ export function UserFormModal({
               <Label htmlFor="nomor_wa">Nomor WhatsApp</Label>
               <Input id="nomor_wa" name="nomor_wa" defaultValue={userToEdit?.nomor_wa || ""} placeholder="08xxxxxxxxxx" />
             </div>
-            
+
             {/* Role */}
             <div className="grid gap-2">
               <Label htmlFor="role">Role / Hak Akses</Label>
@@ -164,7 +164,7 @@ export function UserFormModal({
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="rt_rw" className="text-xs">Wilayah (RT / RW)</Label>
-                <Input id="rt_rw" name="rt_rw" placeholder="RT 03 / RW 05" defaultValue="RT 01 / RW 05" className="h-8 text-xs" />
+                <Input id="rt_rw" name="rt_rw" placeholder="RT 03 / RW 05" defaultValue="RT 07 / RW 07" className="h-8 text-xs" />
               </div>
             </div>
 
