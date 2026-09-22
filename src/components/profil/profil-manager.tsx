@@ -18,6 +18,7 @@ import { convertHeicToJpeg } from '@/lib/client-image';
 import { cn, isImageFile } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
+import { LanyardCardUpload } from '@/components/profil/lanyard-card-upload';
 
 interface ProfileData {
   id: string;
@@ -240,6 +241,8 @@ export function ProfilManager({ profile }: { profile: ProfileData }) {
           />
         </CardContent>
       </Card>
+
+      <LanyardCardUpload userId={currentProfile.id} />
 
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}><DialogContent className="w-[calc(100vw-2rem)] max-w-sm"><DialogHeader><DialogTitle>Ubah foto profil</DialogTitle><DialogDescription>Gunakan gambar JPG, PNG, WebP, atau HEIC dengan ukuran maksimal 10MB.</DialogDescription></DialogHeader><label htmlFor="profile-avatar-upload" className="flex min-h-20 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-primary/30 px-4 text-sm font-medium transition-colors hover:bg-muted"><Upload className="h-5 w-5 text-primary" />Pilih foto dari perangkat</label><input id="profile-avatar-upload" type="file" accept="image/*,.heic,.heif" className="sr-only" onChange={handleAvatarChange} disabled={isPending} /></DialogContent></Dialog>
 

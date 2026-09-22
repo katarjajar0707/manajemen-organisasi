@@ -51,6 +51,8 @@ export interface LanyardProps {
   backImage?: string | null;
   imageFit?: 'cover' | 'contain';
   lanyardImage?: string | null;
+  showLanyard?: boolean;
+  previewOnly?: boolean;
   lanyardWidth?: number;
   cardGLB?: string;
   className?: string;
@@ -65,6 +67,8 @@ export default function Lanyard({
   backImage = null,
   imageFit = 'cover',
   lanyardImage = null,
+  showLanyard = true,
+  previewOnly = false,
   lanyardWidth = 1,
   cardGLB = CARD_GLB,
   className = ''
@@ -97,6 +101,8 @@ export default function Lanyard({
             backImage={backImage}
             imageFit={imageFit}
             lanyardImage={lanyardImage}
+            showLanyard={showLanyard}
+            previewOnly={previewOnly}
             lanyardWidth={lanyardWidth}
             cardGLB={cardGLB}
           />
@@ -144,6 +150,8 @@ interface BandProps {
   backImage?: string | null;
   imageFit?: 'cover' | 'contain';
   lanyardImage?: string | null;
+  showLanyard?: boolean;
+  previewOnly?: boolean;
   lanyardWidth?: number;
   cardGLB?: string;
 }
@@ -160,6 +168,8 @@ function Band({
   backImage = null,
   imageFit = 'cover',
   lanyardImage = null,
+  showLanyard = true,
+  previewOnly = false,
   lanyardWidth = 1,
   cardGLB = CARD_GLB
 }: BandProps) {
@@ -272,6 +282,14 @@ function Band({
   }, [hovered, dragged]);
 
   useFrame((state, delta) => {
+    // Preview profil tidak memakai simulasi fisika. Kartu tetap diam di tempat
+    // dan hanya mengikuti posisi horizontal pointer agar tidak miring/terjatuh.
+    if (previewOnly && card.current) {
+      const angle = state.pointer.x * 0.7;
+      card.current.setRotation({ x: 0, y: Math.sin(angle / 2), z: 0, w: Math.cos(angle / 2) }, true);
+      return;
+    }
+
     if (dragged && typeof dragged !== 'boolean') {
       vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
       dir.copy(vec).sub(state.camera.position).normalize();
@@ -331,7 +349,7 @@ function Band({
 
   return (
     <>
-      <group position={[0, 4.4, 0]}>
+      <group position={previewOnly ? [0, 0, 0] : [0, 4.4, 0]}>
         <RigidBody ref={fixed} {...segmentProps} type="fixed" />
         <RigidBody position={[0.5, 0, 0]} ref={j1} {...segmentProps} type="dynamic">
           <BallCollider args={[0.1]} />
@@ -343,15 +361,15 @@ function Band({
           <BallCollider args={[0.1]} />
         </RigidBody>
         <RigidBody
-          position={[2, 0, 0]}
+          position={[previewOnly ? 0 : 2, 0, 0]}
           ref={card}
           {...segmentProps}
-          type={dragged ? 'kinematicPosition' : 'dynamic'}
+          type={previewOnly ? 'fixed' : dragged ? 'kinematicPosition' : 'dynamic'}
         >
           <CuboidCollider args={[0.8, 1.125, 0.01]} />
           <group
             scale={2.25}
-            position={[0, -1.2, -0.05]}
+            position={[0, previewOnly ? 0 : -1.2, -0.05]}
             onPointerOver={(e: ThreeEvent<PointerEvent>) => {
               e.stopPropagation();
               hover(true);
@@ -363,6 +381,7 @@ function Band({
               drag(false);
             }}
             onPointerDown={(e: ThreeEvent<PointerEvent>) => {
+              if (previewOnly) return;
               const target = e.nativeEvent?.target as HTMLElement | undefined;
               target?.setPointerCapture?.(e.pointerId);
               drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
@@ -389,7 +408,7 @@ function Band({
           </group>
         </RigidBody>
       </group>
-      <mesh ref={band}>
+      {showLanyard && <mesh ref={band}>
         <meshLineGeometry />
         <meshLineMaterial
           color="white"
@@ -400,7 +419,7 @@ function Band({
           repeat={[-4, 1]}
           lineWidth={lanyardWidth}
         />
-      </mesh>
+      </mesh>}
     </>
   );
 }

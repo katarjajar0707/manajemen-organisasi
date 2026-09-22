@@ -30,6 +30,7 @@ export function LanyardHero({
 }) {
   const [userId, setUserId] = useState<string | null>(currentUserId || null);
   const [frontCardUrl, setFrontCardUrl] = useState<string>(DEFAULT_CARD_FRONT);
+  const [cardRevision, setCardRevision] = useState(0);
 
   // Sinkronisasi status autentikasi user — skip Supabase client jika server sudah memberikan userId
   useEffect(() => {
@@ -54,7 +55,8 @@ export function LanyardHero({
     };
   }, [currentUserId]);
 
-  // Validasi file kartu user: jika ada gunakan /lanyard/user/{userId}.png, jika belum/error fallback ke default
+  // Kartu hasil upload di Storage diprioritaskan. Jika belum ada, gunakan aset
+  // lokal per-UUID agar desain kartu yang telah disediakan untuk user tetap tampil.
   useEffect(() => {
     if (!userId) {
       setFrontCardUrl(DEFAULT_CARD_FRONT);
@@ -62,13 +64,29 @@ export function LanyardHero({
     }
 
     let cancelled = false;
-    const candidateUrl = `/lanyard/user/${userId}.png`;
+    const supabase = createClient();
+    const { data } = supabase.storage.from('lanyard-cards').getPublicUrl(`${userId}/front.png`);
+    const candidateUrl = data.publicUrl;
+    const cacheBustedUrl = `${candidateUrl}?v=${Date.now()}`;
+    const loadFallback = () => {
+      const localCardUrl = `/lanyard/user/${userId}.png`;
+      const localImage = new Image();
+      localImage.src = localCardUrl;
+      localImage.onload = () => { if (!cancelled) setFrontCardUrl(localCardUrl); };
+      localImage.onerror = () => { if (!cancelled) setFrontCardUrl(DEFAULT_CARD_FRONT); };
+    };
     const img = new Image();
-    img.src = candidateUrl;
-    img.onload = () => { if (!cancelled) setFrontCardUrl(candidateUrl); };
-    img.onerror = () => { if (!cancelled) setFrontCardUrl(DEFAULT_CARD_FRONT); };
+    img.src = cacheBustedUrl;
+    img.onload = () => { if (!cancelled) setFrontCardUrl(cacheBustedUrl); };
+    img.onerror = loadFallback;
     return () => { cancelled = true; };
-  }, [userId]);
+  }, [userId, cardRevision]);
+
+  useEffect(() => {
+    const refresh = () => setCardRevision((revision) => revision + 1);
+    window.addEventListener('lanyard-card-updated', refresh);
+    return () => window.removeEventListener('lanyard-card-updated', refresh);
+  }, []);
 
   return (
     <section className="relative -mt-[calc(4.25rem+env(safe-area-inset-top,0px))] min-h-[100dvh] lg:min-h-screen w-full overflow-x-clip flex flex-col justify-end lg:justify-center">
