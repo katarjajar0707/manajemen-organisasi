@@ -17,6 +17,7 @@ import {
   AdminDashboardOrganization,
   AdminDashboardFinance,
   AdminDashboardActivity,
+  AdminDashboardLoginHistory,
   AdminDashboardSchedule,
   DashboardSectionSkeleton,
 } from '@/components/dashboard/admin-dashboard';
@@ -75,6 +76,9 @@ async function DashboardContent() {
           <AdminDashboardActivity />
         </Suspense>
       </div>
+      <Suspense fallback={<DashboardSectionSkeleton variant="list" />}>
+        <AdminDashboardLoginHistory />
+      </Suspense>
       <Suspense fallback={<DashboardSectionSkeleton variant="schedule" />}>
         <AdminDashboardSchedule />
       </Suspense>

@@ -74,6 +74,47 @@ export async function getUsers() {
   return normalized;
 }
 
+export async function getLoginHistory(limit = 20) {
+  const authCheck = await requireAdmin();
+  if (!authCheck.authorized) return [];
+
+  try {
+    const supabase = await createAdminClient();
+    const [{ data: rows, error }, { data: authUsers }] = await Promise.all([
+      supabase
+        .from('login_history')
+        .select('id, user_id, logged_in_at, profiles:user_id(nama, username, role, foto_url, bagian:bagian_id(nama))')
+        .order('logged_in_at', { ascending: false })
+        .limit(Math.min(Math.max(limit, 1), 50)),
+      supabase.auth.admin.listUsers({ perPage: 1000 }),
+    ]);
+    if (error || !rows) {
+      if (error) console.error('Error fetching login history:', error);
+      return [];
+    }
+
+    const emailMap = new Map((authUsers?.users || []).map((user) => [user.id, user.email || '']));
+    return rows.map((row: any) => {
+      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      const bagian = Array.isArray(profile?.bagian) ? profile.bagian[0] : profile?.bagian;
+      return {
+        id: row.id,
+        userId: row.user_id,
+        loggedInAt: row.logged_in_at,
+        nama: profile?.nama || 'Pengguna',
+        username: profile?.username || '—',
+        email: emailMap.get(row.user_id) || '',
+        role: profile?.role || 'anggota',
+        fotoUrl: profile?.foto_url || null,
+        bagianNama: bagian?.nama || null,
+      };
+    });
+  } catch (error) {
+    console.error('Error loading login history:', error);
+    return [];
+  }
+}
+
 export async function createUser(formData: FormData) {
   const authCheck = await requireAdmin();
   if (!authCheck.authorized) {

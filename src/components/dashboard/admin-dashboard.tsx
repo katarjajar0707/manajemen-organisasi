@@ -13,6 +13,8 @@ import { Profile } from '@/types/database';
 import { getDiskusis, DiskusiItem } from '@/actions/diskusi';
 import { getPengumumanList, PengumumanItem } from '@/actions/pengumuman';
 import { getUsers } from '@/actions/admin-users';
+import { getLoginHistory } from '@/actions/admin-users';
+import { LoginHistoryPanel } from '@/components/dashboard/login-history-panel';
 import { getBagianList } from '@/actions/bagian';
 import { getCachedPengaturanSistem } from '@/lib/cache/pengaturan';
 import { getCachedPublicTransparencyData } from '@/lib/cache/transparansi';
@@ -98,7 +100,7 @@ export function AdminDashboard({ profile, summaryData, announcements, diskusis, 
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 rounded-2xl border border-violet-200/60 bg-gradient-to-br from-violet-500/[0.07] via-background to-background p-4 shadow-sm sm:flex-row sm:items-start sm:justify-between sm:p-5 dark:border-violet-900/50">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold tracking-tight">Selamat datang, {profile.nama.split(' ')[0]}! 👋</h1>
@@ -760,6 +762,11 @@ export async function AdminDashboardActivity() {
       </CardContent>
     </Card>
   );
+}
+
+export async function AdminDashboardLoginHistory() {
+  const items = await getLoginHistory();
+  return <LoginHistoryPanel items={items} />;
 }
 
 export async function AdminDashboardSchedule() {

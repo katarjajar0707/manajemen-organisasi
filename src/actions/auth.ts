@@ -27,6 +27,15 @@ export async function login(formData: FormData) {
       return { error: error.message };
     }
 
+    // Tidak menghalangi login bila migration audit belum diterapkan. Kebijakan
+    // INSERT membatasi record agar pengguna hanya dapat mencatat dirinya sendiri.
+    const { error: loginHistoryError } = await supabase
+      .from('login_history')
+      .insert({ user_id: data.user.id, auth_method: 'password' });
+    if (loginHistoryError) {
+      console.warn('[auth-login] Login history was not recorded:', loginHistoryError.message);
+    }
+
     const settings = await getPengaturanSistem();
     if (settings.keamanan.modeMaintenance) {
       const { data: profile, error: profileError } = await supabase
