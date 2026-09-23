@@ -68,11 +68,50 @@ export function UserPresenceTracker() {
         });
 
       const refreshPresence = () => {
-        if (document.visibilityState === 'visible') void track();
+        if (document.visibilityState === 'visible') {
+          void track();
+          void fetch('/api/presence/heartbeat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'heartbeat' }),
+          }).catch(() => {});
+        }
       };
       document.addEventListener('visibilitychange', refreshPresence);
 
-      return () => document.removeEventListener('visibilitychange', refreshPresence);
+      // Heartbeat berkala setiap 60 detik saat tab aktif
+      const heartbeatInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          void fetch('/api/presence/heartbeat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'heartbeat' }),
+          }).catch(() => {});
+        }
+      }, 60000);
+
+      // Sinyal offline saat pengguna menutup tab/browser
+      const handlePageHide = () => {
+        const payload = JSON.stringify({ status: 'offline' });
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: 'application/json' });
+          navigator.sendBeacon('/api/presence/heartbeat', blob);
+        } else {
+          void fetch('/api/presence/heartbeat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true,
+          }).catch(() => {});
+        }
+      };
+      window.addEventListener('pagehide', handlePageHide);
+
+      return () => {
+        document.removeEventListener('visibilitychange', refreshPresence);
+        window.removeEventListener('pagehide', handlePageHide);
+        clearInterval(heartbeatInterval);
+      };
     };
 
     let removeVisibilityListener: (() => void) | undefined;

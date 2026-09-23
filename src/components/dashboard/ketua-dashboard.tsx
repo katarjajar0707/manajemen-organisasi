@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { LogoutButton } from "@/components/common/logout-button";
 import { DashboardAnnouncementBanner } from "@/components/dashboard/dashboard-announcement-banner";
+import { LoginHistoryPanel, type LoginHistoryItem } from "@/components/dashboard/login-history-panel";
 import { PengumumanItem } from "@/actions/pengumuman";
 import { DiskusiItem } from "@/actions/diskusi";
 import { PublicTransparencyData } from "@/actions/transparansi";
@@ -32,6 +33,7 @@ interface KetuaDashboardProps {
   announcements: PengumumanItem[];
   diskusis: DiskusiItem[];
   settings?: PengaturanSistemData;
+  loginHistory?: LoginHistoryItem[];
 }
 
 
@@ -64,6 +66,7 @@ export function KetuaDashboard({
   announcements,
   diskusis,
   settings,
+  loginHistory,
 }: KetuaDashboardProps) {
   const latestDiskusis = diskusis.slice(0, 4);
   const kegiatanMendatang = summaryData.kegiatan.jadwalMendatang.slice(0, 5);
@@ -381,6 +384,9 @@ export function KetuaDashboard({
           )}
         </CardContent>
       </Card>
+
+      {/* ── Riwayat Login Pengguna ── */}
+      <LoginHistoryPanel items={loginHistory || []} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { KetuaDashboard } from '@/components/dashboard/ketua-dashboard';
 import {
   AnggotaDashboardDataSkeleton,
   AnggotaDashboardDiscussions,
+  AnggotaDashboardLoginHistory,
   AnggotaDashboardProfile,
   AnggotaDashboardSchedule,
   AnggotaDashboardShell,
@@ -35,8 +36,24 @@ async function DashboardContent() {
       const { getPengumumanList } = await import('@/actions/pengumuman');
       const { getCachedPengaturanSistem } = await import('@/lib/cache/pengaturan');
       const { getCachedPublicTransparencyData } = await import('@/lib/cache/transparansi');
-      const [diskusis, announcements, summaryData, settings] = await Promise.all([getDiskusis(), getPengumumanList(), getCachedPublicTransparencyData(), getCachedPengaturanSistem()]);
-      return <KetuaDashboard profile={profile} summaryData={summaryData} announcements={announcements} diskusis={diskusis} settings={settings} />;
+      const { getLoginHistory } = await import('@/actions/admin-users');
+      const [diskusis, announcements, summaryData, settings, loginHistory] = await Promise.all([
+        getDiskusis(),
+        getPengumumanList(),
+        getCachedPublicTransparencyData(),
+        getCachedPengaturanSistem(),
+        getLoginHistory(),
+      ]);
+      return (
+        <KetuaDashboard
+          profile={profile}
+          summaryData={summaryData}
+          announcements={announcements}
+          diskusis={diskusis}
+          settings={settings}
+          loginHistory={loginHistory}
+        />
+      );
     }
 
     return (
@@ -52,6 +69,9 @@ async function DashboardContent() {
         </div>
         <Suspense fallback={<AnggotaDashboardDataSkeleton variant="discussion" />}>
           <AnggotaDashboardDiscussions />
+        </Suspense>
+        <Suspense fallback={<DashboardSectionSkeleton variant="list" />}>
+          <AnggotaDashboardLoginHistory />
         </Suspense>
       </AnggotaDashboardShell>
     );

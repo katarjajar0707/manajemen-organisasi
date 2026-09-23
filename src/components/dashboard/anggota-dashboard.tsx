@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar, MessagesSquare, ArrowRight, MessageCircle, User, Clock, MapPin, Building2, Sparkles, Users, Wallet, TrendingUp } from 'lucide-react';
 import { AnggotaFinanceChart } from '@/components/dashboard/anggota-finance-chart';
 import { LogoutButton } from '@/components/common/logout-button';
+import { LoginHistoryPanel } from '@/components/dashboard/login-history-panel';
+import { getLoginHistory } from '@/actions/admin-users';
 import { getDiskusis } from '@/actions/diskusi';
 import { getCachedPublicTransparencyData } from '@/lib/cache/transparansi';
 import { Profile } from '@/types/database';
@@ -309,3 +311,9 @@ export async function AnggotaDashboardDiscussions() {
     </Card>
   );
 }
+
+export async function AnggotaDashboardLoginHistory() {
+  const items = await getLoginHistory();
+  return <LoginHistoryPanel items={items} />;
+}
+

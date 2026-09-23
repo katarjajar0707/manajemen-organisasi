@@ -12,6 +12,14 @@ async function requireAdmin() {
   return { authorized: true, profile };
 }
 
+async function requireAuthenticatedUser() {
+  const profile = await getProfile();
+  if (!profile) {
+    return { authorized: false, error: 'Akses ditolak: Silakan masuk terlebih dahulu.' };
+  }
+  return { authorized: true, profile };
+}
+
 export async function getUsers() {
   const supabase = await createAdminClient();
   // Jalankan sinkronisasi background jika ada profile belum tersinkron
@@ -75,23 +83,42 @@ export async function getUsers() {
 }
 
 export async function getLoginHistory(limit = 20) {
-  const authCheck = await requireAdmin();
+  const authCheck = await requireAuthenticatedUser();
   if (!authCheck.authorized) return [];
 
   try {
     const supabase = await createAdminClient();
-    const [{ data: rows, error }, { data: authUsers }] = await Promise.all([
+    const effectiveLimit = Math.min(Math.max(limit, 1), 50);
+
+    let rows: any[] | null = null;
+    const [fullResult, { data: authUsers }] = await Promise.all([
       supabase
+        .from('login_history')
+        .select('id, user_id, logged_in_at, logged_out_at, profiles:user_id(nama, username, role, foto_url, last_seen_at, bagian:bagian_id(nama))')
+        .order('logged_in_at', { ascending: false })
+        .limit(effectiveLimit),
+      supabase.auth.admin.listUsers({ perPage: 1000 }),
+    ]);
+
+    if (fullResult.error) {
+      // Fallback query jika kolom logged_out_at / last_seen_at belum dimigrasi di database
+      console.warn('Fallback login_history query tanpa kolom logout:', fullResult.error.message);
+      const { data: fallbackRows, error: fallbackError } = await supabase
         .from('login_history')
         .select('id, user_id, logged_in_at, profiles:user_id(nama, username, role, foto_url, bagian:bagian_id(nama))')
         .order('logged_in_at', { ascending: false })
-        .limit(Math.min(Math.max(limit, 1), 50)),
-      supabase.auth.admin.listUsers({ perPage: 1000 }),
-    ]);
-    if (error || !rows) {
-      if (error) console.error('Error fetching login history:', error);
-      return [];
+        .limit(effectiveLimit);
+
+      if (fallbackError || !fallbackRows) {
+        console.error('Error fetching login history:', fallbackError);
+        return [];
+      }
+      rows = fallbackRows;
+    } else {
+      rows = fullResult.data;
     }
+
+    if (!rows) return [];
 
     const emailMap = new Map((authUsers?.users || []).map((user) => [user.id, user.email || '']));
     return rows.map((row: any) => {
@@ -101,6 +128,8 @@ export async function getLoginHistory(limit = 20) {
         id: row.id,
         userId: row.user_id,
         loggedInAt: row.logged_in_at,
+        loggedOutAt: row.logged_out_at || null,
+        lastSeenAt: profile?.last_seen_at || null,
         nama: profile?.nama || 'Pengguna',
         username: profile?.username || '—',
         email: emailMap.get(row.user_id) || '',

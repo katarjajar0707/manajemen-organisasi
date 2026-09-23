@@ -63,6 +63,38 @@ export async function login(formData: FormData) {
 
 export async function logout() {
   const supabase = await createClient();
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const now = new Date().toISOString();
+      // Perbarui waktu terakhir aktif di profil pengguna
+      await supabase
+        .from('profiles')
+        .update({ last_seen_at: now })
+        .eq('id', user.id);
+
+      // Cari sesi login terakhir pengguna yang belum tercatat logout
+      const { data: latestLogin } = await supabase
+        .from('login_history')
+        .select('id')
+        .eq('user_id', user.id)
+        .is('logged_out_at', null)
+        .order('logged_in_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestLogin) {
+        await supabase
+          .from('login_history')
+          .update({ logged_out_at: now })
+          .eq('id', latestLogin.id);
+      }
+    }
+  } catch (error) {
+    console.warn('[auth-logout] Gagal mencatat waktu logout:', error);
+  }
+
   await supabase.auth.signOut();
   
   revalidatePath("/", "layout");
