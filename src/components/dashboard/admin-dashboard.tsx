@@ -181,7 +181,7 @@ export function AdminDashboard({ profile, summaryData, announcements, diskusis, 
                 </div>
               </CardHeader>
               <CardContent className="p-3.5 pt-0 sm:p-4 sm:pt-0">
-                <div className="text-base sm:text-lg font-bold truncate">{formatRupiah(summaryData.keuangan.saldoAkhir)}</div>
+                <div className="text-base sm:text-lg font-bold truncate tabular-nums">{formatRupiah(summaryData.keuangan.saldoAkhir)}</div>
                 <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">
                   <TrendingUp className="h-3 w-3 shrink-0" />
                   <span>{saldoPersen}% dari pemasukan</span>
@@ -346,14 +346,14 @@ export function AdminDashboard({ profile, summaryData, announcements, diskusis, 
                   <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   <span className="text-sm text-muted-foreground">Total Masuk</span>
                 </div>
-                <span className="font-semibold text-sm text-emerald-600">{formatRupiah(summaryData.keuangan.totalMasuk)}</span>
+                <span className="font-semibold text-sm tabular-nums text-emerald-600">{formatRupiah(summaryData.keuangan.totalMasuk)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
                   <span className="text-sm text-muted-foreground">Total Keluar</span>
                 </div>
-                <span className="font-semibold text-sm text-rose-600">{formatRupiah(summaryData.keuangan.totalKeluar)}</span>
+                <span className="font-semibold text-sm tabular-nums text-rose-600">{formatRupiah(summaryData.keuangan.totalKeluar)}</span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -361,7 +361,7 @@ export function AdminDashboard({ profile, summaryData, announcements, diskusis, 
                   <div className="h-2.5 w-2.5 rounded-full bg-primary" />
                   <span className="text-sm font-semibold">Saldo Akhir</span>
                 </div>
-                <span className="font-bold text-sm text-primary">{formatRupiah(summaryData.keuangan.saldoAkhir)}</span>
+                <span className="font-bold text-sm tabular-nums text-primary">{formatRupiah(summaryData.keuangan.saldoAkhir)}</span>
               </div>
             </div>
 
@@ -709,7 +709,7 @@ export async function AdminDashboardFinance() {
         ].map(([label, value, color]) => (
           <div key={String(label)} className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{label}</span>
-            <span className={`font-semibold text-sm ${color}`}>{formatRupiah(Number(value))}</span>
+            <span className={`font-semibold text-sm tabular-nums ${color}`}>{formatRupiah(Number(value))}</span>
           </div>
         ))}
         <Separator />

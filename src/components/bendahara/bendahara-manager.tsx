@@ -906,7 +906,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div suppressHydrationWarning className="text-2xl font-extrabold text-foreground dark:text-blue-300">
+              <div suppressHydrationWarning className="text-2xl font-extrabold tabular-nums text-foreground dark:text-blue-300">
                 {dataReady ? formatRupiah(saldo.sisa) : <span className="inline-block h-7 w-36 animate-pulse rounded bg-muted" />}
               </div>
               <p className="text-xs text-muted-foreground dark:text-blue-400/80 font-medium mt-1">Kas Umum Keseluruhan</p>
@@ -923,7 +923,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div suppressHydrationWarning className="text-lg font-extrabold text-emerald-800 dark:text-emerald-300 sm:text-2xl">
+              <div suppressHydrationWarning className="text-lg font-extrabold tabular-nums text-emerald-800 dark:text-emerald-300 sm:text-2xl">
                 {dataReady ? formatRupiah(saldo.masuk) : <span className="inline-block h-7 w-32 animate-pulse rounded bg-muted" />}
               </div>
               <p className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Masuk</p>
@@ -941,7 +941,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div suppressHydrationWarning className="text-lg font-extrabold text-rose-800 dark:text-rose-300 sm:text-2xl">
+              <div suppressHydrationWarning className="text-lg font-extrabold tabular-nums text-rose-800 dark:text-rose-300 sm:text-2xl">
                 {dataReady ? formatRupiah(saldo.keluar) : <span className="inline-block h-7 w-32 animate-pulse rounded bg-muted" />}
               </div>
               <p className="text-[10px] text-slate-700 dark:text-rose-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Keluar</p>
@@ -1046,7 +1046,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                             </div>
                             <div className="flex items-center justify-between text-xs gap-1">
                               <span className="text-muted-foreground text-[10px] sm:text-[11px]">Realisasi vs Target:</span>
-                              <span className="font-semibold font-mono text-[11px] sm:text-xs text-foreground truncate">
+                              <span className="font-semibold font-mono tabular-nums text-[11px] sm:text-xs text-foreground truncate">
                                 {formatRupiah(item.realisasi)} / {formatRupiah(item.target_rab)} ({item.persentase}%)
                               </span>
                             </div>
@@ -1091,12 +1091,27 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
 
               <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full xl:w-auto">
                 {/* Filter Semua, Kas Masuk, Kas Keluar */}
-                <div className="flex w-full items-center p-1 rounded-lg bg-muted/60 border border-border/70 text-xs sm:w-auto">
+                <div role="tablist" aria-label="Filter jenis transaksi" className="flex w-full items-center p-1 rounded-lg bg-muted/60 border border-border/70 text-xs sm:w-auto">
                   <button
                     type="button"
+                    role="tab"
+                    id="tab-filter-semua"
+                    aria-selected={filterJenis === 'semua'}
+                    tabIndex={filterJenis === 'semua' ? 0 : -1}
                     onClick={() => setFilterJenis('semua')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        setFilterJenis('masuk');
+                        document.getElementById('tab-filter-masuk')?.focus();
+                      } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        setFilterJenis('keluar');
+                        document.getElementById('tab-filter-keluar')?.focus();
+                      }
+                    }}
                     className={cn(
-                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs cursor-pointer whitespace-nowrap',
+                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       filterJenis === 'semua' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
@@ -1104,9 +1119,24 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                   </button>
                   <button
                     type="button"
+                    role="tab"
+                    id="tab-filter-masuk"
+                    aria-selected={filterJenis === 'masuk'}
+                    tabIndex={filterJenis === 'masuk' ? 0 : -1}
                     onClick={() => setFilterJenis('masuk')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        setFilterJenis('keluar');
+                        document.getElementById('tab-filter-keluar')?.focus();
+                      } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        setFilterJenis('semua');
+                        document.getElementById('tab-filter-semua')?.focus();
+                      }
+                    }}
                     className={cn(
-                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap',
+                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       filterJenis === 'masuk' ? 'bg-emerald-600 text-white shadow-xs' : 'text-muted-foreground hover:text-emerald-600',
                     )}
                   >
@@ -1115,9 +1145,24 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                   </button>
                   <button
                     type="button"
+                    role="tab"
+                    id="tab-filter-keluar"
+                    aria-selected={filterJenis === 'keluar'}
+                    tabIndex={filterJenis === 'keluar' ? 0 : -1}
                     onClick={() => setFilterJenis('keluar')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        setFilterJenis('semua');
+                        document.getElementById('tab-filter-semua')?.focus();
+                      } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        setFilterJenis('masuk');
+                        document.getElementById('tab-filter-masuk')?.focus();
+                      }
+                    }}
                     className={cn(
-                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap',
+                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       filterJenis === 'keluar' ? 'bg-rose-600 text-white shadow-xs' : 'text-muted-foreground hover:text-rose-600',
                     )}
                   >
@@ -1186,7 +1231,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                           {(trx.displayKeterangan || trx.keterangan) && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{trx.displayKeterangan || trx.keterangan}</div>}
                           <div className="text-[10px] text-muted-foreground mt-1">Oleh: {trx.author?.nama || 'Unknown'}</div>
                         </td>
-                        <td suppressHydrationWarning className={`px-3 sm:px-6 py-3.5 text-right font-semibold whitespace-nowrap ${trx.jenis === 'masuk' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <td suppressHydrationWarning className={`px-3 sm:px-6 py-3.5 text-right font-semibold tabular-nums whitespace-nowrap ${trx.jenis === 'masuk' ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {formatRupiah(trx.jumlah)}
                         </td>
                         <td className="px-3 sm:px-6 py-3.5 text-center whitespace-nowrap">
@@ -1380,9 +1425,9 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
                       </div>
 
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground gap-2">
-                        <span>Realisasi Saat Ini: {formatRupiah(rabPreview.currentRealisasi)}</span>
+                        <span className="tabular-nums">Realisasi Saat Ini: {formatRupiah(rabPreview.currentRealisasi)}</span>
                         {rabPreview.nominalNum > 0 && (
-                          <span className="font-semibold font-mono text-emerald-700 dark:text-emerald-300 truncate">
+                          <span className="font-semibold font-mono tabular-nums text-emerald-700 dark:text-emerald-300 truncate">
                             {jenis === 'masuk' ? '+' : '-'} {formatRupiah(rabPreview.nominalNum)} ({rabPreview.deltaPct}%)
                           </span>
                         )}

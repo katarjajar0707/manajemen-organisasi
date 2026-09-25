@@ -143,23 +143,32 @@ export function LoginHistoryPanel({ items }: { items: LoginHistoryItem[] }) {
     return candidates[0].time;
   };
 
+  // Ambil hanya 1 entri login terbaru per akun pengguna (maks 7 akun unik)
+  const uniqueItemsMap = new Map<string, LoginHistoryItem>();
+  for (const item of items) {
+    if (item.userId && !uniqueItemsMap.has(item.userId)) {
+      uniqueItemsMap.set(item.userId, item);
+    }
+  }
+  const displayItems = Array.from(uniqueItemsMap.values()).slice(0, 7);
+
   return (
     <Card className="overflow-hidden border-violet-200/70 bg-gradient-to-br from-card via-card to-violet-500/5 shadow-sm dark:border-violet-900/50">
       <CardHeader className="border-b border-border/60 pb-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-violet-600" />Riwayat login pengguna</CardTitle>
-            <CardDescription className="mt-1">20 login sukses terbaru dari seluruh akun.</CardDescription>
+            <CardDescription className="mt-1">7 login terbaru dari akun pengguna berbeda.</CardDescription>
           </div>
           <Badge variant="outline" className="gap-1 border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"><Radio className="h-3 w-3" />Live</Badge>
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {items.length === 0 ? (
+        {displayItems.length === 0 ? (
           <div className="flex min-h-40 flex-col items-center justify-center gap-2 px-4 text-center text-sm text-muted-foreground"><ShieldCheck className="h-7 w-7 text-muted-foreground/60" />Belum ada riwayat login yang tercatat.</div>
         ) : (
           <div className="divide-y divide-border/60">
-            {items.map((item) => {
+            {displayItems.map((item) => {
               const online = isUserOnline(item.userId);
               const offTime = !online ? getUserOffTime(item) : null;
 

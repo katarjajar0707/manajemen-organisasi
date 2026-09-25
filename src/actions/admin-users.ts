@@ -82,7 +82,7 @@ export async function getUsers() {
   return normalized;
 }
 
-export async function getLoginHistory(limit = 20) {
+export async function getLoginHistory(limit = 7) {
   const authCheck = await requireAuthenticatedUser();
   if (!authCheck.authorized) return [];
 
@@ -90,13 +90,15 @@ export async function getLoginHistory(limit = 20) {
     const supabase = await createAdminClient();
     const effectiveLimit = Math.min(Math.max(limit, 1), 50);
 
+    const fetchBatchLimit = Math.min(Math.max(effectiveLimit * 10, 50), 200);
+
     let rows: any[] | null = null;
     const [fullResult, { data: authUsers }] = await Promise.all([
       supabase
         .from('login_history')
         .select('id, user_id, logged_in_at, logged_out_at, profiles:user_id(nama, username, role, foto_url, last_seen_at, bagian:bagian_id(nama))')
         .order('logged_in_at', { ascending: false })
-        .limit(effectiveLimit),
+        .limit(fetchBatchLimit),
       supabase.auth.admin.listUsers({ perPage: 1000 }),
     ]);
 
@@ -107,7 +109,7 @@ export async function getLoginHistory(limit = 20) {
         .from('login_history')
         .select('id, user_id, logged_in_at, profiles:user_id(nama, username, role, foto_url, bagian:bagian_id(nama))')
         .order('logged_in_at', { ascending: false })
-        .limit(effectiveLimit);
+        .limit(fetchBatchLimit);
 
       if (fallbackError || !fallbackRows) {
         console.error('Error fetching login history:', fallbackError);
@@ -120,8 +122,22 @@ export async function getLoginHistory(limit = 20) {
 
     if (!rows) return [];
 
+    // Deduplikasi berdasarkan user_id (ambil 1 baris login paling baru per user)
+    const uniqueUserRows: any[] = [];
+    const seenUserIds = new Set<string>();
+
+    for (const row of rows) {
+      if (row.user_id && !seenUserIds.has(row.user_id)) {
+        seenUserIds.add(row.user_id);
+        uniqueUserRows.push(row);
+        if (uniqueUserRows.length >= effectiveLimit) {
+          break;
+        }
+      }
+    }
+
     const emailMap = new Map((authUsers?.users || []).map((user) => [user.id, user.email || '']));
-    return rows.map((row: any) => {
+    return uniqueUserRows.map((row: any) => {
       const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
       const bagian = Array.isArray(profile?.bagian) ? profile.bagian[0] : profile?.bagian;
       return {

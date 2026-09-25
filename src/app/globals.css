@@ -323,6 +323,16 @@ body {
   html {
     scroll-behavior: auto;
   }
+
+  /* Kill semua animasi dan transisi untuk pengguna yang sensitif gerakan */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .app-scroll-container {
@@ -368,11 +378,13 @@ body {
   0%   { transform: translate(0%, 0%);   opacity: 1; }
   100% { transform: translate(100%, 0%); opacity: 0; }
 }
-.animate-star-movement-bottom {
-  animation: star-movement-bottom linear infinite alternate;
-}
-.animate-star-movement-top {
-  animation: star-movement-top linear infinite alternate;
+@media (prefers-reduced-motion: no-preference) {
+  .animate-star-movement-bottom {
+    animation: star-movement-bottom linear infinite alternate;
+  }
+  .animate-star-movement-top {
+    animation: star-movement-top linear infinite alternate;
+  }
 }
 
 /* Scrollbar custom */
@@ -391,8 +403,10 @@ body {
   background: hsl(var(--primary) / 0.5);
 }
 
-/* Smooth transitions */
-* {
-  transition-property: color, background-color, border-color, box-shadow;
-  transition-duration: 150ms;
+/* Smooth transitions — hanya aktif jika pengguna tidak prefer reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-duration: 150ms;
+  }
 }

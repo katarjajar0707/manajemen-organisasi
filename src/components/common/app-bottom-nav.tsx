@@ -21,7 +21,15 @@ export function AppBottomNav() {
     const isActive = pathname === item.href;
 
     return (
-      <Link key={item.href} href={item.href} className={cn('group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[10px] font-medium transition-all duration-200 active:scale-95', isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={isActive ? 'page' : undefined}
+        className={cn(
+          'group flex min-w-[44px] min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[10px] font-medium transition-all duration-200 active:scale-95 touch-manipulation rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+        )}
+      >
         <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg transition-colors', isActive ? 'bg-primary/10' : 'group-hover:bg-muted')}>
           <Icon className={cn('h-4 w-4 transition-transform duration-200', isActive ? 'scale-110 stroke-[2.5]' : 'stroke-[1.8]')} />
         </span>
@@ -39,7 +47,11 @@ export function AppBottomNav() {
           const Icon = profileItem.icon;
           const isActive = pathname === profileItem.href;
           return (
-            <Link href={profileItem.href} aria-current={isActive ? 'page' : undefined} className="group relative flex min-w-0 flex-1 flex-col items-center justify-end pb-1 text-[10px] font-semibold text-primary transition-transform duration-200 active:scale-95">
+            <Link
+              href={profileItem.href}
+              aria-current={isActive ? 'page' : undefined}
+              className="group relative flex min-w-[44px] min-h-[44px] flex-1 flex-col items-center justify-end pb-1 text-[10px] font-semibold text-primary transition-transform duration-200 active:scale-95 touch-manipulation rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               <span className={cn('absolute -top-5 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background bg-primary text-primary-foreground shadow-[0_10px_22px_var(--primary-glow)] transition-all duration-200 group-hover:-translate-y-0.5 group-focus-visible:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-primary/35 group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background', isActive && 'ring-2 ring-primary/25 ring-offset-2 ring-offset-background')}>
                 <Icon className={cn('h-5 w-5 transition-transform duration-200', isActive && 'scale-110 stroke-[2.5]')} />
               </span>
@@ -50,7 +62,16 @@ export function AppBottomNav() {
 
         {rightItems.map(renderRegularItem)}
 
-        <button type="button" onClick={toggleMobile} aria-expanded={isMobileOpen} aria-label="Buka menu lengkap" className={cn('group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[10px] font-medium transition-all duration-200 active:scale-95', isMobileOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+        <button
+          type="button"
+          onClick={toggleMobile}
+          aria-expanded={isMobileOpen}
+          aria-label="Buka menu lengkap"
+          className={cn(
+            'group flex min-w-[44px] min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[10px] font-medium transition-all duration-200 active:scale-95 touch-manipulation rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            isMobileOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
           <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg transition-colors', isMobileOpen ? 'bg-primary/10' : 'group-hover:bg-muted')}>
             <LayoutGrid className={cn('h-4 w-4 transition-transform duration-200', isMobileOpen ? 'scale-110 stroke-[2.5]' : 'stroke-[1.8]')} />
           </span>

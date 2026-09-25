@@ -406,6 +406,8 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
+              aria-label={`Menu pengguna — ${userName}`}
+              aria-haspopup="menu"
               className={cn('flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden shrink-0', 'text-primary-foreground font-bold text-xs', 'transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40')}
               style={
                 !avatarUrl || imgError
@@ -416,7 +418,7 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
                   : undefined
               }
             >
-              {avatarUrl && !imgError ? <PreviewImage src={avatarUrl} alt={userName} onError={() => setImgError(true)} className="h-full w-full object-cover" /> : initials || 'KT'}
+              {avatarUrl && !imgError ? <PreviewImage src={avatarUrl} alt="" aria-hidden="true" onError={() => setImgError(true)} className="h-full w-full object-cover" /> : <span aria-hidden="true">{initials || 'KT'}</span>}
             </button>
           </DropdownMenuTrigger>
 
