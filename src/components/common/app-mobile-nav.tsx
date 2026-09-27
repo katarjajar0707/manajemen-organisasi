@@ -173,8 +173,8 @@ export function AppMobileNav({ userRole: propUserRole, userBagianSlug, orgLogoUr
           )}
         </div>
 
-        <div className="sticky bottom-0 z-10 border-t border-border/70 bg-background/95 backdrop-blur-sm p-3">
-          <ColorThemeSwitcher showDivider={false} className="mt-0 bg-transparent p-0" />
+        <div className="sticky bottom-0 z-10 border-t border-border/70 bg-background/95 backdrop-blur-sm px-4 py-3">
+          <ColorThemeSwitcher inline showDivider={false} className="mt-0 bg-transparent p-0" />
         </div>
       </aside>
     </div>

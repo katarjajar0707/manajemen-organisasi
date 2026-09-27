@@ -1,4 +1,4 @@
-import { LayoutDashboard, Home, User, Users, Building2, FolderKanban, Calendar, MessagesSquare, Package, FileText, Archive, Wallet, ShieldCheck, Settings, KeyRound, NotebookPen } from 'lucide-react';
+import { LayoutDashboard, Home, User, Users, Building2, FolderKanban, Calendar, MessagesSquare, Package, FileText, Archive, Wallet, ShieldCheck, Settings, NotebookPen } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -91,12 +91,6 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: 'Manajemen Pengguna',
     href: '/pengguna',
     icon: ShieldCheck,
-    roles: ['admin'],
-  },
-  {
-    title: 'Manajemen Akses',
-    href: '/akses',
-    icon: KeyRound,
     roles: ['admin'],
   },
   {

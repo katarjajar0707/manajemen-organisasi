@@ -16,7 +16,6 @@ const PAGE_COPY: Record<string, { title: string; description: string; mode: 'tab
   '/pengumuman': { title: 'Pengumuman', description: 'Kelola pengumuman organisasi.', mode: 'cards' },
   '/aspirasi': { title: 'Kanal Aspirasi & Masukan Warga', description: 'Daftar aspirasi dan masukan warga.', mode: 'table' },
   '/pengguna': { title: 'Manajemen Pengguna', description: 'Kelola akun dan akses pengguna.', mode: 'table' },
-  '/akses': { title: 'Manajemen Akses', description: 'Kelola akses pengguna organisasi.', mode: 'table' },
   '/struktur': { title: 'Struktur Organisasi', description: 'Kelola struktur dan agenda organisasi.', mode: 'cards' },
   '/struktur/agenda': { title: 'Agenda Organisasi', description: 'Kelola agenda organisasi.', mode: 'cards' },
   '/keuangan': { title: 'Catatan Keuangan', description: 'Kelola transaksi dan keuangan organisasi.', mode: 'table' },

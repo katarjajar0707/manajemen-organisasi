@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Wallet, Users, Calendar, Megaphone, MessagesSquare, ArrowRight, TrendingUp, TrendingDown, PlusCircle, MessageCircle, ShieldCheck, Settings, Building2, KeyRound, Activity, BarChart3, UserCheck, Clock, Sparkles } from 'lucide-react';
+import { Wallet, Users, Calendar, Megaphone, MessagesSquare, ArrowRight, TrendingUp, TrendingDown, PlusCircle, MessageCircle, ShieldCheck, Settings, Building2, Activity, BarChart3, UserCheck, Clock, Sparkles } from 'lucide-react';
 import { LogoutButton } from '@/components/common/logout-button';
 import { DashboardAnnouncementBanner } from '@/components/dashboard/dashboard-announcement-banner';
 import { PublicTransparencyData } from '@/actions/transparansi';
@@ -70,15 +70,6 @@ const ADMIN_QUICK_ACTIONS = [
     color: 'text-sky-600',
     bg: 'bg-sky-50 dark:bg-sky-950/30',
     border: 'border-sky-200/60 dark:border-sky-800/40 hover:border-sky-400/60',
-  },
-  {
-    title: 'Manajemen Akses',
-    desc: 'Konfigurasi izin & hak akses role',
-    href: '/akses',
-    icon: KeyRound,
-    color: 'text-amber-600',
-    bg: 'bg-amber-50 dark:bg-amber-950/30',
-    border: 'border-amber-200/60 dark:border-amber-800/40 hover:border-amber-400/60',
   },
   {
     title: 'Pengaturan Sistem',

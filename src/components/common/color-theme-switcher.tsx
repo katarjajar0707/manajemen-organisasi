@@ -33,12 +33,15 @@ export function ColorThemeSwitcher({
   isCollapsed = false,
   showDivider = true,
   compact = false,
+  inline = false,
   label = 'Tema Warna',
   className,
 }: {
   isCollapsed?: boolean;
   showDivider?: boolean;
   compact?: boolean;
+  /** Render color swatches inline instead of in a dropdown portal. Use in mobile drawers to prevent focus-trap conflicts. */
+  inline?: boolean;
   label?: string;
   className?: string;
 }) {
@@ -61,6 +64,55 @@ export function ColorThemeSwitcher({
 
   const selectedOption = colorThemeOptions.find((option) => option.id === selectedTheme) ?? colorThemeOptions[0];
 
+  // ── Inline mode: render swatches directly (for mobile drawers) ──
+  if (inline) {
+    return (
+      <div
+        className={cn('w-full', className)}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <Palette className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="text-xs font-semibold text-foreground truncate">{label}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {colorThemeOptions.map((option) => {
+              const isActive = selectedTheme === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-label={`Tema ${option.label}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedTheme(option.id);
+                  }}
+                  className={cn(
+                    'relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all duration-200 cursor-pointer',
+                    'hover:scale-110 active:scale-95',
+                    isActive
+                      ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background scale-110'
+                      : 'ring-1 ring-border/40 hover:ring-border'
+                  )}
+                  style={{
+                    background: `linear-gradient(135deg, ${option.swatch}, ${option.accent})`,
+                  }}
+                >
+                  {isActive && (
+                    <Check className="h-3 w-3 text-white drop-shadow-sm" strokeWidth={3} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Dropdown mode (default, for desktop sidebar & settings) ──
   const triggerButton = compact ? (
     <button
       type="button"
@@ -198,3 +250,4 @@ export function ColorThemeSwitcher({
     </div>
   );
 }
+

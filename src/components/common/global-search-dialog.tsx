@@ -24,7 +24,6 @@ import {
   Archive,
   User,
   ShieldCheck,
-  KeyRound,
   Settings,
   ArrowRight,
 } from "lucide-react";
@@ -142,14 +141,6 @@ const SEARCH_ITEMS: SearchItem[] = [
     description: "Kelola akun login dan hak akses role admin",
     icon: ShieldCheck,
     keywords: "pengguna user akun role admin ketua",
-  },
-  {
-    title: "Manajemen Akses & RLS",
-    category: "Pengaturan",
-    href: "/akses",
-    description: "Hak otorisasi dan matriks perizinan bagian",
-    icon: KeyRound,
-    keywords: "akses izin rls matrix security",
   },
   {
     title: "Pengaturan Sistem",

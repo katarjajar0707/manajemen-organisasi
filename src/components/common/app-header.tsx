@@ -41,7 +41,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   agenda: 'Agenda',
   profil: 'Profil',
   pengaturan: 'Pengaturan',
-  akses: 'Manajemen Akses',
   notifikasi: 'Notifikasi',
 };
 
