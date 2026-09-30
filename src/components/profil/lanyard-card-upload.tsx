@@ -17,7 +17,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const CARD_WIDTH = 600;
 const CARD_HEIGHT = 900;
 
-const Lanyard = dynamic(() => import('@/components/Lanyard'), { ssr: false });
+const Lanyard = dynamic(() => import(/* webpackChunkName: "rapier-lanyard" */ '@/components/Lanyard'), { ssr: false });
 
 function drawCrop(image: HTMLImageElement, zoom: number): Promise<Blob> {
   const canvas = document.createElement('canvas');

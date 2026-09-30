@@ -19,6 +19,13 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === 'development',
   workboxOptions: {
     runtimeCaching: staticRuntimeCaching,
+    exclude: [
+      /\.map$/,
+      /^manifest.*\.js$/,
+      /.*rapier.*/i,
+      /.*heic2any.*/i,
+      /.*lanyard.*/i,
+    ],
   },
 });
 

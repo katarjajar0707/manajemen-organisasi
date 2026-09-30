@@ -9,7 +9,7 @@ import FoldText from '@/components/public/fold-text';
 import TextType from '@/components/public/text-type';
 import { createClient } from '@/lib/supabase/client';
 
-const Lanyard = dynamic(() => import('@/components/Lanyard'), {
+const Lanyard = dynamic(() => import(/* webpackChunkName: "rapier-lanyard" */ '@/components/Lanyard'), {
   ssr: false,
   loading: () => (
     <div
