@@ -386,3 +386,5 @@ ketika admin menambahkan departement atau jabatan maka otomatis terhubung ke inv
 - Papan diskusi & catatan umum bisa dilihat semua role/departemen (berbeda dari catatan biasa yang privat per bagian).
 - Hanya role `ketua` & `admin` yang bisa membuat **agenda organisasi baru**; anggota biasa hanya bisa melihat.
 - Role user **tidak bisa diubah sendiri** lewat halaman profil — perubahan role eksklusif lewat menu admin.
+
+noted
