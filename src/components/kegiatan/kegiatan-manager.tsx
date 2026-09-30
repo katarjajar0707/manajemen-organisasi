@@ -1,53 +1,29 @@
-"use client";
+'use client';
 
-import { useState, useMemo, useEffect, useTransition } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useMemo, useTransition } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Calendar as CalendarIcon,
   Plus,
-  MapPin,
-  Camera,
-  Pencil,
-  Trash2,
   Search,
-  Clock,
-  Users,
   LayoutList,
   LayoutGrid,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
   AlertCircle,
-  Building2,
-} from "lucide-react";
-import Link from "next/link";
+} from 'lucide-react';
 import {
   KegiatanData,
   createKegiatan,
   updateKegiatan,
   deleteKegiatan,
-} from "@/actions/kegiatan";
+} from '@/actions/kegiatan';
+import { StatCard } from './components/stat-card';
+import { MiniCalendar } from './components/mini-calendar';
+import { KegiatanFormDialog, KegiatanFormData } from './components/kegiatan-form-dialog';
+import { DeleteKegiatanDialog } from './components/delete-kegiatan-dialog';
+import { KegiatanCard } from './components/kegiatan-card';
 
 interface BagianItem {
   id: string;
@@ -63,427 +39,18 @@ interface KegiatanManagerProps {
   currentUserBagianId?: string | null;
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  Mendatang: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  Berlangsung: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  Selesai: "bg-muted text-muted-foreground border-border",
-};
-
-function formatTanggal(dateStr: string) {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("id-ID", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatTanggalShort(dateStr: string) {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-}
-
-// ─── Mini Calendar ────────────────────────────────────────────────────────────
-function MiniCalendar({
-  kegiatan,
-  onSelectDate,
-}: {
-  kegiatan: KegiatanData[];
-  onSelectDate?: (dateStr: string) => void;
-}) {
-  const today = new Date();
-  const [current, setCurrent] = useState({ year: today.getFullYear(), month: today.getMonth() });
-
-  const daysInMonth = new Date(current.year, current.month + 1, 0).getDate();
-  const firstDay = new Date(current.year, current.month, 1).getDay();
-
-  const eventDays = useMemo(() => {
-    const map: Record<number, KegiatanData[]> = {};
-    kegiatan.forEach((ev) => {
-      const d = new Date(ev.tanggalMulai + "T00:00:00");
-      if (d.getMonth() === current.month && d.getFullYear() === current.year) {
-        const day = d.getDate();
-        if (!map[day]) map[day] = [];
-        map[day].push(ev);
-      }
-    });
-    return map;
-  }, [kegiatan, current]);
-
-  const monthName = new Date(current.year, current.month).toLocaleDateString("id-ID", {
-    month: "long",
-    year: "numeric",
-  });
-
-  const prev = () =>
-    setCurrent((c) => {
-      const m = c.month - 1;
-      return m < 0 ? { year: c.year - 1, month: 11 } : { year: c.year, month: m };
-    });
-  const next = () =>
-    setCurrent((c) => {
-      const m = c.month + 1;
-      return m > 11 ? { year: c.year + 1, month: 0 } : { year: c.year, month: m };
-    });
-
-  const days: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) days.push(null);
-  for (let i = 1; i <= daysInMonth; i++) days.push(i);
-
-  return (
-    <Card className="border shadow-xs">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base capitalize">{monthName}</CardTitle>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prev}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={next}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="grid grid-cols-7 gap-0.5 text-center text-[11px] font-medium text-muted-foreground mb-1">
-          {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((d) => (
-            <div key={d} className="py-1">{d}</div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-0.5">
-          {days.map((day, i) => {
-            const isToday =
-              day === today.getDate() &&
-              current.month === today.getMonth() &&
-              current.year === today.getFullYear();
-            const events = day ? eventDays[day] : null;
-            return (
-              <div
-                key={i}
-                className={`relative aspect-square flex flex-col items-center justify-center rounded text-xs cursor-default
-                  ${day ? "hover:bg-muted/60" : ""}
-                  ${isToday ? "bg-primary text-primary-foreground font-bold" : ""}
-                `}
-              >
-                {day && (
-                  <>
-                    <span>{day}</span>
-                    {events && events.length > 0 && !isToday && (
-                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
-                        {events.slice(0, 2).map((_, idx) => (
-                          <span key={idx} className="h-1 w-1 rounded-full bg-primary" />
-                        ))}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Upcoming in this month */}
-        {Object.keys(eventDays).length > 0 && (
-          <div className="mt-4 space-y-2 border-t pt-3">
-            <p className="text-xs font-semibold text-muted-foreground">Kegiatan Bulan Ini</p>
-            {Object.entries(eventDays)
-              .sort(([a], [b]) => Number(a) - Number(b))
-              .map(([day, evs]) =>
-                evs.map((ev) => (
-                  <div key={ev.id} className="flex items-start gap-2 text-xs">
-                    <span className="w-6 text-right shrink-0 font-medium text-primary">{day}</span>
-                    <span className="text-muted-foreground leading-tight line-clamp-1">{ev.judul}</span>
-                  </div>
-                ))
-              )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({
-  label,
-  value,
-  sub,
-  color,
-}: {
-  label: string;
-  value: string | number;
-  sub: string;
-  color: string;
-}) {
-  return (
-    <div className={`rounded-xl border p-3 sm:p-4 ${color}`}>
-      <p className="text-xs font-medium opacity-75 truncate">{label}</p>
-      <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1 truncate">{value}</p>
-      <p className="text-[11px] sm:text-xs opacity-60 mt-0.5 truncate">{sub}</p>
-    </div>
-  );
-}
-
-// ─── Delete Confirm ───────────────────────────────────────────────────────────
-function DeleteDialog({
-  open,
-  kegiatan,
-  isPending,
-  onClose,
-  onConfirm,
-}: {
-  open: boolean;
-  kegiatan: KegiatanData | null;
-  isPending: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-destructive">Hapus Kegiatan</DialogTitle>
-          <DialogDescription className="text-xs">
-            Yakin ingin menghapus kegiatan{" "}
-            <strong className="text-foreground">&quot;{kegiatan?.judul}&quot;</strong>? Seluruh foto dokumentasi
-            yang terkait juga akan terhapus.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="gap-2 mt-3">
-          <Button variant="outline" size="sm" className="text-xs" onClick={onClose} disabled={isPending}>
-            Batal
-          </Button>
-          <Button variant="destructive" size="sm" className="text-xs gap-1.5" onClick={onConfirm} disabled={isPending}>
-            {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            <span>Hapus Kegiatan</span>
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Form Dialog ──────────────────────────────────────────────────────────────
-interface KegiatanFormData {
-  judul: string;
-  deskripsi: string;
-  tanggalMulai: string;
-  tanggalSelesai: string;
-  lokasi: string;
-  targetRab: number;
-}
-
-function KegiatanFormDialog({
-  open,
-  mode,
-  initial,
-  isPending,
-  errorMessage,
-  isAdminOrKetua = false,
-  onClose,
-  onSave,
-}: {
-  open: boolean;
-  mode: "create" | "edit";
-  initial: Partial<KegiatanData> | null;
-  isPending: boolean;
-  errorMessage: string | null;
-  isAdminOrKetua?: boolean;
-  onClose: () => void;
-  onSave: (data: KegiatanFormData) => void;
-}) {
-  const emptyForm: KegiatanFormData = {
-    judul: "",
-    deskripsi: "",
-    tanggalMulai: new Date().toISOString().split("T")[0],
-    tanggalSelesai: new Date().toISOString().split("T")[0],
-    lokasi: "Balai Warga RW 05",
-    targetRab: 0,
-  };
-
-  const [form, setForm] = useState<KegiatanFormData>(emptyForm);
-  const [rabDisplay, setRabDisplay] = useState("");
-
-  useEffect(() => {
-    if (open) {
-      if (initial) {
-        const rab = initial.targetRab ? Number(initial.targetRab) : 0;
-        setForm({
-          judul: initial.judul || "",
-          deskripsi: initial.deskripsi || "",
-          tanggalMulai: initial.tanggalMulai || emptyForm.tanggalMulai,
-          tanggalSelesai: initial.tanggalSelesai || initial.tanggalMulai || emptyForm.tanggalSelesai,
-          lokasi: initial.lokasi || "Balai Warga RW 05",
-          targetRab: rab,
-        });
-        setRabDisplay(rab > 0 ? new Intl.NumberFormat("id-ID").format(rab) : "");
-      } else {
-        setForm(emptyForm);
-        setRabDisplay("");
-      }
-    }
-  }, [open, initial]);
-
-  const handleSave = () => {
-    if (!form.judul || !form.tanggalMulai) return;
-    onSave(form);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-base flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5 text-primary" />
-            <span>{mode === "create" ? "Tambah Jadwal Kegiatan Baru" : "Edit Jadwal Kegiatan"}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Jadwal ini akan otomatis tampil di kalender organisasi dan dashboard transparansi warga.
-          </DialogDescription>
-        </DialogHeader>
-
-        {errorMessage && (
-          <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-lg flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        <div className="space-y-3.5 py-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Judul Kegiatan *</Label>
-            <Input
-              placeholder="Contoh: Kerja Bakti Lingkungan RW 05"
-              value={form.judul}
-              onChange={(e) => setForm((p) => ({ ...p, judul: e.target.value }))}
-              className="text-xs"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs">Deskripsi Kegiatan *</Label>
-            <Textarea
-              placeholder="Jelaskan tujuan kegiatan, susunan acara, dan imbauan..."
-              rows={3}
-              value={form.deskripsi}
-              onChange={(e) => setForm((p) => ({ ...p, deskripsi: e.target.value }))}
-              className="text-xs resize-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Tanggal Mulai *</Label>
-              <Input
-                type="date"
-                value={form.tanggalMulai}
-                onChange={(e) => setForm((p) => ({ ...p, tanggalMulai: e.target.value }))}
-                className="text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Tanggal Selesai</Label>
-              <Input
-                type="date"
-                value={form.tanggalSelesai}
-                onChange={(e) => setForm((p) => ({ ...p, tanggalSelesai: e.target.value }))}
-                className="text-xs"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs">Lokasi Kegiatan</Label>
-            <Input
-              placeholder="Contoh: Balai Warga & Lapangan RW 05"
-              value={form.lokasi}
-              onChange={(e) => setForm((p) => ({ ...p, lokasi: e.target.value }))}
-              className="text-xs"
-            />
-          </div>
-
-          {/* Target RAB (Rencana Anggaran Biaya) */}
-          {isAdminOrKetua ? (
-            <div className="space-y-1.5 pt-1 border-t">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Target RAB (Rp)</Label>
-                <span className="text-[10px] text-muted-foreground font-mono">Khusus Admin & Ketua</span>
-              </div>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs text-muted-foreground font-medium">Rp</span>
-                <Input
-                  type="text"
-                  placeholder="0"
-                  value={rabDisplay}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, "");
-                    if (val) {
-                      const num = parseInt(val, 10);
-                      setRabDisplay(new Intl.NumberFormat("id-ID").format(num));
-                      setForm((p) => ({ ...p, targetRab: num }));
-                    } else {
-                      setRabDisplay("");
-                      setForm((p) => ({ ...p, targetRab: 0 }));
-                    }
-                  }}
-                  className="pl-9 text-xs font-mono"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Target rencana anggaran biaya (RAB) kas untuk agenda ini. Akan dipantau realisasinya di modul Keuangan.
-              </p>
-            </div>
-          ) : (
-            form.targetRab > 0 && (
-              <div className="p-2.5 rounded-lg bg-muted/40 border text-xs space-y-1">
-                <span className="text-[11px] text-muted-foreground font-medium">Target RAB Terdaftar:</span>
-                <p className="font-semibold font-mono text-emerald-600 dark:text-emerald-400">
-                  Rp {new Intl.NumberFormat("id-ID").format(form.targetRab)}
-                </p>
-                <p className="text-[10px] text-muted-foreground">Hanya Admin dan Ketua yang berwenang mengubah nominal Target RAB.</p>
-              </div>
-            )
-          )}
-        </div>
-
-        <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" className="text-xs" onClick={onClose} disabled={isPending}>
-            Batal
-          </Button>
-          <Button
-            size="sm"
-            className="text-xs bg-primary hover:bg-primary/90 gap-1.5"
-            onClick={handleSave}
-            disabled={isPending}
-          >
-            {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            <span>{mode === "create" ? "Simpan Jadwal" : "Perbarui Jadwal"}</span>
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 export function KegiatanManager({
   initialKegiatan = [],
-  bagianList = [],
-  userRole = "anggota",
+  userRole = 'anggota',
   currentUserId,
-  currentUserBagianId,
 }: KegiatanManagerProps) {
   const [kegiatan, setKegiatan] = useState<KegiatanData[]>(initialKegiatan);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Semua");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Semua');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editTarget, setEditTarget] = useState<KegiatanData | null>(null);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -492,7 +59,7 @@ export function KegiatanManager({
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isAdminOrKetua = userRole === "admin" || userRole === "ketua";
+  const isAdminOrKetua = userRole === 'admin' || userRole === 'ketua';
 
   // Filtered
   const filtered = useMemo(() => {
@@ -501,7 +68,7 @@ export function KegiatanManager({
         k.judul.toLowerCase().includes(search.toLowerCase()) ||
         k.lokasi.toLowerCase().includes(search.toLowerCase()) ||
         k.penanggungJawab.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === "Semua" || k.status === statusFilter;
+      const matchStatus = statusFilter === 'Semua' || k.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [kegiatan, search, statusFilter]);
@@ -510,9 +77,9 @@ export function KegiatanManager({
   const counts = useMemo(
     () => ({
       total: kegiatan.length,
-      mendatang: kegiatan.filter((k) => k.status === "Mendatang").length,
-      berlangsung: kegiatan.filter((k) => k.status === "Berlangsung").length,
-      selesai: kegiatan.filter((k) => k.status === "Selesai").length,
+      mendatang: kegiatan.filter((k) => k.status === 'Mendatang').length,
+      berlangsung: kegiatan.filter((k) => k.status === 'Berlangsung').length,
+      selesai: kegiatan.filter((k) => k.status === 'Selesai').length,
       totalFoto: kegiatan.reduce((acc, curr) => acc + curr.totalFoto, 0),
     }),
     [kegiatan]
@@ -520,14 +87,14 @@ export function KegiatanManager({
 
   const handleOpenCreate = () => {
     setEditTarget(null);
-    setFormMode("create");
+    setFormMode('create');
     setErrorMessage(null);
     setFormOpen(true);
   };
 
   const handleOpenEdit = (k: KegiatanData) => {
     setEditTarget(k);
-    setFormMode("edit");
+    setFormMode('edit');
     setErrorMessage(null);
     setFormOpen(true);
   };
@@ -537,14 +104,14 @@ export function KegiatanManager({
 
     startTransition(async () => {
       const formData = new FormData();
-      formData.set("judul", data.judul);
-      formData.set("deskripsi", data.deskripsi);
-      formData.set("tanggal_mulai", data.tanggalMulai);
-      formData.set("tanggal_selesai", data.tanggalSelesai);
-      formData.set("lokasi", data.lokasi);
-      formData.set("target_rab", String(data.targetRab || 0));
+      formData.set('judul', data.judul);
+      formData.set('deskripsi', data.deskripsi);
+      formData.set('tanggal_mulai', data.tanggalMulai);
+      formData.set('tanggal_selesai', data.tanggalSelesai);
+      formData.set('lokasi', data.lokasi);
+      formData.set('target_rab', String(data.targetRab || 0));
 
-      if (formMode === "edit" && editTarget) {
+      if (formMode === 'edit' && editTarget) {
         const res = await updateKegiatan(editTarget.id, formData);
         if (res.error) {
           setErrorMessage(res.error);
@@ -558,8 +125,8 @@ export function KegiatanManager({
                   ...k,
                   ...data,
                   targetRab: data.targetRab || 0,
-                  bagianNama: "Semua Bagian",
-                  penanggungJawab: "Semua Bagian",
+                  bagianNama: 'Semua Bagian',
+                  penanggungJawab: 'Semua Bagian',
                 }
               : k
           )
@@ -577,15 +144,15 @@ export function KegiatanManager({
           deskripsi: data.deskripsi,
           tanggalMulai: data.tanggalMulai,
           tanggalSelesai: data.tanggalSelesai,
-          waktuMulai: "00:00",
-          waktuSelesai: "23:59",
+          waktuMulai: '00:00',
+          waktuSelesai: '23:59',
           lokasi: data.lokasi,
-          bagianId: "",
-          bagianNama: "Semua Bagian",
-          penanggungJawab: "Semua Bagian",
+          bagianId: '',
+          bagianNama: 'Semua Bagian',
+          penanggungJawab: 'Semua Bagian',
           totalFoto: 0,
-          status: "Mendatang",
-          dibuatOleh: currentUserId || "",
+          status: 'Mendatang',
+          dibuatOleh: currentUserId || '',
           createdAt: new Date().toISOString(),
           targetRab: data.targetRab || 0,
         };
@@ -670,7 +237,7 @@ export function KegiatanManager({
 
       {/* Main Content: Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Tabs & Event List */}
+        {/* Left 2 Cols: Event List / Grid */}
         <div className="lg:col-span-2 space-y-4">
           {/* Controls */}
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card border rounded-xl p-3 shadow-xs">
@@ -688,17 +255,17 @@ export function KegiatanManager({
               <div className="flex items-center border rounded-lg p-0.5 bg-muted/30">
                 <Button
                   size="icon"
-                  variant={viewMode === "list" ? "default" : "ghost"}
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
                   className="h-7 w-7 rounded-md"
-                  onClick={() => setViewMode("list")}
+                  onClick={() => setViewMode('list')}
                 >
                   <LayoutList className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   size="icon"
-                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   className="h-7 w-7 rounded-md"
-                  onClick={() => setViewMode("grid")}
+                  onClick={() => setViewMode('grid')}
                 >
                   <LayoutGrid className="h-3.5 w-3.5" />
                 </Button>
@@ -708,22 +275,22 @@ export function KegiatanManager({
 
           {/* Status Filter Pills */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs">
-            {["Semua", "Berlangsung", "Mendatang", "Selesai"].map((st) => (
+            {['Semua', 'Berlangsung', 'Mendatang', 'Selesai'].map((st) => (
               <Button
                 key={st}
                 size="sm"
-                variant={statusFilter === st ? "default" : "outline"}
+                variant={statusFilter === st ? 'default' : 'outline'}
                 className="h-7 text-xs px-3 rounded-lg capitalize whitespace-nowrap shrink-0"
                 onClick={() => setStatusFilter(st)}
               >
                 {st} (
-                {st === "Semua"
+                {st === 'Semua'
                   ? counts.total
-                  : st === "Berlangsung"
-                  ? counts.berlangsung
-                  : st === "Mendatang"
-                  ? counts.mendatang
-                  : counts.selesai}
+                  : st === 'Berlangsung'
+                    ? counts.berlangsung
+                    : st === 'Mendatang'
+                      ? counts.mendatang
+                      : counts.selesai}
                 )
               </Button>
             ))}
@@ -738,166 +305,36 @@ export function KegiatanManager({
                 <p className="text-xs">Coba sesuaikan kata kunci pencarian atau filter status.</p>
               </CardContent>
             </Card>
-          ) : viewMode === "list" ? (
+          ) : viewMode === 'list' ? (
             <div className="space-y-3">
               {filtered.map((k) => (
-                <Card
+                <KegiatanCard
                   key={k.id}
-                  className="overflow-hidden hover:border-primary/40 transition-all border shadow-xs"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div className="space-y-1.5 flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] font-medium ${STATUS_COLOR[k.status] || ""}`}
-                          >
-                            {k.status}
-                          </Badge>
-                          <Badge variant="secondary" className="text-[10px]">
-                            {k.bagianNama}
-                          </Badge>
-                          {k.targetRab > 0 && (
-                            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 font-mono font-semibold">
-                              Target RAB: Rp {new Intl.NumberFormat("id-ID").format(k.targetRab)}
-                            </Badge>
-                          )}
-                        </div>
-                        <h3 className="font-bold text-base text-foreground leading-snug">{k.judul}</h3>
-                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                          {k.deskripsi}
-                        </p>
-                      </div>
-
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0">
-                        <Link href={`/kegiatan/${k.id}/dokumentasi`}>
-                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10">
-                            <Camera className="h-3.5 w-3.5" />
-                            <span>{k.totalFoto} Foto</span>
-                          </Button>
-                        </Link>
-                        {isAdminOrKetua && (
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleOpenEdit(k)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => {
-                                setDeleteTarget(k);
-                                setDeleteOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <CalendarIcon className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span>
-                          {formatTanggalShort(k.tanggalMulai)}
-                          {k.tanggalSelesai !== k.tanggalMulai ? ` – ${formatTanggalShort(k.tanggalSelesai)}` : ""}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="truncate">{k.lokasi}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  kegiatan={k}
+                  viewMode="list"
+                  isAdminOrKetua={isAdminOrKetua}
+                  onEdit={handleOpenEdit}
+                  onDelete={(target) => {
+                    setDeleteTarget(target);
+                    setDeleteOpen(true);
+                  }}
+                />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {filtered.map((k) => (
-                <Card
+                <KegiatanCard
                   key={k.id}
-                  className="hover:border-primary/40 transition-all border shadow-xs flex flex-col justify-between"
-                >
-                  <CardHeader className="p-4 pb-2 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] font-medium ${STATUS_COLOR[k.status] || ""}`}
-                      >
-                        {k.status}
-                      </Badge>
-                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                        <span className="text-[11px] text-muted-foreground">{k.bagianNama}</span>
-                        {k.targetRab > 0 && (
-                          <Badge variant="outline" className="text-[9px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 font-mono font-semibold">
-                            RAB: Rp {new Intl.NumberFormat("id-ID").format(k.targetRab)}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <CardTitle className="text-sm font-bold leading-snug line-clamp-2">
-                      {k.judul}
-                    </CardTitle>
-                    <CardDescription className="text-xs line-clamp-2">
-                      {k.deskripsi}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-2 space-y-2 text-xs text-muted-foreground">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <CalendarIcon className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="truncate">
-                          {formatTanggalShort(k.tanggalMulai)}
-                          {k.tanggalSelesai !== k.tanggalMulai ? ` – ${formatTanggalShort(k.tanggalSelesai)}` : ""}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="truncate">{k.lokasi}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <Link href={`/kegiatan/${k.id}/dokumentasi`}>
-                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
-                          <Camera className="h-3.5 w-3.5" />
-                          <span>{k.totalFoto} Foto</span>
-                        </Button>
-                      </Link>
-                      {isAdminOrKetua && (
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleOpenEdit(k)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => {
-                              setDeleteTarget(k);
-                              setDeleteOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                  kegiatan={k}
+                  viewMode="grid"
+                  isAdminOrKetua={isAdminOrKetua}
+                  onEdit={handleOpenEdit}
+                  onDelete={(target) => {
+                    setDeleteTarget(target);
+                    setDeleteOpen(true);
+                  }}
+                />
               ))}
             </div>
           )}
@@ -941,7 +378,7 @@ export function KegiatanManager({
       />
 
       {/* Delete Dialog */}
-      <DeleteDialog
+      <DeleteKegiatanDialog
         open={deleteOpen}
         kegiatan={deleteTarget}
         isPending={isPending}
