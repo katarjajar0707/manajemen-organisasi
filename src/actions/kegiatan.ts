@@ -51,7 +51,15 @@ export async function getKegiatanList(filters?: { search?: string; status?: stri
     .from('kalender_kegiatan')
     .select(
       `
-      *,
+      id,
+      judul,
+      deskripsi,
+      tanggal_mulai,
+      tanggal_selesai,
+      lokasi,
+      bagian_id,
+      target_rab,
+      created_at,
       bagian:bagian!bagian_id (
         id,
         nama,
@@ -67,7 +75,8 @@ export async function getKegiatanList(filters?: { search?: string; status?: stri
       )
     `,
     )
-    .order('tanggal_mulai', { ascending: false });
+    .order('tanggal_mulai', { ascending: false })
+    .limit(100);
 
   if (filters?.bagianId && filters.bagianId !== 'semua') {
     query = query.eq('bagian_id', filters.bagianId);

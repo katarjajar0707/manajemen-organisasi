@@ -63,7 +63,9 @@ export interface RawTransactionRecord {
   created_at?: string;
   lampiran_url?: string | null;
   kegiatan_id?: string | null;
-  author?: TransaksiAuthor;
+  bagian_id?: string | null;
+  dibuat_oleh?: string | null;
+  author?: TransaksiAuthor | TransaksiAuthor[] | null;
 }
 
 export function normalizeTransaction(item: RawTransactionRecord): Transaksi {
@@ -76,6 +78,7 @@ export function normalizeTransaction(item: RawTransactionRecord): Transaksi {
   } else if (item.kategori) {
     kategori = item.kategori;
   }
+  const authorObj = Array.isArray(item.author) ? item.author[0] : item.author;
   return {
     id: item.id,
     judul: item.judul || '',
@@ -85,7 +88,7 @@ export function normalizeTransaction(item: RawTransactionRecord): Transaksi {
     tanggal: item.tanggal || item.created_at || '',
     created_at: item.created_at,
     lampiran_url: item.lampiran_url || null,
-    author: item.author,
+    author: authorObj || undefined,
     kategori,
     displayKeterangan,
     kegiatan_id: item.kegiatan_id || null,

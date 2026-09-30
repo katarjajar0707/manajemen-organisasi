@@ -184,7 +184,18 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
     .from('catatan_keuangan')
     .select(
       `
-      *,
+      id,
+      judul,
+      keterangan,
+      kategori,
+      jenis,
+      jumlah,
+      tanggal,
+      created_at,
+      lampiran_url,
+      kegiatan_id,
+      bagian_id,
+      dibuat_oleh,
       author:profiles!catatan_keuangan_dibuat_oleh_fkey (
         nama,
         role
@@ -193,7 +204,8 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
     )
     .eq('bagian_id', bagian.id)
     .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(200);
 
   if (error) {
     console.error('Error fetching keuangan:', error);

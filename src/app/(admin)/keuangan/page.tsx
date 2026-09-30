@@ -18,10 +18,9 @@ function loadKeuanganData() {
 }
 
 export default async function KeuanganPage() {
+  const dataPromise = loadKeuanganData();
   const profile = await getProfile();
   const canManage = profile?.role === 'admin' || profile?.role === 'ketua' || profile?.bagian?.slug === 'bendahara';
-
-  const dataPromise = loadKeuanganData();
 
   return (
     <BendaharaManager initialList={[]} initialSaldo={{ masuk: 0, keluar: 0, sisa: 0 }} canManage={canManage}>

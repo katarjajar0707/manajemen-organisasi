@@ -60,7 +60,16 @@ export async function getInventarisList(_filters?: {
   const { data: rawItems, error } = await supabase
     .from("inventaris")
     .select(`
-      *,
+      id,
+      nama_barang,
+      kategori,
+      jumlah,
+      satuan,
+      kondisi,
+      lokasi,
+      foto_url,
+      keterangan,
+      created_at,
       peminjaman:peminjaman_inventaris (
         id,
         peminjam,
@@ -361,7 +370,16 @@ export async function getRiwayatPeminjaman(
   let query = supabase
     .from("peminjaman_inventaris")
     .select(`
-      *,
+      id,
+      inventaris_id,
+      peminjam,
+      tanggal_pinjam,
+      tanggal_kembali_rencana,
+      tanggal_kembali_aktual,
+      status,
+      jumlah_pinjam,
+      keterangan,
+      created_at,
       inventaris:inventaris!inventaris_id (
         nama_barang
       ),
@@ -369,7 +387,8 @@ export async function getRiwayatPeminjaman(
         nama
       )
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(100);
 
   if (inventarisId) {
     query = query.eq("inventaris_id", inventarisId);
