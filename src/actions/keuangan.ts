@@ -198,7 +198,7 @@ export async function getKeuanganSaldoAgregat(bagianId: string): Promise<{ masuk
 export async function getKeuanganList(bagianSlug: string = 'bendahara') {
   const access = await getKeuanganReadAccess(bagianSlug);
   if ('error' in access) {
-    return { bagianId: null, list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
+    return { bagianId: null, list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 }, error: access.error };
   }
 
   const supabase = await createClient();
@@ -212,7 +212,6 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
         id,
         judul,
         keterangan,
-        kategori,
         jenis,
         jumlah,
         tanggal,
@@ -235,8 +234,14 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
   ]);
 
   if (listRes.error) {
-    console.error('Error fetching keuangan list:', listRes.error);
-    return { bagianId: bagian.id, list: [], saldo: aggregateSaldo };
+    console.error(
+      'Error fetching keuangan list:',
+      'message:', listRes.error.message,
+      '| code:', listRes.error.code,
+      '| details:', listRes.error.details,
+      '| hint:', listRes.error.hint,
+    );
+    return { bagianId: bagian.id, list: [], saldo: aggregateSaldo, error: listRes.error.message };
   }
 
   // Parse kategori and clean keterangan per transaction
@@ -248,8 +253,6 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
     if (match) {
       kategori = match[1].trim();
       displayKeterangan = (trx.keterangan || '').replace(/^\[Kategori:\s*[^\]]+\]\s*/i, '').trim();
-    } else if (trx.kategori) {
-      kategori = trx.kategori;
     }
 
     return {
