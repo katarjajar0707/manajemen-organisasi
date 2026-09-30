@@ -1,12 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
+import type { gsap } from 'gsap';
+import type { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 // Inject FoldText styles once at module level (not per-render)
 let _stylesInjected = false;
@@ -145,66 +141,82 @@ export const FoldText = ({
     const pieces = Array.from(root.querySelectorAll<HTMLElement>('.fold-text-piece'));
     if (!pieces.length) return undefined;
 
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const activeDuration = reduceMotion ? Math.min(duration, 0.22) : duration;
-    const activeStagger = reduceMotion ? Math.min(stagger, 0.02) : stagger;
-    const fromVars = {
-      opacity: 0,
-      rotateX: reduceMotion ? 0 : hingeConfig.rotateX,
-      rotateY: reduceMotion ? 0 : hingeConfig.rotateY,
-      '--fold-crease': reduceMotion ? 0 : safeCrease,
-      transformOrigin: hingeConfig.origin,
-      force3D: true,
-    };
-    const toVars = {
-      opacity: 1,
-      rotateX: 0,
-      rotateY: 0,
-      '--fold-crease': 0,
-      duration: activeDuration,
-      ease: reduceMotion ? 'power1.out' : ease,
-      stagger: activeStagger,
-      clearProps: 'willChange',
-    };
+    let cancelled = false;
+    let hoverHandler: (() => void) | undefined;
+    let scrollTriggerInstance: ScrollTrigger | undefined;
+    let activeGsap: typeof gsap | null = null;
 
-    const killTimeline = () => {
+    const killTimeline = (g: typeof gsap | null) => {
       timelineRef.current?.kill();
       timelineRef.current = null;
-      gsap.killTweensOf(pieces);
+      if (g) g.killTweensOf(pieces);
     };
 
-    const play = (repeat: boolean): gsap.core.Timeline => {
-      killTimeline();
-      timelineRef.current = gsap.timeline({ repeat: repeat ? -1 : 0, repeatDelay: repeat ? 0.75 : 0 });
-      timelineRef.current.fromTo(pieces, fromVars, toVars);
-      return timelineRef.current;
+    const loadAndAnimate = async () => {
+      const [{ gsap: g }, { ScrollTrigger: st }] = await Promise.all([
+        import(/* webpackChunkName: "gsap" */ 'gsap'),
+        import(/* webpackChunkName: "gsap-scroll-trigger" */ 'gsap/ScrollTrigger'),
+      ]);
+
+      if (cancelled) return;
+      activeGsap = g;
+      g.registerPlugin(st);
+
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      const activeDuration = reduceMotion ? Math.min(duration, 0.22) : duration;
+      const activeStagger = reduceMotion ? Math.min(stagger, 0.02) : stagger;
+      const fromVars = {
+        opacity: 0,
+        rotateX: reduceMotion ? 0 : hingeConfig.rotateX,
+        rotateY: reduceMotion ? 0 : hingeConfig.rotateY,
+        '--fold-crease': reduceMotion ? 0 : safeCrease,
+        transformOrigin: hingeConfig.origin,
+        force3D: true,
+      };
+      const toVars = {
+        opacity: 1,
+        rotateX: 0,
+        rotateY: 0,
+        '--fold-crease': 0,
+        duration: activeDuration,
+        ease: reduceMotion ? 'power1.out' : ease,
+        stagger: activeStagger,
+        clearProps: 'willChange',
+      };
+
+      const play = (repeat: boolean): gsap.core.Timeline => {
+        killTimeline(g);
+        timelineRef.current = g.timeline({ repeat: repeat ? -1 : 0, repeatDelay: repeat ? 0.75 : 0 });
+        timelineRef.current.fromTo(pieces, fromVars, toVars);
+        return timelineRef.current;
+      };
+
+      if (trigger === 'hover') {
+        g.set(pieces, { opacity: 1, rotateX: 0, rotateY: 0, '--fold-crease': 0, transformOrigin: hingeConfig.origin });
+        hoverHandler = () => play(false);
+        root.addEventListener('mouseenter', hoverHandler);
+      } else if (trigger === 'scroll') {
+        g.set(pieces, fromVars);
+        scrollTriggerInstance = st.create({
+          trigger: root,
+          start: 'top 82%',
+          once: true,
+          onEnter: () => play(false),
+        });
+      } else if (trigger === 'loop') {
+        play(true);
+      } else {
+        play(false);
+      }
     };
 
-    let scrollTrigger: ReturnType<typeof ScrollTrigger.create> | undefined;
-    let hoverHandler: (() => void) | undefined;
-
-    if (trigger === 'hover') {
-      gsap.set(pieces, { opacity: 1, rotateX: 0, rotateY: 0, '--fold-crease': 0, transformOrigin: hingeConfig.origin });
-      hoverHandler = () => play(false);
-      root.addEventListener('mouseenter', hoverHandler);
-    } else if (trigger === 'scroll') {
-      gsap.set(pieces, fromVars);
-      scrollTrigger = ScrollTrigger.create({
-        trigger: root,
-        start: 'top 82%',
-        once: true,
-        onEnter: () => play(false),
-      });
-    } else if (trigger === 'loop') {
-      play(true);
-    } else {
-      play(false);
-    }
+    void loadAndAnimate();
 
     return () => {
+      cancelled = true;
       if (hoverHandler) root.removeEventListener('mouseenter', hoverHandler);
-      scrollTrigger?.kill();
-      killTimeline();
+      scrollTriggerInstance?.kill();
+      killTimeline(activeGsap);
     };
   }, [
     text,
