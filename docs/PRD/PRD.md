@@ -1,11 +1,13 @@
-# PRD: Sistem Kelola & Catatan Organisasi
+# PRD: Sistem Kelola & Catatan Organisasi (KartaTuju)
 
 ## 1. Ringkasan
-Aplikasi web untuk mengelola seluruh aktivitas organisasi karang taruna: catatan per bagian, keuangan, data anggota, struktur organisasi multi-agenda, kegiatan, komunikasi internal, inventaris, surat-menyurat, hingga dashboard transparansi publik.
+Aplikasi web progresif (PWA) untuk mengelola seluruh aktivitas organisasi karang taruna: catatan per bagian, keuangan, data anggota, struktur organisasi multi-agenda, kegiatan & RAB, komunikasi internal, inventaris, surat-menyurat, pusat notifikasi, pengaturan sistem, hingga dashboard transparansi publik.
+
+**Nama aplikasi:** KartaTuju
 
 **Target pengguna:** Organisasi masyarakat (karang taruna) — UI harus sederhana, jelas, mudah dipakai warga dari berbagai usia.
 
-**Tech stack:** Next.js (App Router), Supabase (DB + Auth + Storage), Shadcn/ui, Tailwind.
+**Tech stack:** Next.js 16 (App Router + Webpack), Supabase (DB + Auth + Storage + Realtime), Shadcn/ui, Tailwind CSS 4, React Query, Zustand, PWA (`@ducanh2912/next-pwa`), Three.js/R3F, GSAP, Vercel (deploy + cron).
 
 ---
 
@@ -13,11 +15,15 @@ Aplikasi web untuk mengelola seluruh aktivitas organisasi karang taruna: catatan
 - Satu tempat mencatat semua kegiatan organisasi per bagian.
 - Setiap bagian bisa CRUD catatannya sendiri tanpa saling tabrak data.
 - Struktur "bagian" fleksibel — bisa tambah bagian baru kapan saja (tidak hardcode).
-- Bendahara punya modul khusus pencatatan keuangan (masuk/keluar + bukti nota).
+- Bendahara punya modul khusus pencatatan keuangan (masuk/keluar + bukti nota), bisa dikaitkan ke kegiatan & RAB.
 - Ketua dan Admin punya visibilitas penuh ke semua bagian; bagian lain terisolasi datanya.
 - Data anggota, kegiatan, aset, dan surat-menyurat organisasi terkelola rapi dalam satu sistem.
 - Struktur organisasi mendukung **banyak agenda** (bukan hanya satu struktur tetap) yang bisa berganti seiring waktu.
 - Kondisi kas & aktivitas organisasi bisa diakses publik/warga sebagai bentuk transparansi.
+- Warga bisa mengirim **aspirasi** langsung dari halaman publik.
+- Seluruh aktivitas penting otomatis menghasilkan **notifikasi** di pusat notifikasi.
+- Admin bisa mengatur konfigurasi organisasi lewat **pengaturan sistem** terpusat.
+- Aplikasi bisa di-**install sebagai PWA** di perangkat mobile.
 
 ---
 
@@ -58,6 +64,7 @@ Menyimpan daftar bagian organisasi — bisa CRUD (tambah/edit/hapus bagian baru 
 | jumlah | numeric | nominal Rp |
 | tanggal | date | **otomatis** terisi `now()` saat data dibuat — tidak ada input/label tanggal di form |
 | lampiran_url | text nullable | bukti/nota — **wajib untuk jenis `keluar`**, opsional untuk `masuk` |
+| kegiatan_id | uuid nullable | FK ke `kalender_kegiatan` — relasi opsional ke kegiatan terkait (untuk pelacakan RAB) |
 | dibuat_oleh | uuid | FK ke `profiles` |
 | created_at | timestamptz | |
 | deleted_at | timestamptz nullable | soft delete |
@@ -72,18 +79,20 @@ Terhubung ke Supabase Auth. Ini juga jadi sumber data untuk **halaman profil din
 | username | text unik | bisa diedit user sendiri di halaman profil |
 | foto_url | text nullable | foto profil, upload ke Supabase Storage |
 | bio | text nullable | deskripsi singkat, bisa diedit user sendiri |
+| nomor_wa | text nullable | nomor WhatsApp, bisa diedit user sendiri |
 | bagian_id | uuid nullable | bagian tempat user bertugas (null untuk admin murni) |
 | role | enum | `admin` \| `ketua` \| `anggota` — **tidak bisa diubah oleh user sendiri**, hanya admin |
+| last_seen_at | timestamptz nullable | waktu terakhir user aktif (diperbarui otomatis oleh presence tracker) |
 | created_at | timestamptz | |
 
 **Aturan role:**
 - `admin` & `ketua`: bisa lihat + CRUD data **semua** bagian.
 - `anggota`: hanya bisa CRUD data di `bagian_id` miliknya sendiri, tidak bisa melihat bagian lain sama sekali.
 - Manajemen user (buat akun, ubah role, assign bagian) **hanya bisa dilakukan admin**.
-- Setiap user (semua role) bisa edit profilnya sendiri: `username`, `foto_url`, `bio` — kolom `role` di luar jangkauan edit user.
+- Setiap user (semua role) bisa edit profilnya sendiri: `username`, `foto_url`, `bio`, `nomor_wa` — kolom `role` di luar jangkauan edit user.
 
 ### 3.5 `anggota` (data keanggotaan organisasi)
-Berbeda dari `profiles` (akun login) — ini data warga/anggota karang taruna, tidak semua anggota punya akun login.
+Berbeda dari `profiles` (akun login) — ini data warga/anggota karang taruna, tidak semua anggota punya akun login. Foto profil di-sinkronkan dari `profiles` via trigger (`sync_profile_avatar_to_anggota`).
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
@@ -93,7 +102,7 @@ Berbeda dari `profiles` (akun login) — ini data warga/anggota karang taruna, t
 | rt_rw | text | contoh: "RT 03/RW 05" |
 | jabatan | text | contoh: "Anggota", "Kabid Acara" |
 | periode_id | uuid | FK ke `periode_kepengurusan` |
-| foto_url | text nullable | opsional |
+| foto_url | text nullable | opsional, di-sync dari profiles jika ada |
 | created_at | timestamptz | |
 
 ### 3.6 `agenda_organisasi` (struktur organisasi bisa punya banyak agenda)
@@ -133,10 +142,11 @@ Bagan kepengurusan ditampilkan dari data `anggota` yang terhubung ke `periode_id
 | tanggal_selesai | timestamptz nullable | |
 | lokasi | text nullable | |
 | bagian_id | uuid nullable | penanggung jawab acara (mis. bagian Acara) |
+| target_rab | numeric(15,2) | target anggaran kegiatan (default 0), hanya bisa diisi/diubah oleh admin/ketua |
 | dibuat_oleh | uuid | FK ke `profiles` |
 | created_at | timestamptz | |
 
-*Catatan: tidak ada fitur presensi kehadiran — kalender kegiatan murni informasi jadwal.*
+*Catatan: tidak ada fitur presensi kehadiran — kalender kegiatan murni informasi jadwal. RAB (Rencana Anggaran Biaya) dikaitkan via `catatan_keuangan.kegiatan_id`.*
 
 ### 3.9 `dokumentasi_kegiatan` (galeri foto per acara)
 | Kolom | Tipe | Keterangan |
@@ -169,7 +179,7 @@ Bagan kepengurusan ditampilkan dari data `anggota` yang terhubung ke `periode_id
 | dibuat_oleh | uuid | FK ke `profiles` |
 | created_at | timestamptz | |
 
-**Visibilitas:** seluruh entri `diskusi` (baik `diskusi` maupun `catatan_umum`) bisa dilihat **semua role & semua bagian** — beda dari `catatan` biasa (3.2) yang privat per bagian.
+**Visibilitas:** seluruh entri `diskusi` (baik `diskusi` maupun `catatan_umum`) bisa dilihat **semua role & semua bagian** — beda dari `catatan` biasa (3.2) yang privat per bagian. Tabel ini di-publish ke **Supabase Realtime** untuk update langsung di dashboard.
 
 ### 3.12 `diskusi_balasan` (komentar/balasan dalam diskusi)
 | Kolom | Tipe | Keterangan |
@@ -230,6 +240,79 @@ Bagan kepengurusan ditampilkan dari data `anggota` yang terhubung ke `periode_id
 | dibuat_oleh | uuid | FK ke `profiles` |
 | created_at | timestamptz | |
 
+### 3.18 `pengaturan_sistem` (konfigurasi organisasi terpusat — singleton row)
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| id | text | PK, default `'default'` (singleton) |
+| — *Profil Organisasi* | | |
+| nama | text | nama organisasi |
+| unit_wilayah | text | sub-unit RT/RW |
+| kelurahan | text | |
+| kecamatan | text | |
+| kota | text | |
+| slogan | text | |
+| alamat | text | alamat sekretariat |
+| email | text | email resmi |
+| telepon | text | no. telepon |
+| instagram | text | handle Instagram |
+| tiktok | text | handle TikTok |
+| logo_url | text nullable | logo organisasi, upload ke Storage |
+| — *Operasional & Kebijakan* | | |
+| periode_aktif | text | contoh: "2025 - 2027" |
+| tgl_mulai_periode | date | |
+| tgl_selesai_periode | date | |
+| format_nomor_surat | text | template nomor surat |
+| max_hari_pinjam_inventaris | integer | batas hari peminjaman |
+| wajib_persetujuan_ketua | boolean | |
+| max_pengeluaran_tanpa_nota | numeric | |
+| notif_pengeluaran_besar | boolean | |
+| batas_notif_pengeluaran | numeric | |
+| — *Akses & Keamanan* | | |
+| mode_pendaftaran | text | `invite_only` dsb. |
+| session_timeout_minutes | text | |
+| portal_publik_aktif | boolean | toggle halaman publik |
+| transparansi_kas_publik | boolean | toggle transparansi kas |
+| mode_maintenance | boolean | mode pemeliharaan |
+| wajib_dua_faktor_admin | boolean | |
+| izinkan_anggota_buat_pengumuman | boolean | |
+| updated_at | timestamptz | |
+
+**Akses:** Semua orang (termasuk anonim) bisa **membaca** pengaturan; hanya `admin`/`ketua` yang bisa **mengubah**.
+
+### 3.19 `notifikasi` (pusat notifikasi otomatis)
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| id | uuid | PK |
+| tipe | text | `keuangan` \| `kegiatan` \| `inventaris` \| `peminjaman` \| `pengumuman` \| `diskusi` \| `arsip` \| `agenda` \| `anggota` \| `catatan` \| `surat` |
+| judul | text | judul notifikasi |
+| pesan | text nullable | detail notifikasi |
+| href | text | link ke halaman terkait |
+| sumber | text | nama tabel sumber (TG_TABLE_NAME) |
+| sumber_id | uuid nullable | ID record sumber |
+| bagian_id | uuid nullable | FK ke `bagian` — notifikasi yang spesifik per bagian |
+| dibuat_oleh | uuid nullable | FK ke `profiles` |
+| created_at | timestamptz | |
+
+Notifikasi dibuat **otomatis via trigger** (`buat_notifikasi_sistem`) setiap INSERT pada 11 tabel: `catatan_keuangan`, `kalender_kegiatan`, `inventaris`, `peminjaman_inventaris`, `pengumuman`, `diskusi`, `arsip_dokumen`, `agenda_organisasi`, `anggota`, `catatan`, `template_surat`. Tabel ini di-publish ke Supabase Realtime.
+
+### 3.20 `notifikasi_status` (status baca per user)
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| notifikasi_id | uuid | FK ke `notifikasi`, PK bersama |
+| user_id | uuid | FK ke `profiles`, PK bersama |
+| dibaca_at | timestamptz | waktu dibaca |
+
+### 3.21 `login_history` (audit login)
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| id | uuid | PK |
+| user_id | uuid | FK ke `profiles` |
+| logged_in_at | timestamptz | waktu login |
+| logged_out_at | timestamptz nullable | waktu logout |
+| auth_method | text | `password` |
+
+Ditampilkan di dashboard admin sebagai panel riwayat login. Di-publish ke Supabase Realtime.
+
 ---
 
 ## 4. Fitur & User Stories
@@ -248,8 +331,10 @@ Bagan kepengurusan ditampilkan dari data `anggota` yang terhubung ke `periode_id
 ### 4.3 Catatan Keuangan (Bendahara)
 - Tambah **uang masuk**: judul, keterangan, jumlah, lampiran opsional. Tanggal otomatis (tanpa field tanggal).
 - Tambah **uang keluar**: judul (alasan), keterangan, jumlah, **lampiran wajib** (upload ke Supabase Storage). Tanggal otomatis.
+- **Relasi ke kegiatan**: transaksi keuangan bisa dikaitkan ke kegiatan tertentu untuk pelacakan realisasi RAB.
 - Ringkasan saldo: total masuk, total keluar, saldo akhir — ditampilkan di atas (card summary), agar cepat dibaca.
 - Riwayat transaksi dalam bentuk list/kartu, bisa difilter per bulan & jenis (masuk/keluar).
+- Tabel `catatan_keuangan` di-publish ke **Supabase Realtime** untuk update dashboard secara langsung.
 
 #### 4.3.1 Preview Lampiran (berlaku untuk catatan & pengeluaran)
 - Lampiran ditampilkan sebagai **thumbnail kecil** di kartu catatan/transaksi.
@@ -260,6 +345,7 @@ Bagan kepengurusan ditampilkan dari data `anggota` yang terhubung ke `periode_id
 ### 4.4 Manajemen Anggota
 - CRUD data anggota: nama, kontak, RT/RW, jabatan, foto (opsional).
 - Anggota terhubung ke periode aktif dalam sebuah agenda organisasi (lihat 4.5).
+- Foto profil di-sinkronkan otomatis dari `profiles` via trigger database.
 
 ### 4.5 Struktur Organisasi Multi-Agenda
 - **Kelola Agenda Organisasi**: Ketua/Admin bisa membuat **agenda baru** per bagian (mis. "Kepengurusan Utama", "Panitia HUT RI 2026") — anggota biasa tidak bisa membuat agenda baru, hanya melihat.
@@ -269,7 +355,8 @@ Bagan kepengurusan ditampilkan dari data `anggota` yang terhubung ke `periode_id
 - **Detail struktur keseluruhan** (semua bagian, semua agenda aktif) bisa dilihat oleh **semua role & semua departemen** — tidak dibatasi RLS per bagian seperti catatan biasa.
 
 ### 4.6 Kegiatan & Acara
-- **Kalender/jadwal kegiatan**: CRUD jadwal (judul, deskripsi, tanggal mulai–selesai, lokasi, bagian penanggung jawab). Tampilan kalender bulanan + list agenda mendatang.
+- **Kalender/jadwal kegiatan**: CRUD jadwal (judul, deskripsi, tanggal mulai–selesai, lokasi, bagian penanggung jawab, **target RAB**). Tampilan kalender bulanan + list agenda mendatang.
+- **Target RAB**: admin/ketua bisa menetapkan target anggaran per kegiatan. Realisasi dihitung otomatis dari `catatan_keuangan` yang terhubung ke kegiatan.
 - *Tidak ada fitur presensi kehadiran* — cukup jadwal & info kegiatan.
 - **Dokumentasi kegiatan**: galeri foto per acara, upload banyak foto sekaligus + caption. Preview foto pakai komponen modal yang sama seperti 4.3.1.
 
@@ -292,86 +379,144 @@ Bagan kepengurusan ditampilkan dari data `anggota` yang terhubung ke `periode_id
 
 ### 4.10 Laporan & Transparansi
 - **Dashboard publik** (bisa diakses tanpa login, read-only): ringkasan total kas, jumlah anggota aktif, dan kegiatan terakhir/mendatang.
+- **Halaman laporan keuangan publik** (`/laporan-keuangan`): detail arus kas yang bisa diakses publik, bisa di-toggle dari pengaturan sistem (`transparansi_kas_publik`).
+- **Halaman kontak** (`/kontak`): informasi sekretariat, alamat, media sosial, dan formulir aspirasi warga.
 - Data yang ditampilkan bersifat ringkasan saja (tidak menampilkan detail transaksi per item) demi menjaga privasi.
+- Portal publik bisa diaktifkan/nonaktifkan dari pengaturan sistem (`portal_publik_aktif`).
 
 ### 4.11 Halaman Profil Dinamis
 - Setiap user (semua role) punya halaman profil sendiri, bisa diakses & diedit kapan saja.
-- **Foto profil**: upload foto baru, ada **preview** sebelum disimpan.
-- **Edit username** dan **bio** (deskripsi singkat).
+- **Foto profil**: upload foto baru, ada **preview** sebelum disimpan. Mendukung konversi HEIC ke JPEG otomatis (via `heic2any`).
+- **Edit username**, **bio** (deskripsi singkat), dan **nomor WhatsApp**.
+- **Kartu lanyard digital**: user bisa generate dan download kartu identitas anggota dalam format gambar (disimpan di bucket Storage `lanyard-cards`).
 - **Role tidak bisa diubah** dari halaman profil — hanya admin yang bisa mengubah role lewat menu manajemen user (4.12).
 - Menampilkan ringkasan bagian/jabatan user saat ini (read-only di halaman profil).
 - Ada tautan/bagian ke **"Struktur Organisasi Keseluruhan"** (lihat 4.5) — bisa dilihat semua departemen dari halaman profil maupun menu struktur.
 
 ### 4.12 Autentikasi & Akses
 - Login via Supabase Auth (email/password).
+- **Riwayat login** dicatat otomatis di tabel `login_history` dan ditampilkan di dashboard admin.
+- **User presence tracking**: melacak status online/offline user via `last_seen_at` di `profiles` dan API `/api/presence`.
 - **Anggota bagian:** hanya bisa lihat & CRUD catatan di bagiannya sendiri (RLS policy per `bagian_id`). Bagian lain sama sekali tidak terlihat — kecuali data yang memang lintas bagian (papan diskusi, catatan umum, struktur organisasi keseluruhan, dashboard publik).
 - **Ketua & Admin:** bisa memantau dan CRUD penuh ke **semua** bagian, serta satu-satunya role yang bisa membuat **agenda organisasi baru** (4.5).
 - **Manajemen user** (buat/hapus akun, atur role, assign ke bagian) hanya menu admin, tidak muncul untuk role lain.
 - Modul anggota, kegiatan, inventaris, surat, dan arsip mengikuti aturan akses yang sama: admin/ketua penuh, anggota terbatas sesuai relevansi bagiannya.
 
-### 4.13 Desain / UX
-- Responsive di semua device (desktop, tablet, HP), dibangun dengan Tailwind + Shadcn — tapi prioritas pengalaman utama tetap di mobile (mayoritas warga akses dari HP).
-- Navigasi sederhana: bottom-nav di mobile, sidebar di desktop, berisi daftar bagian & modul sesuai akses user.
+### 4.13 Pusat Notifikasi
+- Notifikasi **dibuat otomatis** via database trigger setiap ada INSERT pada 11 tabel utama (keuangan, kegiatan, inventaris, peminjaman, pengumuman, diskusi, arsip, agenda, anggota, catatan, surat).
+- Notifikasi muncul di **header** aplikasi (bell icon) dengan jumlah belum dibaca.
+- Dropdown notifikasi menampilkan 5 notifikasi terbaru, dengan link ke halaman terkait.
+- Halaman `/notifikasi` menampilkan seluruh riwayat notifikasi.
+- Status baca dilacak per user di tabel `notifikasi_status`.
+- RLS: notifikasi yang spesifik per bagian hanya bisa dilihat oleh user di bagian tersebut; notifikasi umum bisa dilihat semua.
+- Tabel `notifikasi` di-publish ke **Supabase Realtime** agar notifikasi baru langsung muncul tanpa refresh.
+
+### 4.14 Pengaturan Sistem (Admin)
+- Halaman pengaturan terpusat (`/pengaturan`) — **hanya admin** yang bisa mengakses.
+- **Profil Organisasi**: nama, wilayah, alamat, kontak, media sosial, logo.
+- **Operasional & Kebijakan**: periode aktif, format nomor surat, batas peminjaman inventaris, kebijakan nota/persetujuan, threshold notifikasi pengeluaran besar.
+- **Akses & Keamanan**: mode pendaftaran, session timeout, toggle portal publik, transparansi kas, mode maintenance.
+- **Statistik database** dan **log audit terbaru** ditampilkan di halaman pengaturan.
+
+### 4.15 Aspirasi Warga (Publik → Internal)
+- Warga bisa mengirim aspirasi/saran dari halaman publik (kontak).
+- Aspirasi masuk ke halaman internal `/aspirasi` yang bisa dilihat oleh admin/ketua.
+- Data aspirasi menggunakan tabel `diskusi` dengan Supabase Realtime untuk notifikasi langsung.
+
+### 4.16 Desain / UX
+- **PWA (Progressive Web App)**: aplikasi bisa di-install di perangkat mobile via `@ducanh2912/next-pwa`. Cache hanya untuk aset statis, bukan halaman App Router.
+- Responsive di semua device (desktop, tablet, HP), dibangun dengan Tailwind CSS 4 + Shadcn — tapi prioritas pengalaman utama tetap di mobile (mayoritas warga akses dari HP).
+- Navigasi: **bottom-nav** di mobile, **sidebar** di desktop, **mobile nav** (hamburger menu), berisi daftar bagian & modul sesuai akses user.
+- **Header** dengan avatar user, judul halaman, notifikasi bell, pencarian global, dan tema toggle.
+- **Pencarian global** (`global-search-dialog`): dialog pencarian lintas modul.
+- **Color theme switcher**: mendukung dark mode dan pilihan tema warna.
+- **Dashboard per role**: tampilan dashboard berbeda untuk `admin`, `ketua`, dan `anggota` — masing-masing menampilkan ringkasan yang relevan.
 - Bahasa & istilah sehari-hari, mudah dipahami warga umum.
 - Komponen konsisten pakai Shadcn (Card, Table, Dialog, Form, Badge untuk status masuk/keluar, kondisi barang, status pinjam, mention @departemen).
+- **Animasi & visual**: Three.js/R3F untuk elemen interaktif (lanyard hero di landing page), GSAP untuk animasi halus.
 
 ---
 
 ## 5. Non-Functional Requirements
 - **Keamanan:** Row Level Security (RLS) Supabase — anggota dibatasi ke `bagian_id` sendiri untuk data privat (catatan, keuangan), tapi data lintas bagian (diskusi/catatan umum, struktur organisasi, dashboard publik) sengaja dibuka lewat policy terpisah. Dashboard publik (4.10) diakses via view/RPC khusus yang hanya expose data ringkasan, bukan tabel mentah.
-- **Performa:** Pagination/infinite scroll untuk daftar catatan, agenda, diskusi, dan arsip yang panjang.
+- **Performa:** Pagination/infinite scroll untuk daftar catatan, agenda, diskusi, dan arsip yang panjang. Server-side caching (`unstable_cache`) untuk data pengaturan, transparansi, dan daftar bagian.
+- **Realtime:** Supabase Realtime di-publish untuk tabel `diskusi`, `catatan_keuangan`, `notifikasi`, dan `login_history` — memungkinkan update dashboard tanpa refresh.
 - **Backup:** Soft delete (bukan hard delete) agar data bisa dipulihkan.
-- **Storage:** File (bukti nota, lampiran catatan, foto dokumentasi, foto profil, arsip dokumen) disimpan di Supabase Storage bucket privat, akses via signed URL — kecuali aset yang memang untuk ditampilkan di dashboard publik.
+- **Storage:** File (bukti nota, lampiran catatan, foto dokumentasi, foto profil, kartu lanyard, arsip dokumen) disimpan di Supabase Storage bucket privat, akses via signed URL — kecuali aset yang memang untuk ditampilkan di dashboard publik. Bucket `lanyard-cards` bersifat publik.
+- **Keep-alive:** Vercel Cron (`/api/keep-alive`) berjalan setiap 5 hari untuk mencegah Supabase project di-pause.
+- **Health check:** Endpoint `/api/health` untuk monitoring status aplikasi.
 
 ---
 
 ## 6. Alur Halaman (Sitemap)
+
+### 6.1 Halaman Publik — Route Group `(public)`
 ```
-/                        → Dashboard publik/transparansi (total kas, jumlah anggota, kegiatan terakhir) - tanpa login
-/login
-/dashboard               → Dashboard internal ringkas (sesuai akses: 1 bagian, atau semua bagian untuk ketua/admin)
-/profil                  → Halaman profil dinamis (foto + preview, username, bio; role read-only)
-/bagian                  → Kelola daftar bagian (admin)
-/pengguna                → Manajemen user & role (admin only)
-/bagian/[slug]           → Halaman catatan bagian (generic: sekretaris, ketua, humas, acara, kominfo, dll)
-/bagian/bendahara        → Halaman khusus catatan keuangan
-  ├── /masuk             → List & form uang masuk
-  └── /keluar            → List & form uang keluar
-/anggota                 → Data anggota + CRUD
-/struktur                → Struktur organisasi keseluruhan (semua bagian & agenda, dilihat semua role)
+/                         → Dashboard publik/transparansi (total kas, jumlah anggota, kegiatan terakhir) - tanpa login
+/kontak                   → Halaman kontak sekretariat + formulir aspirasi warga
+/laporan-keuangan         → Laporan arus kas publik (bisa di-toggle dari pengaturan)
+```
+
+### 6.2 Autentikasi — Route Group `(auth)`
+```
+/login                    → Halaman login (email/password via Supabase Auth)
+```
+
+### 6.3 Halaman Internal — Route Group `(admin)`
+```
+/dashboard                → Dashboard internal per role (admin/ketua/anggota)
+/profil                   → Halaman profil dinamis (foto + preview, username, bio, nomor WA, kartu lanyard)
+/bagian                   → Kelola daftar bagian (admin)
+/pengguna                 → Manajemen user & role (admin only)
+/catatan                  → Halaman catatan per bagian (sesuai bagian_id user, atau semua untuk admin/ketua)
+/keuangan                 → Halaman catatan keuangan (masuk/keluar, ringkasan saldo, relasi kegiatan)
+/anggota                  → Data anggota + CRUD
+/struktur                 → Struktur organisasi keseluruhan (semua bagian & agenda, dilihat semua role)
 /struktur/[bagian]/agenda → Kelola agenda organisasi per bagian (buat agenda baru: ketua/admin)
 /struktur/[bagian]/agenda/[id] → Periode & bagan kepengurusan dalam agenda tersebut
-/kegiatan                → Kalender & list kegiatan
+/kegiatan                 → Kalender & list kegiatan + target RAB
 /kegiatan/[id]/dokumentasi → Galeri foto acara tersebut
-/pengumuman              → List & buat pengumuman
-/diskusi                 → Papan diskusi + catatan umum (lintas departemen, mention @bagian)
-/diskusi/[id]            → Thread diskusi/catatan umum + balasan
-/inventaris              → Data barang + status pinjam-pakai
-/surat                   → Template surat
-/arsip                   → Arsip dokumen (SK, proposal, LPJ)
+/pengumuman               → List & buat pengumuman
+/diskusi                  → Papan diskusi + catatan umum (lintas departemen, mention @bagian)
+/diskusi/[id]             → Thread diskusi/catatan umum + balasan
+/inventaris               → Data barang + status pinjam-pakai
+/surat                    → Template surat
+/arsip                    → Arsip dokumen (SK, proposal, LPJ)
+/aspirasi                 → Kelola aspirasi warga masuk (admin/ketua)
+/notifikasi               → Pusat notifikasi — riwayat lengkap
+/pengaturan               → Pengaturan sistem (admin only)
+```
+
+### 6.4 API Routes
+```
+/api/health               → Health check endpoint
+/api/keep-alive           → Vercel Cron — keep Supabase project alive (setiap 5 hari)
+/api/presence             → User presence tracking (heartbeat)
 ```
 
 ---
 
 ## Semua Relasi Terhubung
-ketika admin dan ketua membuat agenda organisasi maka otomatis terhubung ke inventaris, struktur organisasi, catatan, keuangan, kegiatan, komunikasi (diskusi/catatan umum/mention), surat, dan arsip.Dan juga otomatis terhubung ke inventaris, struktur organisasi, catatan, keuangan, kegiatan, komunikasi (diskusi/catatan umum/mention), surat, dan arsip.
+Ketika admin dan ketua membuat agenda organisasi maka otomatis terhubung ke inventaris, struktur organisasi, catatan, keuangan, kegiatan, komunikasi (diskusi/catatan umum/mention), surat, dan arsip. Dan juga otomatis terhubung ke inventaris, struktur organisasi, catatan, keuangan, kegiatan, komunikasi (diskusi/catatan umum/mention), surat, dan arsip.
 
-ketika admin menambahkan departement atau jabatan maka otomatis terhubung ke inventaris, struktur organisasi, catatan, keuangan, kegiatan, komunikasi (diskusi/catatan umum/mention), surat, dan arsip. dan juga otomatis terhubung halaman manajemen akses.
+Ketika admin menambahkan departemen atau jabatan maka otomatis terhubung ke inventaris, struktur organisasi, catatan, keuangan, kegiatan, komunikasi (diskusi/catatan umum/mention), surat, dan arsip. Dan juga otomatis terhubung halaman manajemen akses.
 
+Setiap perubahan data pada 11 tabel utama otomatis membuat notifikasi via trigger `buat_notifikasi_sistem`.
 
+---
 
 ## 7. Fase Pengembangan (Roadmap)
-1. **Fase 1 – Setup Proyek:** Init Next.js (App Router), install & konfigurasi Shadcn + Tailwind, buat project Supabase (belum diintegrasikan penuh), struktur folder, routing dasar sesuai sitemap (6).✅
+1. **Fase 1 – Setup Proyek:** Init Next.js (App Router), install & konfigurasi Shadcn + Tailwind, buat project Supabase (belum diintegrasikan penuh), struktur folder, routing dasar sesuai sitemap (6). ✅
 2. **Fase 2 – UI Frontend (Data Dummy):** Bangun seluruh tampilan & komponen untuk semua modul terlebih dahulu memakai data dummy/mock — catatan, keuangan, profil, struktur organisasi multi-agenda, kegiatan, komunikasi (diskusi/catatan umum/mention), inventaris, surat, arsip, dan dashboard publik. Fokus di layout, komponen Shadcn, dan responsive (mobile-first) sebelum ada data asli. ✅
-3. **Fase 3 – Backend Fondasi:** Integrasi Supabase Auth, skema DB inti (`bagian`, `profiles`), RLS dasar (anggota vs ketua/admin), menu manajemen user (admin).
-4. **Fase 4 – Backend Catatan & Keuangan:** Sambungkan UI ke `catatan` (tanggal otomatis, lampiran opsional) dan `catatan_keuangan` (masuk/keluar, lampiran wajib untuk keluar), ringkasan saldo, komponen preview thumbnail + modal jadi fungsional.✅
-5. **Fase 5 – Backend Profil:** Sambungkan halaman profil ke `profiles` — upload foto + preview, edit username & bio, role read-only.✅
+3. **Fase 3 – Backend Fondasi:** Integrasi Supabase Auth, skema DB inti (`bagian`, `profiles`), RLS dasar (anggota vs ketua/admin), menu manajemen user (admin). ✅
+4. **Fase 4 – Backend Catatan & Keuangan:** Sambungkan UI ke `catatan` (tanggal otomatis, lampiran opsional) dan `catatan_keuangan` (masuk/keluar, lampiran wajib untuk keluar), ringkasan saldo, komponen preview thumbnail + modal jadi fungsional. ✅
+5. **Fase 5 – Backend Profil:** Sambungkan halaman profil ke `profiles` — upload foto + preview, edit username & bio, role read-only. ✅
 6. **Fase 6 – Backend Struktur Organisasi Multi-Agenda:** CRUD `anggota`, `agenda_organisasi` (khusus ketua/admin), `periode_kepengurusan`, halaman struktur keseluruhan yang terbuka untuk semua role. ✅
 7. **Fase 7 – Backend Kegiatan:** `kalender_kegiatan`, `dokumentasi_kegiatan` (galeri foto memakai komponen preview yang sama). ✅
 8. **Fase 8 – Backend Komunikasi:** `pengumuman` (broadcast satu arah), `diskusi`/`catatan_umum` + `diskusi_balasan` + fitur mention `@bagian` (`diskusi_mention`). ✅
 9. **Fase 9 – Backend Inventaris & Administrasi:** `inventaris` + `peminjaman_inventaris`, `template_surat`, `arsip_dokumen`. ✅
 10. **Fase 10 – Backend Transparansi:** Sambungkan dashboard publik ke data ringkasan kas, anggota, dan kegiatan asli (menggantikan dummy). ✅
-11. **Fase 11 – Polish:** Filter/search lintas modul, review responsive di berbagai device dengan data asli, penghalusan UX mobile. ✅
+11. **Fase 11 – Polish & Fitur Tambahan:** Filter/search lintas modul, review responsive, penghalusan UX mobile. Termasuk penambahan fitur baru: pengaturan sistem, pusat notifikasi (trigger otomatis), nomor WA di profil, sinkronisasi avatar, kartu lanyard digital, riwayat login & user presence tracking, target RAB kegiatan, halaman laporan keuangan publik, halaman kontak publik, aspirasi warga, pencarian global, color theme switcher, PWA, API keep-alive & health check. ✅
 12. **Fase 12 – QA & Release:** Testing fungsional per role (admin/ketua/anggota), uji RLS (pastikan bagian & data privat tidak bocor, tapi data lintas bagian tetap terbuka sesuai desain), uji fitur mention & dashboard publik, bug fixing, deploy ke production.
 
 ---
@@ -386,5 +531,8 @@ ketika admin menambahkan departement atau jabatan maka otomatis terhubung ke inv
 - Papan diskusi & catatan umum bisa dilihat semua role/departemen (berbeda dari catatan biasa yang privat per bagian).
 - Hanya role `ketua` & `admin` yang bisa membuat **agenda organisasi baru**; anggota biasa hanya bisa melihat.
 - Role user **tidak bisa diubah sendiri** lewat halaman profil — perubahan role eksklusif lewat menu admin.
-
-noted
+- Target RAB kegiatan hanya bisa diisi/diubah oleh admin/ketua — trigger database mencegah perubahan oleh role lain.
+- Notifikasi dibuat otomatis via trigger, bukan manual — menjamin semua perubahan data tercatat.
+- Portal publik dan transparansi kas bisa di-toggle on/off dari pengaturan sistem.
+- Aplikasi di-deploy sebagai PWA untuk pengalaman mobile yang lebih baik.
+- Supabase Realtime digunakan untuk update langsung pada dashboard (diskusi, keuangan, notifikasi, login history).
