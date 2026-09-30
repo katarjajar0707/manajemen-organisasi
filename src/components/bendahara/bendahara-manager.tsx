@@ -12,6 +12,7 @@ import {
   updateTransaksi,
   getKegiatanOptions,
   getTargetRabKegiatanList,
+  getKeuanganSaldoAgregat,
   type KegiatanOption,
   type TargetRabKegiatanItem,
 } from '@/actions/keuangan';
@@ -19,6 +20,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   type Transaksi,
   type BendaharaData,
+  type BendaharaSaldo,
   type BendaharaManagerProps,
   KEUANGAN_QUERY_KEY,
   formatRupiahCached,
@@ -47,6 +49,9 @@ export function BendaharaDataBridge({ data }: { data: BendaharaData }) {
   useEffect(() => {
     if (!context) return;
     queryClient.setQueryData(KEUANGAN_QUERY_KEY, data.list);
+    if (data.saldo && data.bagianId) {
+      queryClient.setQueryData(['keuangan-saldo-agregat', data.bagianId], data.saldo);
+    }
     context.setData(data);
   }, [context, data, queryClient]);
 
@@ -90,6 +95,7 @@ export function BendaharaManager({
   const [currentBagianId, setCurrentBagianId] = useState<string | null>(initialBagianId);
   const [currentCategories, setCurrentCategories] = useState(agendaCategories);
   const [currentSettings, setCurrentSettings] = useState(initialSettings);
+  const [currentSaldo, setCurrentSaldo] = useState<BendaharaSaldo>(_initialSaldo || { masuk: 0, keluar: 0, sisa: 0 });
 
   const dataContext = useMemo(
     () => ({
@@ -97,6 +103,7 @@ export function BendaharaManager({
         setCurrentBagianId(data.bagianId);
         setCurrentCategories(data.categories);
         setCurrentSettings(data.settings);
+        if (data.saldo) setCurrentSaldo(data.saldo);
         setDataReady(true);
       },
     }),
@@ -111,6 +118,17 @@ export function BendaharaManager({
     gcTime: 5 * 60 * 1000,
     retry: 1,
     refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const SALDO_QUERY_KEY = useMemo(() => ['keuangan-saldo-agregat', currentBagianId] as const, [currentBagianId]);
+  const { data: saldo = currentSaldo } = useQuery<BendaharaSaldo>({
+    queryKey: SALDO_QUERY_KEY,
+    queryFn: () => getKeuanganSaldoAgregat(currentBagianId || ''),
+    initialData: currentSaldo,
+    enabled: !!currentBagianId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -217,17 +235,6 @@ export function BendaharaManager({
     };
   }, [activeKegiatanRab, jumlah, jenis]);
 
-  const saldo = useMemo(() => {
-    let masuk = 0;
-    let keluar = 0;
-    for (const item of transactions) {
-      const amt = Number(item.jumlah) || 0;
-      if (item.jenis === 'masuk') masuk += amt;
-      else keluar += amt;
-    }
-    return { masuk, keluar, sisa: masuk - keluar };
-  }, [transactions]);
-
   useEffect(() => {
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -248,6 +255,7 @@ export function BendaharaManager({
       channel = supabase
         .channel('catatan-keuangan-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'catatan_keuangan', filter: `bagian_id=eq.${bagian.id}` }, async (payload) => {
+          queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
           if (payload.eventType === 'DELETE') {
             queryClient.setQueryData<Transaksi[]>(KEUANGAN_QUERY_KEY, (current = []) => current.filter((item) => item.id !== (payload.old as { id: string }).id));
             return;
@@ -374,6 +382,7 @@ export function BendaharaManager({
         toast.error(res.error);
       } else {
         await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
+        await queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
         await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
         toast.success(editingId ? 'Transaksi berhasil diperbarui.' : `Transaksi kas ${jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} berhasil disimpan.`);
         setIsDialogOpen(false);
@@ -390,6 +399,7 @@ export function BendaharaManager({
           toast.error('Gagal menghapus: ' + res.error);
         } else {
           await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
+          await queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
           await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
           toast.success('Transaksi berhasil dihapus.');
         }

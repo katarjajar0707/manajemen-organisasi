@@ -75,8 +75,7 @@ export async function getKegiatanList(filters?: { search?: string; status?: stri
       )
     `,
     )
-    .order('tanggal_mulai', { ascending: false })
-    .limit(100);
+    .order('tanggal_mulai', { ascending: false });
 
   if (filters?.bagianId && filters.bagianId !== 'semua') {
     query = query.eq('bagian_id', filters.bagianId);

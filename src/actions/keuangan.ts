@@ -171,6 +171,30 @@ export async function getAgendaCategories(): Promise<string[]> {
   return list;
 }
 
+export async function getKeuanganSaldoAgregat(bagianId: string): Promise<{ masuk: number; keluar: number; sisa: number }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('catatan_keuangan')
+    .select('jenis, jumlah')
+    .eq('bagian_id', bagianId)
+    .is('deleted_at', null);
+
+  if (error || !data) {
+    if (error) console.error('Error fetching aggregate saldo:', error);
+    return { masuk: 0, keluar: 0, sisa: 0 };
+  }
+
+  let totalMasuk = 0;
+  let totalKeluar = 0;
+  data.forEach((row: { jenis: string; jumlah: number | string }) => {
+    const val = Number(row.jumlah) || 0;
+    if (row.jenis === 'masuk') totalMasuk += val;
+    else if (row.jenis === 'keluar') totalKeluar += val;
+  });
+
+  return { masuk: totalMasuk, keluar: totalKeluar, sisa: totalMasuk - totalKeluar };
+}
+
 export async function getKeuanganList(bagianSlug: string = 'bendahara') {
   const access = await getKeuanganReadAccess(bagianSlug);
   if ('error' in access) {
@@ -180,40 +204,43 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
   const supabase = await createClient();
   const { bagian } = access;
 
-  const { data: list, error } = await supabase
-    .from('catatan_keuangan')
-    .select(
-      `
-      id,
-      judul,
-      keterangan,
-      kategori,
-      jenis,
-      jumlah,
-      tanggal,
-      created_at,
-      lampiran_url,
-      kegiatan_id,
-      bagian_id,
-      dibuat_oleh,
-      author:profiles!catatan_keuangan_dibuat_oleh_fkey (
-        nama,
-        role
+  const [listRes, aggregateSaldo] = await Promise.all([
+    supabase
+      .from('catatan_keuangan')
+      .select(
+        `
+        id,
+        judul,
+        keterangan,
+        kategori,
+        jenis,
+        jumlah,
+        tanggal,
+        created_at,
+        lampiran_url,
+        kegiatan_id,
+        bagian_id,
+        dibuat_oleh,
+        author:profiles!catatan_keuangan_dibuat_oleh_fkey (
+          nama,
+          role
+        )
+      `,
       )
-    `,
-    )
-    .eq('bagian_id', bagian.id)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(200);
+      .eq('bagian_id', bagian.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(200),
+    getKeuanganSaldoAgregat(bagian.id),
+  ]);
 
-  if (error) {
-    console.error('Error fetching keuangan:', error);
-    return { bagianId: bagian.id, list: [], saldo: { masuk: 0, keluar: 0, sisa: 0 } };
+  if (listRes.error) {
+    console.error('Error fetching keuangan list:', listRes.error);
+    return { bagianId: bagian.id, list: [], saldo: aggregateSaldo };
   }
 
   // Parse kategori and clean keterangan per transaction
-  const parsedList = (list || []).map((trx: any) => {
+  const parsedList = (listRes.data || []).map((trx: any) => {
     let kategori = 'Kas General';
     let displayKeterangan = trx.keterangan || '';
 
@@ -232,26 +259,10 @@ export async function getKeuanganList(bagianSlug: string = 'bendahara') {
     };
   });
 
-  // Calculate aggregations (Semua transaksi terhitung sama masuk ke kas general)
-  let totalMasuk = 0;
-  let totalKeluar = 0;
-
-  parsedList.forEach((trx) => {
-    if (trx.jenis === 'masuk') {
-      totalMasuk += Number(trx.jumlah);
-    } else if (trx.jenis === 'keluar') {
-      totalKeluar += Number(trx.jumlah);
-    }
-  });
-
   return {
     bagianId: bagian.id,
     list: parsedList,
-    saldo: {
-      masuk: totalMasuk,
-      keluar: totalKeluar,
-      sisa: totalMasuk - totalKeluar,
-    },
+    saldo: aggregateSaldo,
   };
 }
 
