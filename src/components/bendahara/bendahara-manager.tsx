@@ -106,7 +106,7 @@ export function BendaharaManager({
     queryKey: KEUANGAN_QUERY_KEY,
     queryFn: () => fetchKeuanganTransactions(currentBagianId),
     initialData: initialList,
-    staleTime: 5000,
+    staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 1,
     refetchOnMount: false,
@@ -118,7 +118,7 @@ export function BendaharaManager({
   const { data: targetRabList = [] } = useQuery<TargetRabKegiatanItem[]>({
     queryKey: TARGET_RAB_QUERY_KEY,
     queryFn: () => getTargetRabKegiatanList(currentBagianId),
-    staleTime: 5000,
+    staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

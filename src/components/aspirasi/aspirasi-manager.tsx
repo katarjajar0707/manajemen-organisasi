@@ -41,7 +41,7 @@ export function AspirasiManager({ initialAspirasi }: AspirasiManagerProps) {
     queryKey: ASPIRASI_QUERY_KEY,
     queryFn: fetchAspirasi,
     initialData: initialAspirasi,
-    staleTime: 0,
+    staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 1,
     refetchOnMount: false,
