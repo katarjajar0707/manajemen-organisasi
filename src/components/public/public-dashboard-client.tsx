@@ -1,9 +1,18 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LanyardHero } from '@/components/public/lanyard-hero';
+import { LanyardHeroFallback } from '@/components/public/lanyard-hero';
+
+const LanyardHero = dynamic(
+  () => import('@/components/public/lanyard-hero').then((mod) => mod.LanyardHero),
+  {
+    ssr: false,
+    loading: () => <LanyardHeroFallback />,
+  },
+);
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, ArrowRight, Shield, MapPin, Clock, Mail, AlertTriangle } from 'lucide-react';

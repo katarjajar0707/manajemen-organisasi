@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
@@ -20,6 +20,32 @@ const Lanyard = dynamic(() => import('@/components/Lanyard'), {
 });
 
 const DEFAULT_CARD_FRONT = '/lanyard/kartu-depan.png';
+
+export function LanyardHeroFallback() {
+  return (
+    <section
+      className="relative -mt-[calc(4.25rem+env(safe-area-inset-top,0px))] min-h-[100dvh] lg:min-h-screen w-full overflow-x-clip flex flex-col justify-end lg:justify-center"
+      aria-label="Memuat tampilan utama"
+    >
+      <div className="absolute inset-0 z-0 overflow-hidden flex items-start justify-center lg:justify-end">
+        <div className="w-full h-full lg:w-[56%] xl:w-[52%] 2xl:w-[48%] lg:translate-x-4 xl:translate-x-8 flex items-center justify-center p-8">
+          <div className="w-52 h-80 sm:w-64 sm:h-96 rounded-2xl bg-muted/30 animate-pulse border border-border/20" />
+        </div>
+      </div>
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-3 sm:px-6 md:px-8 lg:px-10 xl:px-12 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-8 lg:pb-0 flex flex-col justify-end lg:justify-center lg:min-h-screen pointer-events-none">
+        <div className="pointer-events-auto max-w-xl mx-auto lg:mx-0 w-full space-y-4 sm:space-y-6 lg:space-y-5 xl:space-y-6 rounded-3xl border border-white/20 dark:border-white/10 bg-background/65 dark:bg-background/45 p-5 sm:p-8 lg:p-8 xl:p-10 2xl:p-12 shadow-2xl backdrop-blur-xl mt-[46vh] sm:mt-[36vh] md:mt-24 lg:mt-0 lg:max-w-md xl:max-w-xl 2xl:max-w-2xl">
+          <div className="h-6 w-36 bg-muted/40 rounded-full animate-pulse" />
+          <div className="h-10 w-4/5 bg-muted/40 rounded-lg animate-pulse" />
+          <div className="h-12 w-full bg-muted/20 rounded-lg animate-pulse" />
+          <div className="flex gap-3 pt-2">
+            <div className="h-10 w-32 bg-muted/40 rounded-lg animate-pulse" />
+            <div className="h-10 w-28 bg-muted/30 rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export function LanyardHero({
   orgName,
@@ -88,19 +114,48 @@ export function LanyardHero({
     return () => window.removeEventListener('lanyard-card-updated', refresh);
   }, []);
 
+  const [isIntersecting, setIsIntersecting] = useState(false);
+  const lanyardContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!lanyardContainerRef.current) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsIntersecting(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsIntersecting(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '120px' }
+    );
+    observer.observe(lanyardContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section className="relative -mt-[calc(4.25rem+env(safe-area-inset-top,0px))] min-h-[100dvh] lg:min-h-screen w-full overflow-x-clip flex flex-col justify-end lg:justify-center">
       {/* Background Lanyard Layer (Mundur 1 lapis ke belakang; di tablet landscape ke atas digeser ke area kanan agar seimbang dengan card kiri) */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-auto flex items-start justify-center lg:justify-end">
-        <div className="w-full h-full lg:w-[56%] xl:w-[52%] 2xl:w-[48%] lg:translate-x-4 xl:translate-x-8 transition-all duration-300">
-          <Lanyard
-            position={[0, 0, 20]}
-            gravity={[0, -40, 0]}
-            frontImage={frontCardUrl}
-            backImage="/lanyard/kartu-belakang.png"
-            lanyardImage="/lanyard/lanyard.png"
-            className="w-full h-full"
-          />
+        <div ref={lanyardContainerRef} className="w-full h-full lg:w-[56%] xl:w-[52%] 2xl:w-[48%] lg:translate-x-4 xl:translate-x-8 transition-all duration-300">
+          {isIntersecting ? (
+            <Lanyard
+              position={[0, 0, 20]}
+              gravity={[0, -40, 0]}
+              frontImage={frontCardUrl}
+              backImage="/lanyard/kartu-belakang.png"
+              lanyardImage="/lanyard/lanyard.png"
+              className="w-full h-full"
+            />
+          ) : (
+            <div
+              className="h-full min-h-80 animate-pulse rounded-2xl bg-muted/30"
+              aria-label="Memuat animasi kartu organisasi"
+            />
+          )}
         </div>
       </div>
 
