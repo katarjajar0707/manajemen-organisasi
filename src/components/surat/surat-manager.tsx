@@ -148,7 +148,6 @@ function formatNomorSuratDinamis(formatPattern?: string) {
 export function SuratManager({
   initialTemplates = [],
   userRole = "anggota",
-  currentUserId: _currentUserId,
   settings,
 }: SuratManagerProps) {
   const orgName = settings?.profil.nama || "Karang Taruna";

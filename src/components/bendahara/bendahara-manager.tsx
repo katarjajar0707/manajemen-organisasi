@@ -1,31 +1,11 @@
 'use client';
 
-import { createContext, type ReactNode, Suspense, useContext, useState, useTransition, useMemo, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useTransition, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Wallet, TrendingDown, TrendingUp, MoreVertical, Trash2, AlertCircle, Paperclip, ExternalLink, FileText, FileDown, Eye, ImageIcon, Pencil, Target, ChevronDown } from 'lucide-react';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn, isImageFile, isImageUrl } from '@/lib/utils';
 import { convertHeicToJpeg } from '@/lib/client-image';
-import { PreviewImage } from '@/components/common/preview-image';
 import {
   createTransaksi,
   deleteTransaksi,
@@ -35,52 +15,24 @@ import {
   type KegiatanOption,
   type TargetRabKegiatanItem,
 } from '@/actions/keuangan';
-import type { PengaturanSistemData } from '@/actions/pengaturan';
 import { createClient } from '@/lib/supabase/client';
+import {
+  type Transaksi,
+  type BendaharaData,
+  type BendaharaManagerProps,
+  KEUANGAN_QUERY_KEY,
+  formatRupiahCached,
+  normalizeTransaction,
+} from '@/constants/keuangan';
+import { KeuanganStats } from './components/keuangan-stats';
+import { TargetRabSection } from './components/target-rab-section';
+import { TransaksiTable, TransactionRowsSkeleton } from './components/transaksi-table';
+import { TransaksiFormDialog, type RabPreviewInfo } from './components/transaksi-form-dialog';
+import { TransaksiDeleteDialog } from './components/transaksi-delete-dialog';
+import { PreviewLampiranDialog } from './components/preview-lampiran-dialog';
+import { exportKeuanganToPdf } from './utils/export-pdf';
 
-interface Transaksi {
-  id: string;
-  judul: string;
-  keterangan: string;
-  kategori?: string;
-  displayKeterangan?: string;
-  jenis: 'masuk' | 'keluar';
-  jumlah: number;
-  tanggal: string;
-  lampiran_url: string | null;
-  kegiatan_id?: string | null;
-  author?: {
-    nama: string;
-    role: string;
-  };
-}
-
-interface BendaharaManagerProps {
-  initialList?: any[];
-  initialSaldo: { masuk: number; keluar: number; sisa: number };
-  bagianId?: string | null;
-  agendaCategories?: string[];
-  settings?: PengaturanSistemData;
-  canManage?: boolean;
-  children?: ReactNode;
-}
-
-const KEUANGAN_QUERY_KEY = ['keuangan', 'bendahara'] as const;
-
-const idNumberFormatter = new Intl.NumberFormat('id-ID');
-
-function formatRupiahCached(angka: number | string) {
-  const num = Math.round(Number(angka) || 0);
-  return `Rp ${num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-}
-
-interface BendaharaData {
-  list: any[];
-  saldo: { masuk: number; keluar: number; sisa: number };
-  bagianId: string | null;
-  categories: string[];
-  settings: PengaturanSistemData;
-}
+export { TransactionRowsSkeleton };
 
 interface BendaharaDataContextValue {
   setData: (data: BendaharaData) => void;
@@ -101,36 +53,7 @@ export function BendaharaDataBridge({ data }: { data: BendaharaData }) {
   return null;
 }
 
-export function TransactionRowsSkeleton() {
-  return (
-    <>
-      {Array.from({ length: 6 }).map((_, index) => (
-        <tr key={index} className="border-b border-border/60 last:border-0">
-          {Array.from({ length: 6 }).map((__, cellIndex) => (
-            <td key={cellIndex} className="px-3 py-3.5 sm:px-6">
-              <div className={`h-3 animate-pulse rounded bg-muted ${cellIndex === 1 ? 'w-48' : cellIndex === 5 ? 'ml-auto w-8' : 'w-20'}`} />
-            </td>
-          ))}
-        </tr>
-      ))}
-    </>
-  );
-}
-
-function normalizeTransaction(item: any) {
-  let kategori = 'Kas General';
-  let displayKeterangan = item.keterangan || '';
-  const match = (item.keterangan || '').match(/^\[Kategori:\s*([^\]]+)\]/i);
-  if (match) {
-    kategori = match[1].trim();
-    displayKeterangan = (item.keterangan || '').replace(/^\[Kategori:\s*[^\]]+\]\s*/i, '').trim();
-  } else if (item.kategori) {
-    kategori = item.kategori;
-  }
-  return { ...item, kategori, displayKeterangan, kegiatan_id: item.kegiatan_id || null };
-}
-
-async function fetchKeuanganTransactions(initialBagianId: string | null) {
+async function fetchKeuanganTransactions(initialBagianId: string | null): Promise<Transaksi[]> {
   const supabase = createClient();
   let bagianId = initialBagianId;
 
@@ -141,19 +64,32 @@ async function fetchKeuanganTransactions(initialBagianId: string | null) {
 
   if (!bagianId) return [];
 
-  const { data, error } = await supabase.from('catatan_keuangan').select('*, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)').eq('bagian_id', bagianId).is('deleted_at', null).order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('catatan_keuangan')
+    .select('*, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)')
+    .eq('bagian_id', bagianId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return (data || []).map(normalizeTransaction);
 }
 
-
-export function BendaharaManager({ initialList = [], initialSaldo, bagianId: initialBagianId = null, agendaCategories = [], settings: initialSettings, canManage = false, children }: BendaharaManagerProps) {
+export function BendaharaManager({
+  initialList = [],
+  initialSaldo: _initialSaldo,
+  bagianId: initialBagianId = null,
+  agendaCategories = [],
+  settings: initialSettings,
+  canManage = false,
+  children,
+}: BendaharaManagerProps) {
   const queryClient = useQueryClient();
   const [dataReady, setDataReady] = useState(initialList.length > 0);
   const [currentBagianId, setCurrentBagianId] = useState<string | null>(initialBagianId);
   const [currentCategories, setCurrentCategories] = useState(agendaCategories);
   const [currentSettings, setCurrentSettings] = useState(initialSettings);
+
   const dataContext = useMemo(
     () => ({
       setData: (data: BendaharaData) => {
@@ -165,7 +101,8 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     }),
     [],
   );
-  const { data: transactions = initialList } = useQuery({
+
+  const { data: transactions = initialList } = useQuery<Transaksi[]>({
     queryKey: KEUANGAN_QUERY_KEY,
     queryFn: () => fetchKeuanganTransactions(currentBagianId),
     initialData: initialList,
@@ -200,9 +137,8 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
-  const [isRabOpen, setIsRabOpen] = useState(false);
 
-  // Form state
+  // Form dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [jenis, setJenis] = useState<'masuk' | 'keluar'>('masuk');
   const [judul, setJudul] = useState('');
@@ -221,7 +157,10 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     const list: string[] = [];
     const add = (val?: string | null) => {
       const t = val?.trim();
-      if (t && !seen.has(t)) { seen.add(t); list.push(t); }
+      if (t && !seen.has(t)) {
+        seen.add(t);
+        list.push(t);
+      }
     };
     (currentCategories || []).forEach(add);
     (targetRabList || []).forEach((k) => add(k.judul));
@@ -252,7 +191,7 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     return null;
   }, [selectedKategori, targetRabList, kegiatanOptions]);
 
-  const rabPreview = useMemo(() => {
+  const rabPreview = useMemo<RabPreviewInfo | null>(() => {
     if (!activeKegiatanRab || Number(activeKegiatanRab.target_rab) <= 0) return null;
 
     const nominalNum = parseInt(jumlah.replace(/[^0-9]/g, ''), 10) || 0;
@@ -278,14 +217,15 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
   }, [activeKegiatanRab, jumlah, jenis]);
 
   const saldo = useMemo(() => {
-    let masuk = 0, keluar = 0;
+    let masuk = 0;
+    let keluar = 0;
     for (const item of transactions) {
       const amt = Number(item.jumlah) || 0;
-      if (item.jenis === 'masuk') masuk += amt; else keluar += amt;
+      if (item.jenis === 'masuk') masuk += amt;
+      else keluar += amt;
     }
     return { masuk, keluar, sisa: masuk - keluar };
   }, [transactions]);
-
 
   useEffect(() => {
     const supabase = createClient();
@@ -308,14 +248,14 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
         .channel('catatan-keuangan-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'catatan_keuangan', filter: `bagian_id=eq.${bagian.id}` }, async (payload) => {
           if (payload.eventType === 'DELETE') {
-            queryClient.setQueryData<any[]>(KEUANGAN_QUERY_KEY, (current = []) => current.filter((item) => item.id !== payload.old.id));
+            queryClient.setQueryData<Transaksi[]>(KEUANGAN_QUERY_KEY, (current = []) => current.filter((item) => item.id !== (payload.old as { id: string }).id));
             return;
           }
 
           const { data: refreshed, error: refreshError } = await supabase
             .from('catatan_keuangan')
             .select('*, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)')
-            .eq('id', payload.new.id)
+            .eq('id', (payload.new as { id: string }).id)
             .eq('bagian_id', bagian.id)
             .is('deleted_at', null)
             .single();
@@ -324,12 +264,12 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
             return;
           }
           if (!refreshed) {
-            queryClient.setQueryData<any[]>(KEUANGAN_QUERY_KEY, (current = []) => current.filter((item) => item.id !== payload.new.id));
+            queryClient.setQueryData<Transaksi[]>(KEUANGAN_QUERY_KEY, (current = []) => current.filter((item) => item.id !== (payload.new as { id: string }).id));
             return;
           }
 
           const normalized = normalizeTransaction(refreshed);
-          queryClient.setQueryData<any[]>(KEUANGAN_QUERY_KEY, (current = []) => {
+          queryClient.setQueryData<Transaksi[]>(KEUANGAN_QUERY_KEY, (current = []) => {
             const index = current.findIndex((item) => item.id === normalized.id);
             if (index === -1) return [normalized, ...current];
             const next = [...current];
@@ -340,10 +280,6 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
         })
         .subscribe(async (status) => {
           if (!active) return;
-
-          // The first sync closes the gap between the server-rendered snapshot
-          // and the moment the Realtime channel becomes active. The same sync
-          // also recovers cleanly after a reconnect.
           if (status === 'SUBSCRIBED') {
             setRealtimeStatus('connected');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -436,8 +372,6 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
         setError(res.error);
         toast.error(res.error);
       } else {
-        // Reconcile immediately after the server action succeeds so the
-        // submitting browser updates even when the realtime event is delayed.
         await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
         await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
         toast.success(editingId ? 'Transaksi berhasil diperbarui.' : `Transaksi kas ${jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} berhasil disimpan.`);
@@ -463,24 +397,27 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
     }
   };
 
-  const filteredList = useMemo(() => transactions.filter((item: any) => {
-    if (filterJenis !== 'semua' && item.jenis !== filterJenis) return false;
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      item.judul.toLowerCase().includes(q) ||
-      (item.displayKeterangan || '').toLowerCase().includes(q) ||
-      (item.keterangan || '').toLowerCase().includes(q) ||
-      (item.kategori || '').toLowerCase().includes(q) ||
-      (item.author?.nama || '').toLowerCase().includes(q)
-    );
-  }), [transactions, filterJenis, searchQuery]);
+  const filteredList = useMemo(() => {
+    return transactions.filter((item) => {
+      if (filterJenis !== 'semua' && item.jenis !== filterJenis) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        item.judul.toLowerCase().includes(q) ||
+        (item.displayKeterangan || '').toLowerCase().includes(q) ||
+        (item.keterangan || '').toLowerCase().includes(q) ||
+        (item.kategori || '').toLowerCase().includes(q) ||
+        (item.author?.nama || '').toLowerCase().includes(q)
+      );
+    });
+  }, [transactions, filterJenis, searchQuery]);
 
-  // Cached filter counts — avoid 3x .filter() in JSX render
   const filterCounts = useMemo(() => {
-    let masuk = 0, keluar = 0;
+    let masuk = 0;
+    let keluar = 0;
     for (const item of transactions) {
-      if (item.jenis === 'masuk') masuk++; else keluar++;
+      if (item.jenis === 'masuk') masuk++;
+      else keluar++;
     }
     return { total: transactions.length, masuk, keluar };
   }, [transactions]);
@@ -514,21 +451,6 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
   }, [currentPage, totalPages]);
 
   const handleExportPDF = () => {
-    if (filteredList.length === 0) {
-      toast.error('Tidak ada data transaksi untuk diekspor.');
-      return;
-    }
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Gagal membuka jendela cetak. Pastikan pop-up diizinkan pada browser.');
-      return;
-    }
-
-    const filterText = [
-      filterJenis === 'masuk' ? 'Kas Masuk (Pemasukan)' : filterJenis === 'keluar' ? 'Kas Keluar (Pengeluaran)' : 'Semua Mutasi',
-    ].join(' | ');
-
     let totalMasukFiltered = 0;
     let totalKeluarFiltered = 0;
     for (const curr of filteredList) {
@@ -537,338 +459,15 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
       else totalKeluarFiltered += amt;
     }
 
-    const saldoFiltered = totalMasukFiltered - totalKeluarFiltered;
-
-    const escapeHtml = (value: unknown) =>
-      String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-
-    // Format tanggal: 01/sep/2026
-    const formatTanggalLaporan = (dateInput: string | Date | undefined | null): string => {
-      if (!dateInput) return '-';
-      const d = new Date(dateInput);
-      if (isNaN(d.getTime())) return '-';
-      const day = String(d.getDate()).padStart(2, '0');
-      const monthNames = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
-      const month = monthNames[d.getMonth()];
-      const year = d.getFullYear();
-      return `${day}/${month}/${year}`;
-    };
-
-    const rowsHtml = filteredList
-      .map((trx: any, idx: number) => {
-        const tgl = formatTanggalLaporan(trx.tanggal || trx.created_at);
-        const jenisLabel = trx.jenis === 'masuk' ? 'Masuk' : 'Keluar';
-        const nominalColor = trx.jenis === 'masuk' ? '#047857' : '#b91c1c';
-        const cleanDesc = trx.displayKeterangan || trx.keterangan || '';
-        const title = escapeHtml(trx.judul || 'Transaksi');
-        const description = escapeHtml(cleanDesc);
-        const kategori = escapeHtml(trx.kategori || 'Kas General');
-        const author = escapeHtml(trx.author?.nama || 'Admin');
-
-        const rowBg = idx % 2 === 1 ? 'background-color: #f8fafc;' : '';
-
-        return `
-          <tr style="${rowBg}">
-            <td style="text-align: center; font-size: 8.5px; color: #64748b;">${idx + 1}</td>
-            <td style="text-align: center; white-space: nowrap; font-family: monospace; font-size: 9px; font-weight: 500;">${tgl}</td>
-            <td style="vertical-align: top;">
-              <div style="font-weight: 600; color: #0f172a; line-height: 1.25;">${title}</div>
-              ${description ? `<div class="description">${description}</div>` : ''}
-            </td>
-            <td style="font-size: 8.5px; color: #475569;">${kategori}</td>
-            <td style="text-align: center;">
-              <span style="display: inline-block; padding: 1.5px 6px; border-radius: 4px; font-size: 8.5px; font-weight: 600; background-color: ${trx.jenis === 'masuk' ? '#d1fae5' : '#fee2e2'}; color: ${trx.jenis === 'masuk' ? '#065f46' : '#991b1b'};">
-                ${jenisLabel}
-              </span>
-            </td>
-            <td style="text-align: right; font-family: monospace; font-weight: 700; font-size: 9px; color: ${nominalColor};">
-              ${formatRupiah(trx.jumlah)}
-            </td>
-            <td style="font-size: 8.5px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${author}</td>
-          </tr>
-        `;
-      })
-      .join('');
-
-    const printDate = formatTanggalLaporan(new Date());
-    const orgName = currentSettings?.profil?.nama || 'Karang Taruna';
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="id">
-        <head>
-          <meta charset="utf-8">
-          <title>Laporan Keuangan ${orgName} - ${printDate}</title>
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 10mm 12mm 12mm 12mm;
-            }
-            * {
-              box-sizing: border-box;
-            }
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              color: #1e293b;
-              margin: 0;
-              padding: 0;
-              font-size: 10px;
-              line-height: 1.35;
-              background-color: #ffffff;
-            }
-            .kop {
-              text-align: center;
-              border-bottom: 2px solid #0f172a;
-              padding-bottom: 10px;
-              margin-bottom: 14px;
-            }
-            .kop h2 {
-              margin: 0;
-              font-size: 12px;
-              text-transform: uppercase;
-              letter-spacing: 1.5px;
-              color: #475569;
-              font-weight: 600;
-            }
-            .kop h1 {
-              margin: 3px 0;
-              font-size: 17px;
-              color: #0f172a;
-              letter-spacing: 0.5px;
-              font-weight: 800;
-            }
-            .kop p {
-              margin: 0;
-              font-size: 9.5px;
-              color: #64748b;
-            }
-            .meta-box {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 12px;
-              font-size: 9.5px;
-              padding: 7px 12px;
-              background-color: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 6px;
-            }
-            .meta-box div {
-              line-height: 1.4;
-            }
-            .summary-cards {
-              display: flex;
-              gap: 8px;
-              margin-bottom: 14px;
-            }
-            .card {
-              flex: 1;
-              padding: 8px 10px;
-              border-radius: 6px;
-              border: 1px solid #cbd5e1;
-              background-color: #ffffff;
-            }
-            .card-title {
-              font-size: 8.5px;
-              text-transform: uppercase;
-              color: #64748b;
-              font-weight: 700;
-              margin-bottom: 2px;
-              letter-spacing: 0.3px;
-            }
-            .card-value {
-              font-size: 13px;
-              font-weight: 800;
-              font-family: monospace;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 20px;
-              table-layout: fixed;
-            }
-            col.no { width: 5%; }
-            col.tanggal { width: 14%; }
-            col.uraian { width: 33%; }
-            col.kategori { width: 13%; }
-            col.jenis { width: 11%; }
-            col.nominal { width: 14%; }
-            col.pencatat { width: 10%; }
-            thead {
-              display: table-header-group;
-            }
-            tfoot {
-              display: table-row-group;
-            }
-            tbody tr, tfoot tr {
-              break-inside: avoid;
-              page-break-inside: avoid;
-            }
-            tbody tr:nth-child(even) {
-              background-color: #f8fafc;
-            }
-            th {
-              background-color: #f1f5f9;
-              border: 1px solid #cbd5e1;
-              padding: 6px 4px;
-              font-size: 8.5px;
-              text-transform: uppercase;
-              letter-spacing: 0.3px;
-              color: #334155;
-              font-weight: 700;
-              text-align: left;
-            }
-            td {
-              border: 1px solid #cbd5e1;
-              padding: 5px 5px;
-              font-size: 9px;
-              overflow-wrap: anywhere;
-              word-break: break-word;
-              vertical-align: middle;
-            }
-            td .description {
-              margin-top: 2px;
-              color: #64748b;
-              font-size: 8px;
-              line-height: 1.25;
-            }
-            .tanda-tangan {
-              display: flex;
-              justify-content: space-between;
-              margin-top: 28px;
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            .ttd-box {
-              width: 180px;
-              text-align: center;
-              font-size: 10px;
-            }
-            .ttd-box p {
-              margin: 0;
-              line-height: 1.4;
-            }
-            .ttd-space {
-              height: 52px;
-            }
-            @media print {
-              body {
-                padding: 0;
-                background-color: transparent;
-              }
-              .no-print {
-                display: none !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="no-print" style="margin-bottom: 12px; display: flex; justify-content: flex-end; gap: 8px;">
-            <button onclick="window.close()" style="padding: 6px 14px; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
-              ✕ Tutup
-            </button>
-            <button onclick="window.print()" style="padding: 6px 16px; background-color: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 6px;">
-              <span>🖨️</span> Cetak / Simpan PDF
-            </button>
-          </div>
-
-          <div class="kop">
-            <h2>PENGURUS ${orgName.toUpperCase()}</h2>
-            <h1>LAPORAN REKAPITULASI ARUS KAS KEUANGAN</h1>
-            <p>Sistem Informasi Manajemen Organisasi & Transparansi Keuangan</p>
-          </div>
-
-          <div class="meta-box">
-            <div>
-              <div><strong>Kategori Filter:</strong> ${filterText}</div>
-              <div><strong>Total Transaksi:</strong> ${filteredList.length} catatan</div>
-            </div>
-            <div style="text-align: right;">
-              <div><strong>Tanggal Cetak:</strong> ${printDate}</div>
-              <div><strong>Status:</strong> Sah / Terverifikasi Sistem</div>
-            </div>
-          </div>
-
-          <div class="summary-cards">
-            <div class="card" style="border-left: 3.5px solid #059669;">
-              <div class="card-title">Total Pemasukan</div>
-              <div class="card-value" style="color: #059669;">${formatRupiah(totalMasukFiltered)}</div>
-            </div>
-            <div class="card" style="border-left: 3.5px solid #dc2626;">
-              <div class="card-title">Total Pengeluaran</div>
-              <div class="card-value" style="color: #dc2626;">${formatRupiah(totalKeluarFiltered)}</div>
-            </div>
-            <div class="card" style="border-left: 3.5px solid #0284c7;">
-              <div class="card-title">Sisa Saldo Kas</div>
-              <div class="card-value" style="color: #0284c7;">${formatRupiah(saldo.sisa)}</div>
-            </div>
-          </div>
-
-          <table>
-            <colgroup>
-              <col class="no">
-              <col class="tanggal">
-              <col class="uraian">
-              <col class="kategori">
-              <col class="jenis">
-              <col class="nominal">
-              <col class="pencatat">
-            </colgroup>
-            <thead>
-              <tr>
-                <th style="text-align: center;">No</th>
-                <th style="text-align: center;">Tanggal</th>
-                <th>Uraian / Judul Transaksi</th>
-                <th>Kategori</th>
-                <th style="text-align: center;">Jenis</th>
-                <th style="text-align: right;">Nominal</th>
-                <th>Pencatat</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-            <tfoot>
-              <tr style="background-color: #f8fafc; font-weight: bold;">
-                <td colspan="5" style="text-align: right; padding: 8px; font-size: 9px;">Total Mutasi (Data Sesuai Filter):</td>
-                <td style="text-align: right; font-family: monospace; font-weight: 700; font-size: 9.5px; color: ${saldoFiltered >= 0 ? '#047857' : '#b91c1c'};">
-                  ${formatRupiah(saldoFiltered)}
-                </td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <div class="tanda-tangan">
-            <div class="ttd-box">
-              <p>Mengetahui,<br><strong>Ketua Karang Taruna</strong></p>
-              <div class="ttd-space"></div>
-              <p><strong>( ........................................ )</strong></p>
-            </div>
-            <div class="ttd-box">
-              <p>Tertanda,<br><strong>Bendahara Umum</strong></p>
-              <div class="ttd-space"></div>
-              <p><strong>( ........................................ )</strong></p>
-            </div>
-          </div>
-
-          <script>
-            window.onload = function() {
-              window.print();
-            };
-          </script>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+    exportKeuanganToPdf({
+      filteredList,
+      filterJenis,
+      totalMasukFiltered,
+      totalKeluarFiltered,
+      saldoSisa: saldo.sisa,
+      orgName: currentSettings?.profil?.nama || 'Karang Taruna',
+      formatRupiah,
+    });
   };
 
   return (
@@ -882,11 +481,19 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
           </div>
           {canManage && (
             <div className="flex gap-2 w-full sm:w-auto">
-              <Button className="flex-1 sm:flex-none gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700" size="sm" onClick={() => handleOpenCreate('masuk')}>
+              <Button
+                className="flex-1 sm:flex-none gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                size="sm"
+                onClick={() => handleOpenCreate('masuk')}
+              >
                 <TrendingUp className="h-4 w-4" />
                 <span>Kas Masuk</span>
               </Button>
-              <Button className="flex-1 sm:flex-none gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-xs" size="sm" onClick={() => handleOpenCreate('keluar')}>
+              <Button
+                className="flex-1 sm:flex-none gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
+                size="sm"
+                onClick={() => handleOpenCreate('keluar')}
+              >
                 <TrendingDown className="h-4 w-4" />
                 <span>Kas Keluar</span>
               </Button>
@@ -895,691 +502,81 @@ export function BendaharaManager({ initialList = [], initialSaldo, bagianId: ini
         </div>
 
         {/* Saldo Cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-          <Card className="col-span-2 bg-blue-50/70 border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/20 dark:border-blue-900/40 dark:bg-card shadow-xs sm:col-span-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-foreground dark:text-blue-300 flex items-center gap-2">
-                <span className="p-1 rounded-md bg-blue-500/10 text-blue-950 dark:text-blue-400">
-                  <Wallet className="h-4 w-4" />
-                </span>
-                <span>Total Saldo Aktif</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div suppressHydrationWarning className="text-2xl font-extrabold tabular-nums text-foreground dark:text-blue-300">
-                {dataReady ? formatRupiah(saldo.sisa) : <span className="inline-block h-7 w-36 animate-pulse rounded bg-muted" />}
-              </div>
-              <p className="text-xs text-muted-foreground dark:text-blue-400/80 font-medium mt-1">Kas Umum Keseluruhan</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-emerald-50/70 border-emerald-200 dark:from-emerald-950/40 dark:to-green-950/20 dark:border-emerald-900/40 dark:bg-card shadow-xs">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-slate-900 dark:text-emerald-300 flex items-center gap-2 sm:text-sm">
-                <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                  <TrendingUp className="h-4 w-4" />
-                </span>
-                <span>Total Pemasukan</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div suppressHydrationWarning className="text-lg font-extrabold tabular-nums text-emerald-800 dark:text-emerald-300 sm:text-2xl">
-                {dataReady ? formatRupiah(saldo.masuk) : <span className="inline-block h-7 w-32 animate-pulse rounded bg-muted" />}
-              </div>
-              <p className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Masuk</p>
-
-            </CardContent>
-          </Card>
-
-          <Card className="bg-rose-50/70 border-rose-200 dark:from-rose-950/40 dark:to-red-950/20 dark:border-rose-900/40 dark:bg-card shadow-xs">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-slate-900 dark:text-rose-300 flex items-center gap-2 sm:text-sm">
-                <span className="p-1 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400">
-                  <TrendingDown className="h-4 w-4" />
-                </span>
-                <span>Total Pengeluaran</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div suppressHydrationWarning className="text-lg font-extrabold tabular-nums text-rose-800 dark:text-rose-300 sm:text-2xl">
-                {dataReady ? formatRupiah(saldo.keluar) : <span className="inline-block h-7 w-32 animate-pulse rounded bg-muted" />}
-              </div>
-              <p className="text-[10px] text-slate-700 dark:text-rose-400/80 font-medium mt-1 sm:text-xs">Akumulasi Dana Keluar</p>
-            </CardContent>
-          </Card>
-        </div>
+        <KeuanganStats saldo={saldo} dataReady={dataReady} formatRupiah={formatRupiah} />
 
         {/* Section: Target RAB Kegiatan */}
-        {targetRabList && targetRabList.length > 0 && (
-          <Collapsible open={isRabOpen} onOpenChange={setIsRabOpen} className="w-full">
-            <Card className="border shadow-xs overflow-hidden">
-              <CardHeader className={cn("py-3 bg-muted/20 transition-colors", isRabOpen && "border-b")}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
-                      <span className="p-1 rounded-md bg-primary/10 text-primary">
-                        <Target className="h-4 w-4" />
-                      </span>
-                      <span>Target RAB Kegiatan</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Realisasi pemasukan kas terhadap target Rencana Anggaran Biaya (RAB) agenda kegiatan
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    <Badge variant="outline" className="text-xs font-mono w-fit bg-background">
-                      {targetRabList.length} Agenda dengan Target RAB
-                    </Badge>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                        title={isRabOpen ? "Sembunyikan Target RAB" : "Tampilkan Target RAB"}
-                      >
-                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isRabOpen && "rotate-180")} />
-                        <span className="sr-only">Toggle Target RAB</span>
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
-                </div>
-              </CardHeader>
-              <CollapsibleContent>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {targetRabList.map((item) => {
-                      const isAchieved = item.persentase >= 100;
-                      const visualWidth = Math.min(Math.max(item.persentase, 0), 100);
+        <TargetRabSection targetRabList={targetRabList} formatRupiah={formatRupiah} />
 
-                      return (
-                        <div
-                          key={item.id}
-                          className="rounded-xl border bg-card/60 p-3.5 space-y-3 hover:border-primary/40 transition-all shadow-xs flex flex-col justify-between"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <h4 className="font-semibold text-xs sm:text-sm leading-snug line-clamp-1 text-foreground" title={item.judul}>
-                                  {item.judul}
-                                </h4>
-                                {item.is_estimasi && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[9px] px-1.5 py-0 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium"
-                                    title="Realisasi sebagian atau seluruhnya dihitung dari pencocokan nama agenda pada keterangan catatan kas"
-                                  >
-                                    Estimasi
-                                  </Badge>
-                                )}
-                              </div>
-                              {item.lokasi && (
-                                <p className="text-[11px] text-muted-foreground truncate">{item.lokasi}</p>
-                              )}
-                            </div>
-                            <Badge
-                              variant={isAchieved ? "default" : "secondary"}
-                              className={cn(
-                                "text-[10px] shrink-0 font-semibold px-2 py-0.5",
-                                isAchieved
-                                  ? "bg-emerald-600 hover:bg-emerald-600 text-white"
-                                  : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-                              )}
-                            >
-                              {isAchieved ? `Tercapai (${item.persentase}%)` : `${item.persentase}%`}
-                            </Badge>
-                          </div>
+        {/* Transaksi Table */}
+        <TransaksiTable
+          dataReady={dataReady}
+          realtimeStatus={realtimeStatus}
+          filteredList={filteredList}
+          paginatedList={paginatedList}
+          filterJenis={filterJenis}
+          setFilterJenis={setFilterJenis}
+          filterCounts={filterCounts}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          totalPages={totalPages}
+          pageNumbers={pageNumbers}
+          canManage={canManage}
+          formatRupiah={formatRupiah}
+          onOpenEdit={handleOpenEdit}
+          onDelete={setDeleteId}
+          onPreview={setPreviewUrl}
+          onExportPDF={handleExportPDF}
+        >
+          {children}
+        </TransaksiTable>
 
-                          {/* Custom Tailwind Progress Bar (div width %, capped visual max 100%) */}
-                          <div className="space-y-1.5 pt-1">
-                            <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden border border-border/40">
-                              <div
-                                className={cn(
-                                  "h-full rounded-full transition-all duration-500",
-                                  isAchieved
-                                    ? "bg-emerald-500"
-                                    : item.persentase >= 50
-                                      ? "bg-primary"
-                                      : "bg-amber-500"
-                                )}
-                                style={{ width: `${visualWidth}%` }}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between text-xs gap-1">
-                              <span className="text-muted-foreground text-[10px] sm:text-[11px]">Realisasi vs Target:</span>
-                              <span className="font-semibold font-mono tabular-nums text-[11px] sm:text-xs text-foreground truncate">
-                                {formatRupiah(item.realisasi)} / {formatRupiah(item.target_rab)} ({item.persentase}%)
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+        {/* Dialog Add/Edit Transaksi */}
+        {canManage && (
+          <TransaksiFormDialog
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            jenis={jenis}
+            judul={judul}
+            setJudul={setJudul}
+            keterangan={keterangan}
+            setKeterangan={setKeterangan}
+            selectedKategori={selectedKategori}
+            setSelectedKategori={setSelectedKategori}
+            jumlah={jumlah}
+            setJumlah={setJumlah}
+            file={file}
+            setFile={setFile}
+            editingId={editingId}
+            editingLampiranUrl={editingLampiranUrl}
+            error={error}
+            isPending={isPending}
+            allCategories={allCategories}
+            targetRabList={targetRabList}
+            kegiatanOptions={kegiatanOptions}
+            rabPreview={rabPreview}
+            currentSettings={currentSettings}
+            formatRupiah={formatRupiah}
+            onSubmit={handleSave}
+            onPreviewImage={setPreviewUrl}
+          />
         )}
 
-        <Card>
-          <CardHeader className="pb-4 border-b">
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    Riwayat Transaksi
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium',
-                        realtimeStatus === 'connected'
-                          ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                          : realtimeStatus === 'error'
-                            ? 'border-destructive/25 bg-destructive/10 text-destructive'
-                            : 'border-border bg-muted text-muted-foreground',
-                      )}
-                    >
-                      <span className={cn('h-1.5 w-1.5 rounded-full', realtimeStatus === 'connected' ? 'bg-emerald-500' : realtimeStatus === 'error' ? 'bg-destructive' : 'bg-muted-foreground')} />
-                      {realtimeStatus === 'connected' ? 'Live' : realtimeStatus === 'error' ? 'Terputus' : 'Menghubungkan'}
-                    </span>
-                  </CardTitle>
-                  <Badge variant="outline" className="text-xs font-mono">
-                    {dataReady ? `${filteredList.length} data` : <span className="inline-block h-4 w-12 animate-pulse rounded bg-muted align-middle" />}
-                  </Badge>
-                </div>
-                <CardDescription className="text-xs mt-0.5">Semua mutasi kas umum organisasi</CardDescription>
-              </div>
-
-              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full xl:w-auto">
-                {/* Filter Semua, Kas Masuk, Kas Keluar */}
-                <div role="tablist" aria-label="Filter jenis transaksi" className="flex w-full items-center p-1 rounded-lg bg-muted/60 border border-border/70 text-xs sm:w-auto">
-                  <button
-                    type="button"
-                    role="tab"
-                    id="tab-filter-semua"
-                    aria-selected={filterJenis === 'semua'}
-                    tabIndex={filterJenis === 'semua' ? 0 : -1}
-                    onClick={() => setFilterJenis('semua')}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowRight') {
-                        e.preventDefault();
-                        setFilterJenis('masuk');
-                        document.getElementById('tab-filter-masuk')?.focus();
-                      } else if (e.key === 'ArrowLeft') {
-                        e.preventDefault();
-                        setFilterJenis('keluar');
-                        document.getElementById('tab-filter-keluar')?.focus();
-                      }
-                    }}
-                    className={cn(
-                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      filterJenis === 'semua' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    Semua ({dataReady ? filterCounts.total : '...'})
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    id="tab-filter-masuk"
-                    aria-selected={filterJenis === 'masuk'}
-                    tabIndex={filterJenis === 'masuk' ? 0 : -1}
-                    onClick={() => setFilterJenis('masuk')}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowRight') {
-                        e.preventDefault();
-                        setFilterJenis('keluar');
-                        document.getElementById('tab-filter-keluar')?.focus();
-                      } else if (e.key === 'ArrowLeft') {
-                        e.preventDefault();
-                        setFilterJenis('semua');
-                        document.getElementById('tab-filter-semua')?.focus();
-                      }
-                    }}
-                    className={cn(
-                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      filterJenis === 'masuk' ? 'bg-emerald-600 text-white shadow-xs' : 'text-muted-foreground hover:text-emerald-600',
-                    )}
-                  >
-                    <TrendingUp className="h-3 w-3" />
-                    Masuk ({dataReady ? filterCounts.masuk : '...'})
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    id="tab-filter-keluar"
-                    aria-selected={filterJenis === 'keluar'}
-                    tabIndex={filterJenis === 'keluar' ? 0 : -1}
-                    onClick={() => setFilterJenis('keluar')}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowRight') {
-                        e.preventDefault();
-                        setFilterJenis('semua');
-                        document.getElementById('tab-filter-semua')?.focus();
-                      } else if (e.key === 'ArrowLeft') {
-                        e.preventDefault();
-                        setFilterJenis('masuk');
-                        document.getElementById('tab-filter-masuk')?.focus();
-                      }
-                    }}
-                    className={cn(
-                      'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      filterJenis === 'keluar' ? 'bg-rose-600 text-white shadow-xs' : 'text-muted-foreground hover:text-rose-600',
-                    )}
-                  >
-                    <TrendingDown className="h-3 w-3" />
-                    Keluar ({dataReady ? filterCounts.keluar : '...'})
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
-                  {/* Input Pencarian */}
-                  <div className="relative flex-1 min-w-0">
-                    <Input placeholder="Cari transaksi..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8 h-8 text-xs w-full" />
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                  </div>
-
-                  {/* Tombol Export PDF */}
-                  <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs border-primary/40 hover:bg-primary/10 hover:text-primary hover:border-primary shrink-0" onClick={handleExportPDF}>
-                    <FileDown className="h-3.5 w-3.5 text-primary" />
-                    <span className="hidden sm:inline">Export</span>
-                    <span>.PDF</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground bg-muted/50 uppercase border-b">
-                  <tr>
-                    <th className="px-3 sm:px-6 py-3 font-medium">Tanggal</th>
-                    <th className="px-3 sm:px-6 py-3 font-medium min-w-55 sm:min-w-0">Keterangan</th>
-                    <th className="px-3 sm:px-6 py-3 font-medium text-right">Jumlah</th>
-                    <th className="px-3 sm:px-6 py-3 font-medium text-center">Status</th>
-                    <th className="px-3 sm:px-6 py-3 font-medium text-center">Lampiran</th>
-                    {canManage && <th className="px-3 sm:px-6 py-3 text-right">Aksi</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  <Suspense fallback={<TransactionRowsSkeleton />}>{children}</Suspense>
-                  {!dataReady ? null : filteredList.length === 0 ? (
-                    <tr>
-                      <td colSpan={canManage ? 6 : 5} className="px-3 sm:px-6 py-8 text-center text-muted-foreground">
-                        Belum ada transaksi kas umum.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedList.map((trx: any) => (
-                      <tr key={trx.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30 transition-colors">
-                        <td suppressHydrationWarning className="px-3 sm:px-6 py-3.5 whitespace-nowrap text-xs">
-                          {new Date(trx.created_at).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </td>
-                        <td className="px-3 sm:px-6 py-3.5 min-w-55 sm:min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-foreground">{trx.judul}</span>
-                            {trx.kategori && trx.kategori !== 'Kas General' && trx.kategori !== 'Kas General / Operasional' && (
-                              <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 font-medium">
-                                {trx.kategori}
-                              </Badge>
-                            )}
-                          </div>
-                          {(trx.displayKeterangan || trx.keterangan) && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{trx.displayKeterangan || trx.keterangan}</div>}
-                          <div className="text-[10px] text-muted-foreground mt-1">Oleh: {trx.author?.nama || 'Unknown'}</div>
-                        </td>
-                        <td suppressHydrationWarning className={`px-3 sm:px-6 py-3.5 text-right font-semibold tabular-nums whitespace-nowrap ${trx.jenis === 'masuk' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {formatRupiah(trx.jumlah)}
-                        </td>
-                        <td className="px-3 sm:px-6 py-3.5 text-center whitespace-nowrap">
-                          <Badge variant="secondary" className={trx.jenis === 'masuk' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100' : 'bg-rose-100 text-rose-800 hover:bg-rose-100'}>
-                            {trx.jenis === 'masuk' ? 'Pemasukan' : 'Pengeluaran'}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {trx.lampiran_url ? (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewUrl(trx.lampiran_url)}
-                              className="group relative inline-flex items-center justify-center h-12 w-12 rounded-lg overflow-hidden border border-border/80 hover:border-primary/60 cursor-pointer shadow-xs bg-muted/40 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                              title="Klik untuk melihat bukti transaksi"
-                            >
-                              {isImageUrl(trx.lampiran_url) ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <PreviewImage src={trx.lampiran_url} alt={trx.judul || 'Bukti Lampiran'} className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="flex flex-col items-center justify-center text-[9px] font-mono text-primary font-bold">
-                                  <FileText className="h-4 w-4 mb-0.5" />
-                                  <span>PDF</span>
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                <Eye className="h-3.5 w-3.5" />
-                              </div>
-                            </button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          )}
-                        </td>
-                        {canManage && (
-                          <td className="px-6 py-4 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenEdit(trx)}>
-                                  <Pencil className="h-4 w-4 mr-2" /> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(trx.id)}>
-                                  <Trash2 className="h-4 w-4 mr-2" /> Hapus
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
-                        )}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {!dataReady || filteredList.length === 0 ? null : (
-              <div className="border-t bg-muted/5 px-3 py-3 sm:px-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center justify-between gap-2 sm:justify-start">
-                    <span className="text-xs text-muted-foreground">Baris per halaman</span>
-                    <Select value={String(rowsPerPage)} onValueChange={(value) => setRowsPerPage(Number(value))}>
-                      <SelectTrigger className="h-8 w-[90px] text-xs">
-                        <SelectValue placeholder="10" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[5, 10, 30, 50, 75, 100].map((option) => (
-                          <SelectItem key={option} value={String(option)}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span className="hidden text-xs text-muted-foreground sm:inline">
-                      (Total {filteredList.length} data)
-                    </span>
-                  </div>
-
-                  <Pagination className="mx-0 w-auto justify-center sm:justify-end">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                          disabled={currentPage === 1}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                      {pageNumbers.map((page, idx) => (
-                        <PaginationItem key={idx}>
-                          {page === 'ellipsis' ? (
-                            <PaginationEllipsis />
-                          ) : (
-                            <PaginationLink
-                              isActive={currentPage === page}
-                              onClick={() => setCurrentPage(page as number)}
-                              className="cursor-pointer"
-                            >
-                              {page}
-                            </PaginationLink>
-                          )}
-                        </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                          disabled={currentPage === totalPages}
-                          className={currentPage === totalPages ? 'pointer-events-none opacity-40' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Dialog Add/Edit Transaksi hanya dirender untuk pengguna yang berwenang. */}
-        {canManage && <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="w-[calc(100%-1rem)] max-w-lg max-h-[calc(100dvh-1rem)] overflow-x-hidden overflow-y-auto p-4 sm:p-6">
-            <form onSubmit={handleSave} className="min-w-0">
-              <DialogHeader className="min-w-0">
-                <DialogTitle className="pr-8 text-base sm:text-lg flex items-center gap-2">
-                  {jenis === 'masuk' ? <TrendingUp className="h-5 w-5 text-emerald-600" /> : <TrendingDown className="h-5 w-5 text-rose-600" />}
-                  <span>{editingId ? 'Edit Transaksi' : jenis === 'masuk' ? 'Catat Kas Masuk' : 'Catat Kas Keluar'}</span>
-                </DialogTitle>
-                <DialogDescription className="text-xs leading-relaxed">Masukkan detail mutasi {jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} kas.</DialogDescription>
-              </DialogHeader>
-
-              <div className="min-w-0 space-y-4 py-4 sm:space-y-5">
-                {error && (
-                  <div className="min-w-0 bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                    <span className="min-w-0 wrap-break-word">{error}</span>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Judul Transaksi</Label>
-                  <Input value={judul} onChange={(e) => setJudul(e.target.value)} placeholder={jenis === 'masuk' ? 'Cth: Iuran Bulanan Anggota' : 'Cth: Pembelian Konsumsi Rapat'} className="text-xs" required />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Kategori / Agenda Acara</Label>
-                  <Select value={selectedKategori} onValueChange={setSelectedKategori}>
-                    <SelectTrigger className="min-w-0 text-xs">
-                      <SelectValue placeholder="Pilih Kategori / Agenda" className="truncate" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Kas General">Kas General (Umum / Operasional)</SelectItem>
-                      {allCategories.map((cat) => {
-                        const matchRab =
-                          targetRabList.find((k) => k.judul?.trim().toLowerCase() === cat.trim().toLowerCase()) ||
-                          kegiatanOptions.find((k) => k.judul?.trim().toLowerCase() === cat.trim().toLowerCase());
-                        const hasRab = matchRab && matchRab.target_rab > 0;
-                        return (
-                          <SelectItem key={cat} value={cat}>
-                            Agenda: {cat} {hasRab ? `(Target RAB: ${formatRupiah(matchRab.target_rab)})` : ''}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  <p className="wrap-break-word text-[11px] text-muted-foreground">Pilih agenda sesuai acara yang dibuat, atau pilih Kas General untuk transaksi umum.</p>
-
-                  {/* Dynamic Target RAB Progress & Contribution Preview */}
-                  {rabPreview && (
-                    <div className="rounded-lg border bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-900/50 p-2.5 space-y-2 mt-1.5">
-                      <div className="flex items-center justify-between gap-1 flex-wrap">
-                        <span className="font-semibold text-xs text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-                          <Target className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>Target RAB: {formatRupiah(rabPreview.target)}</span>
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] font-mono font-semibold px-2 py-0.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
-                        >
-                          {rabPreview.nominalNum > 0
-                            ? `${rabPreview.currentPct}% ➔ ${rabPreview.newPct}% (${jenis === 'masuk' ? '+' : '-'}${rabPreview.deltaPct}%)`
-                            : `${rabPreview.currentPct}% Tercapai`}
-                        </Badge>
-                      </div>
-
-                      <div className="w-full bg-emerald-200/50 dark:bg-emerald-950/60 rounded-full h-1.5 overflow-hidden border border-emerald-300/30 dark:border-emerald-800/30">
-                        <div
-                          className="h-full rounded-full transition-all duration-300 bg-emerald-600 dark:bg-emerald-400"
-                          style={{ width: `${rabPreview.visualWidth}%` }}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground gap-2">
-                        <span className="tabular-nums">Realisasi Saat Ini: {formatRupiah(rabPreview.currentRealisasi)}</span>
-                        {rabPreview.nominalNum > 0 && (
-                          <span className="font-semibold font-mono tabular-nums text-emerald-700 dark:text-emerald-300 truncate">
-                            {jenis === 'masuk' ? '+' : '-'} {formatRupiah(rabPreview.nominalNum)} ({rabPreview.deltaPct}%)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Nominal (Rp)</Label>
-                  <Input
-                    value={jumlah}
-                    onChange={(e) => {
-                      // Hanya izinkan angka
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      if (val) {
-                        setJumlah(idNumberFormatter.format(parseInt(val, 10)));
-                      } else {
-                        setJumlah('');
-                      }
-                    }}
-                    placeholder="0"
-                    className="text-xs"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Keterangan Tambahan (Opsional)</Label>
-                  <Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Detail tambahan..." rows={2} className="text-xs" />
-                </div>
-
-                {jenis === 'keluar' &&
-                  currentSettings?.operasional &&
-                  (() => {
-                    const nominalVal = parseInt(jumlah.replace(/\./g, ''), 10) || 0;
-                    const batasNotif = parseFloat(currentSettings.operasional.batasNotifPengeluaran || '1000000') || 1000000;
-                    const isBesar = currentSettings.operasional.notifPengeluaranBesar && nominalVal >= batasNotif;
-                    const maxTanpaNota = parseFloat(currentSettings.operasional.maxPengeluaranTanpaNota || '50000') || 50000;
-
-                    return (
-                      <div className="space-y-1.5 pt-1">
-                        {isBesar && (
-                          <div className="min-w-0 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
-                            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
-                            <span className="min-w-0 wrap-break-word">
-                              Perhatian: Nominal pengeluaran ini tergolong pengeluaran besar (mencapai batas Rp {new Intl.NumberFormat('id-ID').format(batasNotif)}). Pastikan telah berkoordinasi dan disetujui Ketua.
-                            </span>
-                          </div>
-                        )}
-                        <p className="wrap-break-word text-[11px] text-muted-foreground">
-                          * Kebijakan operasional {currentSettings.profil.nama || 'organisasi'}: Pengeluaran kas di atas Rp {new Intl.NumberFormat('id-ID').format(maxTanpaNota)} wajib menyertakan lampiran nota fisik.
-                        </p>
-                      </div>
-                    );
-                  })()}
-
-                <div className="space-y-1.5">
-                  <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start">
-                    {editingId && editingLampiranUrl && isImageUrl(editingLampiranUrl) && (
-                      <button type="button" className="h-20 w-20 shrink-0 self-start overflow-hidden rounded-md border bg-muted sm:h-16 sm:w-16" onClick={() => setPreviewUrl(editingLampiranUrl)} title="Lihat lampiran tersimpan">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <PreviewImage src={editingLampiranUrl} alt="Preview lampiran tersimpan" className="h-full w-full object-cover" />
-                      </button>
-                    )}
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <Label className="text-xs">Lampiran (Nota/Bukti) {jenis === 'keluar' && <span className="text-destructive">* Wajib</span>}</Label>
-                      <Input id="lampiran-file" type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="sr-only" accept="image/*,.heic,.heif,.pdf" required={jenis === 'keluar' && !editingId} />
-                      <label
-                        htmlFor="lampiran-file"
-                        className="flex min-h-9 w-full cursor-pointer flex-col items-start justify-center gap-0.5 rounded-md border border-input bg-background px-3 py-2 text-xs text-muted-foreground hover:bg-muted/50"
-                      >
-                        <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                        <span className="min-w-0 max-w-full truncate font-medium text-foreground">
-                          {file?.name || (editingLampiranUrl ? decodeURIComponent(editingLampiranUrl.split('/').pop()?.split('?')[0] || 'Lampiran tersimpan') : 'Belum ada file dipilih')}
-                        </span>
-                        <span className="text-[10px]">{editingId && editingLampiranUrl ? 'Upload untuk mengganti/edit file' : 'Upload file lampiran'}</span>
-                      </label>
-                    </div>
-                  </div>
-                  {file && isImageFile(file) && (
-                    <div className="flex min-w-0 items-center gap-2.5 mt-2 p-2 bg-muted/40 border rounded-lg">
-                      <div className="h-12 w-12 rounded-md overflow-hidden border bg-background shrink-0">
-                        <PreviewImage file={file} alt="Preview Bukti" className="h-full w-full object-cover" />
-                      </div>
-                      <div className="min-w-0 flex-1 text-xs">
-                        <p className="font-medium truncate text-foreground">{file.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(1)} KB (Siap diunggah)</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <DialogFooter className="gap-2 pt-1 sm:gap-0 [&>button]:w-full sm:[&>button]:w-auto">
-                <Button type="button" variant="outline" size="sm" onClick={() => setIsDialogOpen(false)} disabled={isPending}>
-                  Batal
-                </Button>
-                <Button type="submit" size="sm" loading={isPending} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={!judul || !jumlah || (jenis === 'keluar' && !file && !editingLampiranUrl)}>
-                  {editingId ? 'Simpan Perubahan' : 'Simpan Transaksi'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>}
-
-        {/* Delete Confirmation */}
-        {canManage && <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="text-base text-destructive flex items-center gap-2">
-                <Trash2 className="h-4 w-4" />
-                <span>Hapus Transaksi</span>
-              </DialogTitle>
-              <DialogDescription className="text-xs">Apakah Anda yakin ingin menghapus transaksi ini?</DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" size="sm" onClick={() => setDeleteId(null)} disabled={isPending}>
-                Batal
-              </Button>
-              <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isPending}>
-                {isPending ? 'Menghapus...' : 'Hapus'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>}
+        {/* Delete Confirmation Dialog */}
+        {canManage && (
+          <TransaksiDeleteDialog
+            open={!!deleteId}
+            onOpenChange={(open) => !open && setDeleteId(null)}
+            onConfirm={handleDelete}
+            isPending={isPending}
+          />
+        )}
 
         {/* Preview Lampiran Modal */}
-        <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-          <DialogContent className="max-w-3xl w-full p-2">
-            <DialogHeader className="p-4 pb-0">
-              <DialogTitle>Bukti Transaksi</DialogTitle>
-            </DialogHeader>
-            <div className="p-4 flex items-center justify-center min-h-[40vh] bg-muted/20 rounded-md">
-              {previewUrl &&
-                (isImageUrl(previewUrl) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <PreviewImage src={previewUrl} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain rounded" />
-                ) : (
-                  <div className="text-center space-y-4">
-                    <FileText className="h-16 w-16 mx-auto text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Berkas bukan berupa gambar yang bisa di-preview.</p>
-                    <a href={previewUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="default" className="gap-2">
-                        Unduh / Buka Berkas <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </a>
-                  </div>
-                ))}
-            </div>
-          </DialogContent>
-        </Dialog>
+        <PreviewLampiranDialog previewUrl={previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)} />
       </div>
     </BendaharaDataContext.Provider>
   );

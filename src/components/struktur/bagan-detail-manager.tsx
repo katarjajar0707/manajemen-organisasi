@@ -82,7 +82,7 @@ const JABATAN_SUGGESTIONS = [
   'Anggota Pelaksana',
 ];
 
-export function BaganDetailManager({ bagian, id: _id, initialAgenda, userRole = 'anggota' }: BaganDetailManagerProps) {
+export function BaganDetailManager({ bagian, initialAgenda, userRole = 'anggota' }: BaganDetailManagerProps) {
   const [agenda, setAgenda] = useState<AgendaDetailItem | null>(initialAgenda);
   const periods: DBPeriode[] = agenda?.periode_kepengurusan || [];
 
