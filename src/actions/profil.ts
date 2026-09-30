@@ -32,7 +32,8 @@ export async function getMyProfile() {
     const bagian = Array.isArray(bagianRaw) ? (bagianRaw[0] ?? null) : (bagianRaw ?? null);
 
     // Ambil nomor_wa dari kolom profile jika ada, fallback ke anggota.kontak
-    const nomorWaFromDb = (profile as any).nomor_wa || (anggotaData?.kontak && anggotaData.kontak !== '-' ? anggotaData.kontak : '');
+    const profileWithWa = profile as unknown as { nomor_wa?: string | null };
+    const nomorWaFromDb = profileWithWa.nomor_wa || (anggotaData?.kontak && anggotaData.kontak !== '-' ? anggotaData.kontak : '');
 
     return {
       ...profile,
@@ -109,7 +110,7 @@ export async function updateMyProfile(formData: FormData) {
     }
 
     // 7. Update Tabel profiles (Hanya record milik user.id)
-    const profileUpdateData: Record<string, any> = {
+    const profileUpdateData: Record<string, unknown> = {
       nama,
       username,
       bio: bio || null,
@@ -172,8 +173,9 @@ export async function updateMyProfile(formData: FormData) {
         nomor_wa: nomorWa,
       },
     };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan internal saat memperbarui profil.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan internal saat memperbarui profil.';
+    return { error: message };
   }
 }
 
@@ -234,8 +236,9 @@ export async function updateAvatar(formData: FormData) {
     revalidatePath('/dashboard');
     revalidatePath('/', 'layout');
     return { success: true, url: uploadRes.url };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan internal.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan internal.';
+    return { error: message };
   }
 }
 
@@ -265,8 +268,9 @@ export async function removeAvatar() {
     revalidatePath('/dashboard');
     revalidatePath('/', 'layout');
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan internal.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan internal.';
+    return { error: message };
   }
 }
 
@@ -291,7 +295,8 @@ export async function changePassword(formData: FormData) {
     }
 
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan internal.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan internal.';
+    return { error: message };
   }
 }

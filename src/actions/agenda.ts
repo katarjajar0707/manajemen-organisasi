@@ -19,6 +19,26 @@ export interface AgendaData {
   createdAt: string;
 }
 
+interface RawPeriodeKepengurusan {
+  id: string;
+  nama_periode: string;
+  is_aktif: boolean;
+  created_at?: string;
+  anggota?: unknown[];
+}
+
+interface RawAgendaItem {
+  id: string;
+  nama_agenda: string;
+  bagian_id: string;
+  status?: string | null;
+  deskripsi?: string | null;
+  created_at: string;
+  bagian?: { nama?: string; slug?: string } | { nama?: string; slug?: string }[] | null;
+  author?: { nama?: string; role?: string } | { nama?: string; role?: string }[] | null;
+  periode_kepengurusan?: RawPeriodeKepengurusan[];
+}
+
 /**
  * Mengambil daftar agenda organisasi (semua atau per bagian).
  * Terbuka untuk semua role (PRD 4.5).
@@ -76,9 +96,9 @@ export async function getAgendas(bagianSlug?: string): Promise<AgendaData[]> {
 
   if (!data) return [];
 
-  return data.map((item: any) => {
+  return (data as RawAgendaItem[]).map((item) => {
     const periods = Array.isArray(item.periode_kepengurusan) ? item.periode_kepengurusan : [];
-    const activePeriod = periods.find((p: any) => p.is_aktif) || periods[0] || null;
+    const activePeriod = periods.find((p) => p.is_aktif) || periods[0] || null;
 
     let totalAnggota = 0;
     if (activePeriod && Array.isArray(activePeriod.anggota)) {
@@ -96,7 +116,7 @@ export async function getAgendas(bagianSlug?: string): Promise<AgendaData[]> {
       bagianId: item.bagian_id,
       periode: activePeriod ? activePeriod.nama_periode : 'Belum ditentukan',
       activePeriodeId: activePeriod ? activePeriod.id : null,
-      status: (item.status as any) || 'Aktif',
+      status: (item.status as 'Aktif' | 'Persiapan' | 'Selesai') || 'Aktif',
       totalAnggota,
       deskripsi: item.deskripsi || '',
       penanggungJawab: authorObj?.nama ? `${authorObj.nama} (${authorObj.role})` : 'Pengurus Harian',
@@ -160,7 +180,7 @@ export async function getAgendaById(id: string) {
     ...data,
     bagian: bagianObj,
     author: authorObj,
-    periode_kepengurusan: (data.periode_kepengurusan || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    periode_kepengurusan: (data.periode_kepengurusan || []).sort((a: { created_at: string }, b: { created_at: string }) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
   };
 }
 
@@ -225,8 +245,9 @@ export async function createAgenda(formData: FormData) {
     revalidatePath(`/struktur/${bagian_id}/agenda`);
     revalidatePath('/keuangan');
     return { success: true, agendaId: agenda.id };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: errorMsg };
   }
 }
 
@@ -250,7 +271,7 @@ export async function updateAgenda(id: string, formData: FormData) {
       return { error: 'Nama agenda wajib diisi.' };
     }
 
-    const updatePayload: any = {
+    const updatePayload: Record<string, string | null> = {
       nama_agenda: nama_agenda.trim(),
       deskripsi: deskripsi?.trim() || null,
       status,
@@ -270,8 +291,9 @@ export async function updateAgenda(id: string, formData: FormData) {
     revalidatePath('/struktur');
     revalidatePath('/keuangan');
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: errorMsg };
   }
 }
 
@@ -296,7 +318,8 @@ export async function deleteAgenda(id: string) {
     revalidatePath('/struktur');
     revalidatePath('/keuangan');
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: errorMsg };
   }
 }

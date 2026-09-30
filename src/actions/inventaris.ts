@@ -46,6 +46,35 @@ export interface PeminjamanRecord {
   createdAt: string;
 }
 
+interface RawPeminjamanRecord {
+  id: string;
+  status: "dipinjam" | "dikembalikan";
+  peminjam?: string;
+  tanggal_pinjam?: string;
+  tanggal_kembali_rencana?: string;
+  tanggal_kembali_aktual?: string | null;
+  jumlah_pinjam?: number;
+  keterangan?: string | null;
+  created_at?: string;
+  inventaris_id?: string;
+  inventaris?: { nama_barang?: string } | null;
+  author?: { nama?: string } | null;
+}
+
+interface RawInventarisItem {
+  id: string;
+  nama_barang: string;
+  kategori?: string | null;
+  jumlah?: number | string | null;
+  satuan?: string | null;
+  kondisi?: KondisiBarang | null;
+  lokasi?: string | null;
+  foto_url?: string | null;
+  keterangan?: string | null;
+  created_at?: string;
+  peminjaman?: RawPeminjamanRecord[];
+}
+
 /**
  * Mengambil daftar seluruh barang inventaris beserta status peminjaman aktif.
  */
@@ -89,10 +118,10 @@ export async function getInventarisList(_filters?: {
     return [];
   }
 
-  const items: ItemInventaris[] = (rawItems || []).map((item: any) => {
+  const items: ItemInventaris[] = ((rawItems as RawInventarisItem[]) || []).map((item) => {
     // Cari peminjaman yang masih aktif ('dipinjam')
     const activeLoans = (item.peminjaman || []).filter(
-      (p: any) => p.status === "dipinjam"
+      (p) => p.status === "dipinjam"
     );
     const latestLoan = activeLoans.length > 0 ? activeLoans[0] : null;
 
@@ -113,7 +142,7 @@ export async function getInventarisList(_filters?: {
       tglPinjam: latestLoan ? latestLoan.tanggal_pinjam : undefined,
       tglKembaliRencana: latestLoan ? latestLoan.tanggal_kembali_rencana : undefined,
       aktifPinjamId: latestLoan ? latestLoan.id : undefined,
-      createdAt: item.created_at,
+      createdAt: item.created_at || new Date().toISOString(),
     };
   });
 
@@ -145,7 +174,7 @@ export async function createInventaris(payload: {
       return { success: false, error: "Nama barang wajib diisi." };
     }
 
-    const insertData: any = {
+    const insertData: Record<string, unknown> = {
       nama_barang: payload.nama.trim(),
       jumlah: Number(payload.jumlah) || 1,
       kondisi: payload.kondisi || "baik",
@@ -186,8 +215,9 @@ export async function createInventaris(payload: {
         createdAt: data.created_at,
       },
     };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -215,7 +245,7 @@ export async function updateInventaris(
       return { success: false, error: "Unauthorized: Silakan login." };
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (payload.nama !== undefined) updateData.nama_barang = payload.nama.trim();
     if (payload.kategori !== undefined) updateData.kategori = payload.kategori;
     if (payload.jumlah !== undefined) updateData.jumlah = Number(payload.jumlah);
@@ -237,8 +267,9 @@ export async function updateInventaris(
 
     revalidatePath("/inventaris");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -264,8 +295,9 @@ export async function deleteInventaris(id: string): Promise<{ success: boolean; 
     revalidatePath("/inventaris");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -316,8 +348,9 @@ export async function pinjamInventaris(payload: {
 
     revalidatePath("/inventaris");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -354,8 +387,9 @@ export async function kembalikanInventaris(
 
     revalidatePath("/inventaris");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -401,18 +435,18 @@ export async function getRiwayatPeminjaman(
     return [];
   }
 
-  return (data || []).map((r: any) => ({
+  return ((data as RawPeminjamanRecord[]) || []).map((r) => ({
     id: r.id,
-    inventarisId: r.inventaris_id,
+    inventarisId: r.inventaris_id || '',
     namaBarang: r.inventaris?.nama_barang,
-    peminjam: r.peminjam,
-    tanggalPinjam: r.tanggal_pinjam,
-    tanggalKembaliRencana: r.tanggal_kembali_rencana,
-    tanggalKembaliAktual: r.tanggal_kembali_aktual,
+    peminjam: r.peminjam || '',
+    tanggalPinjam: r.tanggal_pinjam || '',
+    tanggalKembaliRencana: r.tanggal_kembali_rencana || '',
+    tanggalKembaliAktual: r.tanggal_kembali_aktual || undefined,
     status: r.status,
     jumlahPinjam: r.jumlah_pinjam || 1,
-    keterangan: r.keterangan,
+    keterangan: r.keterangan || undefined,
     dibuatOleh: r.author?.nama || "Pengurus",
-    createdAt: r.created_at,
+    createdAt: r.created_at || '',
   }));
 }

@@ -174,7 +174,7 @@ export async function updatePengaturanProfil(payload: Partial<ProfilOrganisasi>)
 
     const adminSupabase = await createAdminClient();
 
-    const dbPayload: Record<string, any> = {
+    const dbPayload: Record<string, unknown> = {
       id: 'default',
       updated_at: new Date().toISOString(),
     };
@@ -219,8 +219,9 @@ export async function updatePengaturanProfil(payload: Partial<ProfilOrganisasi>)
     revalidatePath('/keuangan');
     revalidatePath('/login');
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Terjadi kesalahan server saat menyimpan profil.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan server saat menyimpan profil.';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -237,7 +238,7 @@ export async function updatePengaturanOperasional(payload: Partial<OperasionalKe
 
     const adminSupabase = await createAdminClient();
 
-    const dbPayload: Record<string, any> = {
+    const dbPayload: Record<string, unknown> = {
       id: 'default',
       updated_at: new Date().toISOString(),
     };
@@ -283,8 +284,9 @@ export async function updatePengaturanOperasional(payload: Partial<OperasionalKe
     revalidatePath('/keuangan');
     revalidatePath('/login');
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Terjadi kesalahan server saat menyimpan operasional.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan server saat menyimpan operasional.';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -301,7 +303,7 @@ export async function updatePengaturanKeamanan(payload: Partial<KeamananSistem>)
 
     const adminSupabase = await createAdminClient();
 
-    const dbPayload: Record<string, any> = {
+    const dbPayload: Record<string, unknown> = {
       id: 'default',
       updated_at: new Date().toISOString(),
     };
@@ -343,8 +345,9 @@ export async function updatePengaturanKeamanan(payload: Partial<KeamananSistem>)
     revalidatePath('/keuangan');
     revalidatePath('/login');
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Terjadi kesalahan server saat menyimpan keamanan.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan server saat menyimpan keamanan.';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -417,8 +420,17 @@ export async function getRecentAuditLogs(): Promise<
 
     const logs: Array<{ id: string; action: string; actor: string; date: Date; color: string }> = [];
 
-    (keuanganLatest.data || []).forEach((k: any) => {
-      const actorName = k.profiles?.nama || 'Pengurus';
+    interface RawActivityWithProfile {
+      id: string;
+      judul: string;
+      jenis?: string;
+      created_at: string;
+      profiles?: { nama?: string } | { nama?: string }[] | null;
+    }
+
+    ((keuanganLatest.data || []) as unknown as RawActivityWithProfile[]).forEach((k) => {
+      const profileObj = Array.isArray(k.profiles) ? k.profiles[0] : k.profiles;
+      const actorName = profileObj?.nama || 'Pengurus';
       const jenisStr = k.jenis === 'masuk' ? 'Kas Masuk' : 'Kas Keluar';
       logs.push({
         id: `keu-${k.id}`,
@@ -429,7 +441,7 @@ export async function getRecentAuditLogs(): Promise<
       });
     });
 
-    (inventarisLatest.data || []).forEach((inv: any) => {
+    (inventarisLatest.data || []).forEach((inv: { id: string; nama_barang: string; created_at: string }) => {
       logs.push({
         id: `inv-${inv.id}`,
         action: `Inventaris Barang: "${inv.nama_barang}"`,
@@ -439,8 +451,9 @@ export async function getRecentAuditLogs(): Promise<
       });
     });
 
-    (pengumumanLatest.data || []).forEach((p: any) => {
-      const actorName = p.profiles?.nama || 'Admin';
+    ((pengumumanLatest.data || []) as unknown as RawActivityWithProfile[]).forEach((p) => {
+      const profileObj = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
+      const actorName = profileObj?.nama || 'Admin';
       logs.push({
         id: `peng-${p.id}`,
         action: `Rilis Pengumuman: "${p.judul}"`,
@@ -450,7 +463,7 @@ export async function getRecentAuditLogs(): Promise<
       });
     });
 
-    (arsipLatest.data || []).forEach((a: any) => {
+    (arsipLatest.data || []).forEach((a: { id: string; judul: string; created_at: string }) => {
       logs.push({
         id: `arsip-${a.id}`,
         action: `Upload Dokumen Arsip: "${a.judul}"`,
@@ -573,9 +586,10 @@ export async function exportModuleData(moduleName: 'anggota' | 'keuangan' | 'inv
     }
 
     return { success: false, error: 'Modul ekspor tidak dikenali.' };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Export error:', err);
-    return { success: false, error: err.message || 'Gagal mengekspor data.' };
+    const errorMsg = err instanceof Error ? err.message : 'Gagal mengekspor data.';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -594,10 +608,11 @@ export async function clearSystemCache(): Promise<{ success: boolean; message: s
       success: true,
       message: 'Cache server dan layout aplikasi berhasil dibersihkan dan disegarkan.',
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Gagal membersihkan cache sistem.';
     return {
       success: false,
-      message: err.message || 'Gagal membersihkan cache sistem.',
+      message: errorMsg,
     };
   }
 }
@@ -677,11 +692,12 @@ export async function clearAllDummyData(): Promise<{ success: boolean; message: 
       success: true,
       message: 'Semua data dummy berhasil dibersihkan! Sistem kini siap digunakan dengan data riil organisasi.',
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('clearAllDummyData error:', err);
+    const errorMsg = err instanceof Error ? err.message : 'Gagal membersihkan data dummy.';
     return {
       success: false,
-      message: err.message || 'Gagal membersihkan data dummy.',
+      message: errorMsg,
     };
   }
 }

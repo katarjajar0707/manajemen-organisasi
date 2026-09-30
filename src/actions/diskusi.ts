@@ -40,6 +40,15 @@ export interface DiskusiBalasanItem {
   createdAt: string;
 }
 
+interface RawMentionRecord {
+  id: string;
+  bagian?: {
+    id: string;
+    nama: string;
+    slug: string;
+  } | null;
+}
+
 /**
  * Mengambil seluruh topik diskusi / catatan umum dengan filter opsional.
  * Sesuai PRD 4.7: Terbuka untuk semua role & semua bagian.
@@ -104,14 +113,14 @@ export async function getDiskusis(filters?: {
     if (!data) return [];
 
     return data.map((item) => {
-      const rawMentions = Array.isArray(item.diskusi_mention) ? item.diskusi_mention : [];
+      const rawMentions = (Array.isArray(item.diskusi_mention) ? item.diskusi_mention : []) as RawMentionRecord[];
       const mentions: DiskusiMentionItem[] = rawMentions
-        .filter((m: any) => Boolean(m?.bagian))
-        .map((m: any) => ({
+        .filter((m) => Boolean(m?.bagian))
+        .map((m) => ({
           id: m.id,
-          bagianId: m.bagian.id,
-          bagianNama: m.bagian.nama,
-          bagianSlug: m.bagian.slug,
+          bagianId: m.bagian!.id,
+          bagianNama: m.bagian!.nama,
+          bagianSlug: m.bagian!.slug,
         }));
 
       return {
@@ -181,14 +190,14 @@ export async function getDiskusiById(id: string): Promise<DiskusiItem | null> {
     return null;
   }
 
-  const rawMentions = Array.isArray(data.diskusi_mention) ? data.diskusi_mention : [];
+  const rawMentions = (Array.isArray(data.diskusi_mention) ? data.diskusi_mention : []) as RawMentionRecord[];
   const mentions: DiskusiMentionItem[] = rawMentions
-    .filter((m: any) => Boolean(m?.bagian))
-    .map((m: any) => ({
+    .filter((m) => Boolean(m?.bagian))
+    .map((m) => ({
       id: m.id,
-      bagianId: m.bagian.id,
-      bagianNama: m.bagian.nama,
-      bagianSlug: m.bagian.slug,
+      bagianId: m.bagian!.id,
+      bagianNama: m.bagian!.nama,
+      bagianSlug: m.bagian!.slug,
     }));
 
   return {
@@ -270,9 +279,10 @@ export async function createDiskusi(payload: {
 
     const fullDiskusi = await getDiskusiById(insertedDiskusi.id);
     return { success: true, data: fullDiskusi || undefined };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Unexpected error creating diskusi:", err);
-    return { success: false, error: err?.message || "Terjadi kesalahan internal." };
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan internal.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -296,7 +306,7 @@ export async function updateDiskusi(
       return { success: false, error: "Silakan login terlebih dahulu." };
     }
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     if (payload.tipe) updateData.tipe = payload.tipe;
     if (payload.judul !== undefined) updateData.judul = payload.judul.trim();
     if (payload.isi !== undefined) updateData.isi = payload.isi?.trim() || null;
@@ -329,9 +339,10 @@ export async function updateDiskusi(
     revalidatePath("/dashboard");
 
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Unexpected error updating diskusi:", err);
-    return { success: false, error: err?.message || "Terjadi kesalahan internal." };
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan internal.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -358,9 +369,10 @@ export async function deleteDiskusi(id: string): Promise<{ success: boolean; err
     revalidatePath("/dashboard");
 
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Unexpected error deleting diskusi:", err);
-    return { success: false, error: err?.message || "Terjadi kesalahan internal." };
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan internal.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -391,9 +403,10 @@ export async function togglePinDiskusi(
 
     revalidatePath("/diskusi");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Unexpected error toggling pin:", err);
-    return { success: false, error: err?.message || "Terjadi kesalahan internal." };
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan internal.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -504,9 +517,10 @@ export async function createDiskusiBalasan(
         createdAt: insertedBalasan.created_at,
       },
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Unexpected error creating balasan:", err);
-    return { success: false, error: err?.message || "Terjadi kesalahan internal." };
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan internal.";
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -536,8 +550,9 @@ export async function deleteDiskusiBalasan(
     revalidatePath("/diskusi");
 
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Unexpected error deleting balasan:", err);
-    return { success: false, error: err?.message || "Terjadi kesalahan internal." };
+    const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan internal.";
+    return { success: false, error: errorMsg };
   }
 }

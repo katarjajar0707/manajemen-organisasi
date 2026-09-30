@@ -64,7 +64,22 @@ export async function getArsipList(filters?: {
     return [];
   }
 
-  return (data || []).map((doc: any) => {
+  interface RawArsipDoc {
+    id: string;
+    judul: string;
+    nomor_surat: string | null;
+    kategori: KategoriArsip;
+    file_url: string;
+    file_type: string | null;
+    file_size: string | null;
+    agenda_organisasi_id: string | null;
+    deskripsi: string | null;
+    created_at: string;
+    agenda?: { id: string; nama_agenda: string } | { id: string; nama_agenda: string }[] | null;
+    author?: { id: string; nama: string; role: string } | { id: string; nama: string; role: string }[] | null;
+  }
+
+  return ((data || []) as unknown as RawArsipDoc[]).map((doc) => {
     // Format tanggal cantik
     const d = new Date(doc.created_at);
     const formattedDate = d.toLocaleDateString("id-ID", {
@@ -164,7 +179,7 @@ export async function createArsip(payload: {
     const fileType = imageUrl ? "IMG" : driveUrl ? "LINK" : payload.fileType || "PDF";
     const fileSize = imageUrl ? (payload.fileSize || "Gambar") : driveUrl ? "Google Drive" : (payload.fileSize || "Dokumen");
 
-    const insertData: any = {
+    const insertData: Record<string, unknown> = {
       judul: payload.judul.trim(),
       nomor_surat: nomorSurat,
       kategori: payload.kategori || "lainnya",
@@ -228,8 +243,9 @@ export async function createArsip(payload: {
         imageUrl,
       },
     };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+    return { success: false, error: message };
   }
 }
 
@@ -259,7 +275,7 @@ export async function updateArsip(
       return { success: false, error: "Unauthorized: Silakan login." };
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (payload.judul !== undefined) updateData.judul = payload.judul.trim();
     if (payload.kategori !== undefined) updateData.kategori = payload.kategori;
     if (payload.agendaOrganisasiId !== undefined) updateData.agenda_organisasi_id = payload.agendaOrganisasiId;
@@ -299,8 +315,9 @@ export async function updateArsip(
 
     revalidatePath("/arsip");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+    return { success: false, error: message };
   }
 }
 
@@ -325,7 +342,8 @@ export async function deleteArsip(id: string): Promise<{ success: boolean; error
 
     revalidatePath("/arsip");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+    return { success: false, error: message };
   }
 }

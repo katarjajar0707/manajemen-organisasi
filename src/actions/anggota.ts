@@ -26,6 +26,39 @@ export interface AnggotaDetail {
   createdAt: string;
 }
 
+interface RawBagianRel {
+  id: string;
+  nama: string;
+  slug?: string;
+}
+
+interface RawAgendaRel {
+  id: string;
+  nama_agenda: string;
+  bagian?: RawBagianRel | RawBagianRel[] | null;
+}
+
+interface RawPeriodeRel {
+  id: string;
+  nama_periode: string;
+  is_aktif?: boolean;
+  agenda?: RawAgendaRel | RawAgendaRel[] | null;
+}
+
+interface RawAnggotaItem {
+  id: string;
+  nama: string;
+  jabatan: string;
+  rt_rw: string;
+  kontak: string;
+  status?: string | null;
+  foto_url: string | null;
+  periode_id: string | null;
+  created_at: string;
+  bagian?: RawBagianRel | RawBagianRel[] | null;
+  periode?: RawPeriodeRel | RawPeriodeRel[] | null;
+}
+
 /**
  * Mengambil daftar seluruh anggota organisasi dari database.
  * Terbuka untuk semua pengguna.
@@ -96,7 +129,7 @@ export async function getAnggotaList(filters?: { search?: string; rt_rw?: string
     }
   }
 
-  return data.map((m: any) => {
+  return (data as unknown as RawAnggotaItem[]).map((m) => {
     const directBagian = Array.isArray(m.bagian) ? m.bagian[0] : m.bagian;
     const periodeObj = Array.isArray(m.periode) ? m.periode[0] : m.periode;
     const agendaObj = periodeObj ? (Array.isArray(periodeObj.agenda) ? periodeObj.agenda[0] : periodeObj.agenda) : null;
@@ -119,7 +152,7 @@ export async function getAnggotaList(filters?: { search?: string; rt_rw?: string
       rt_rw: m.rt_rw,
       kontak: m.kontak,
       nomor_wa: whatsappMap.get(m.id) || '',
-      status: (m.status as any) || 'Aktif',
+      status: (m.status as 'Aktif' | 'Alumni' | 'Cuti') || 'Aktif',
       foto_url: m.foto_url || avatarMap.get(m.id) || null,
       periode: periodeObj ? periodeObj.nama_periode : 'Anggota Umum',
       periodeId: m.periode_id || null,
@@ -161,13 +194,13 @@ export async function getAnggotaFormMeta() {
 
   return {
     daftarBagian: bagianRes,
-    daftarPeriode: (periodeRes.data || []).map((p: any) => {
+    daftarPeriode: ((periodeRes.data || []) as unknown as RawPeriodeRel[]).map((p) => {
       const agenda = Array.isArray(p.agenda) ? p.agenda[0] : p.agenda;
       const bagian = agenda ? (Array.isArray(agenda.bagian) ? agenda.bagian[0] : agenda.bagian) : null;
       return {
         id: p.id,
         nama: `${agenda ? agenda.nama_agenda : 'Agenda'} - ${p.nama_periode} ${p.is_aktif ? '(Aktif)' : ''}`,
-        isAktif: p.is_aktif,
+        isAktif: Boolean(p.is_aktif),
         bagianId: bagian?.id || null,
       };
     }),
@@ -233,8 +266,9 @@ export async function createAnggota(formData: FormData) {
     revalidatePath('/');
     invalidatePublicTransparencyCache();
     return { success: true, anggota: data };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: message };
   }
 }
 
@@ -263,7 +297,7 @@ export async function updateAnggota(id: string, formData: FormData) {
       return { error: 'Nama, kontak, RT/RW, dan jabatan wajib diisi.' };
     }
 
-    const updatePayload: any = {
+    const updatePayload: Record<string, unknown> = {
       nama: nama.trim(),
       kontak: kontak.trim(),
       rt_rw: rt_rw.trim(),
@@ -296,8 +330,9 @@ export async function updateAnggota(id: string, formData: FormData) {
     revalidatePath('/');
     invalidatePublicTransparencyCache();
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: message };
   }
 }
 
@@ -325,7 +360,8 @@ export async function deleteAnggota(id: string) {
     revalidatePath('/');
     invalidatePublicTransparencyCache();
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: message };
   }
 }

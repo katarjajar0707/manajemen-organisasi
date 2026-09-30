@@ -57,7 +57,7 @@ export async function getUsers() {
   const waData = waResult.data;
   if (waData) {
     for (const w of waData) {
-      waMap.set(w.id, (w as any).nomor_wa || '');
+      waMap.set(w.id, (w as { id: string; nomor_wa?: string }).nomor_wa || '');
     }
   }
 
@@ -70,16 +70,57 @@ export async function getUsers() {
     }
   }
 
+  interface RawProfileJoin {
+    id: string;
+    nama: string;
+    username: string;
+    role: string;
+    bagian_id: string | null;
+    created_at: string;
+    foto_url?: string | null;
+    bagian?: { id: string; nama: string; slug?: string } | { id: string; nama: string; slug?: string }[] | null;
+  }
+
   // Normalize bagian from array (Supabase FK join) to single object
-  const normalized = (profiles || []).map((p: any) => ({
-    ...p,
-    foto_url: p.foto_url || anggotaPhotoMap.get(p.id) || null,
-    nomor_wa: waMap.get(p.id) || '',
-    email: emailMap.get(p.id) || '',
-    bagian: Array.isArray(p.bagian) ? p.bagian[0] || null : p.bagian || null,
-  }));
+  const normalized = ((profiles || []) as unknown as RawProfileJoin[]).map((p) => {
+    const rawBagian = Array.isArray(p.bagian) ? p.bagian[0] || null : p.bagian || null;
+    return {
+      id: p.id,
+      nama: p.nama,
+      username: p.username,
+      role: p.role,
+      bagian_id: p.bagian_id || null,
+      created_at: p.created_at,
+      foto_url: p.foto_url || anggotaPhotoMap.get(p.id) || null,
+      nomor_wa: waMap.get(p.id) || '',
+      email: emailMap.get(p.id) || '',
+      bagian: rawBagian ? { id: rawBagian.id, nama: rawBagian.nama, slug: rawBagian.slug || '' } : null,
+    };
+  });
 
   return normalized;
+}
+
+interface RawLoginHistoryRow {
+  id: string;
+  user_id: string;
+  logged_in_at: string;
+  logged_out_at?: string | null;
+  profiles?: {
+    nama?: string;
+    username?: string;
+    role?: string;
+    foto_url?: string | null;
+    last_seen_at?: string | null;
+    bagian?: { nama?: string } | { nama?: string }[] | null;
+  } | {
+    nama?: string;
+    username?: string;
+    role?: string;
+    foto_url?: string | null;
+    last_seen_at?: string | null;
+    bagian?: { nama?: string } | { nama?: string }[] | null;
+  }[] | null;
 }
 
 export async function getLoginHistory(limit = 7) {
@@ -92,7 +133,7 @@ export async function getLoginHistory(limit = 7) {
 
     const fetchBatchLimit = Math.min(Math.max(effectiveLimit * 10, 50), 200);
 
-    let rows: any[] | null = null;
+    let rows: RawLoginHistoryRow[] | null = null;
     const [fullResult, { data: authUsers }] = await Promise.all([
       supabase
         .from('login_history')
@@ -115,15 +156,15 @@ export async function getLoginHistory(limit = 7) {
         console.error('Error fetching login history:', fallbackError);
         return [];
       }
-      rows = fallbackRows;
+      rows = fallbackRows as RawLoginHistoryRow[];
     } else {
-      rows = fullResult.data;
+      rows = fullResult.data as RawLoginHistoryRow[];
     }
 
     if (!rows) return [];
 
     // Deduplikasi berdasarkan user_id (ambil 1 baris login paling baru per user)
-    const uniqueUserRows: any[] = [];
+    const uniqueUserRows: RawLoginHistoryRow[] = [];
     const seenUserIds = new Set<string>();
 
     for (const row of rows) {
@@ -137,7 +178,7 @@ export async function getLoginHistory(limit = 7) {
     }
 
     const emailMap = new Map((authUsers?.users || []).map((user) => [user.id, user.email || '']));
-    return uniqueUserRows.map((row: any) => {
+    return uniqueUserRows.map((row) => {
       const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
       const bagian = Array.isArray(profile?.bagian) ? profile.bagian[0] : profile?.bagian;
       return {
@@ -149,7 +190,7 @@ export async function getLoginHistory(limit = 7) {
         nama: profile?.nama || 'Pengguna',
         username: profile?.username || '—',
         email: emailMap.get(row.user_id) || '',
-        role: profile?.role || 'anggota',
+        role: (profile?.role as 'anggota' | 'admin' | 'ketua') || 'anggota',
         fotoUrl: profile?.foto_url || null,
         bagianNama: bagian?.nama || null,
       };
@@ -226,8 +267,9 @@ export async function createUser(formData: FormData) {
     revalidatePath('/');
 
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan internal.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan internal.';
+    return { error: errorMsg };
   }
 }
 
@@ -260,7 +302,7 @@ export async function updateUser(userId: string, formData: FormData) {
       }
     }
 
-    const profileUpdate: any = {
+    const profileUpdate: Record<string, string | null> = {
       role: role,
       bagian_id: bagian_id || null,
     };
@@ -281,7 +323,7 @@ export async function updateUser(userId: string, formData: FormData) {
     }
 
     // Sinkronkan ke tabel anggota
-    const anggotaUpdate: any = {
+    const anggotaUpdate: Record<string, string | null> = {
       bagian_id: bagian_id || null,
     };
     if (nama) anggotaUpdate.nama = nama;
@@ -300,8 +342,9 @@ export async function updateUser(userId: string, formData: FormData) {
     revalidatePath('/');
 
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan internal.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan internal.';
+    return { error: errorMsg };
   }
 }
 
@@ -332,7 +375,8 @@ export async function deleteUser(userId: string) {
     revalidatePath('/');
 
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan internal.' };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan internal.';
+    return { error: errorMsg };
   }
 }

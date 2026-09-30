@@ -202,7 +202,7 @@ export async function getPublicTransparencyData(): Promise<PublicTransparencyDat
     let totalMasuk = 0;
     let totalKeluar = 0;
 
-    (rawKeuangan || []).forEach((item: any) => {
+    ((rawKeuangan || []) as TransaksiKeuanganRingkas[]).forEach((item) => {
       const val = Number(item.jumlah) || 0;
       if (item.jenis === 'masuk') totalMasuk += val;
       else if (item.jenis === 'keluar') totalKeluar += val;
@@ -218,8 +218,14 @@ export async function getPublicTransparencyData(): Promise<PublicTransparencyDat
     // 2. Fetch Anggota
     const { data: rawAnggota } = await supabase.from('anggota').select('id, status, rt_rw');
 
+    interface RawAnggotaTransparansi {
+      id: string;
+      status: string | null;
+      rt_rw: string | null;
+    }
+
     const totalSemua = rawAnggota?.length || 0;
-    const totalAktif = (rawAnggota || []).filter((a: any) => !a.status || a.status.toLowerCase() === 'aktif').length;
+    const totalAktif = ((rawAnggota || []) as RawAnggotaTransparansi[]).filter((a) => !a.status || a.status.toLowerCase() === 'aktif').length;
 
     // 3. Fetch Kegiatan & Jadwal Mendatang
     const { data: rawKegiatan } = await supabase
@@ -239,14 +245,25 @@ export async function getPublicTransparencyData(): Promise<PublicTransparencyDat
       )
       .order('tanggal_mulai', { ascending: false });
 
-    const totalProgram = rawKegiatan?.length || 0;
-    const kegiatanTerlaksana = (rawKegiatan || []).filter((k: any) => new Date(k.tanggal_mulai) < now).length;
+    interface RawKegiatanTransparansi {
+      id: string;
+      judul: string;
+      deskripsi: string | null;
+      tanggal_mulai: string;
+      tanggal_selesai: string | null;
+      lokasi: string | null;
+      bagian?: { nama: string } | { nama: string }[] | null;
+    }
+
+    const kegiatanList = (rawKegiatan || []) as unknown as RawKegiatanTransparansi[];
+    const totalProgram = kegiatanList.length;
+    const kegiatanTerlaksana = kegiatanList.filter((k) => new Date(k.tanggal_mulai) < now).length;
 
     // Ambil maksimal 6 kegiatan terbaru / mendatang
-    const sortedUpcoming = [...(rawKegiatan || [])]
-      .sort((a: any, b: any) => new Date(b.tanggal_mulai).getTime() - new Date(a.tanggal_mulai).getTime())
+    const sortedUpcoming = [...kegiatanList]
+      .sort((a, b) => new Date(b.tanggal_mulai).getTime() - new Date(a.tanggal_mulai).getTime())
       .slice(0, 6)
-      .map((k: any) => {
+      .map((k) => {
         const bagianObj = Array.isArray(k.bagian) ? k.bagian[0] : k.bagian;
         return {
           id: k.id,
@@ -316,7 +333,7 @@ export async function kirimAspirasiWarga(payload: { nama: string; rt: string; pe
     if (insertError) return { success: false, error: 'Gagal menyimpan aspirasi warga.' };
 
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error saving aspirasi warga:', err);
     return { success: false, error: 'Gagal menyimpan aspirasi warga.' };
   }

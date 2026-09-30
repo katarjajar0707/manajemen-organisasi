@@ -90,7 +90,22 @@ export async function getKegiatanList(filters?: { search?: string; status?: stri
 
   if (!data) return [];
 
-  const items: KegiatanData[] = data.map((item: any) => {
+  interface RawKegiatanRow {
+    id: string;
+    judul: string;
+    deskripsi: string;
+    tanggal_mulai: string;
+    tanggal_selesai: string | null;
+    lokasi: string | null;
+    bagian_id: string | null;
+    dibuat_oleh: string | null;
+    created_at: string;
+    target_rab: number | null;
+    bagian?: { nama: string } | { nama: string }[] | null;
+    dokumentasi_kegiatan?: { id: string }[] | null;
+  }
+
+  const items: KegiatanData[] = ((data || []) as unknown as RawKegiatanRow[]).map((item) => {
     const bagianObj = Array.isArray(item.bagian) ? item.bagian[0] : item.bagian;
 
     const mulaiDate = new Date(item.tanggal_mulai);
@@ -121,7 +136,7 @@ export async function getKegiatanList(filters?: { search?: string; status?: stri
       penanggungJawab: pjText,
       totalFoto,
       status,
-      dibuatOleh: item.dibuat_oleh,
+      dibuatOleh: item.dibuat_oleh || '',
       createdAt: item.created_at,
       targetRab: Number(item.target_rab) || 0,
     };
@@ -188,7 +203,9 @@ export async function getKegiatanById(id: string) {
     waktuMulai: mulaiDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':'),
     waktuSelesai: selesaiDate ? selesaiDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':') : 'Selesai',
     status: calculateStatus(data.tanggal_mulai, data.tanggal_selesai),
-    dokumentasi_kegiatan: (data.dokumentasi_kegiatan || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    dokumentasi_kegiatan: ((data.dokumentasi_kegiatan || []) as { id: string; created_at: string; foto_url: string; caption: string | null }[]).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    ),
   };
 }
 
@@ -261,8 +278,9 @@ export async function createKegiatan(formData: FormData) {
     revalidatePath('/keuangan');
     invalidatePublicTransparencyCache();
     return { success: true, kegiatan: data };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: message };
   }
 }
 
@@ -363,8 +381,9 @@ export async function updateKegiatan(id: string, formData: FormData) {
     revalidatePath('/keuangan');
     invalidatePublicTransparencyCache();
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: message };
   }
 }
 
@@ -393,7 +412,8 @@ export async function deleteKegiatan(id: string) {
     revalidatePath('/keuangan');
     invalidatePublicTransparencyCache();
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || 'Terjadi kesalahan sistem.' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem.';
+    return { error: message };
   }
 }
