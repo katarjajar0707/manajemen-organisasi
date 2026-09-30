@@ -1,24 +1,20 @@
 'use client';
 
-import { createContext, type ReactNode, useContext, useState, useMemo, useTransition, useRef, useEffect } from 'react';
+import { createContext, type ReactNode, useContext, useState, useMemo, useTransition, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Plus, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Pencil, Trash2, ArrowRightLeft, Boxes, MapPin, Clock, User, Filter, Check, Loader2, Image as ImageIcon, History, Upload, Calendar } from 'lucide-react';
+import {
+  Package,
+  Plus,
+  CheckCircle2,
+  AlertTriangle,
+  History,
+  Clock,
+} from 'lucide-react';
 import {
   ItemInventaris,
   PeminjamanRecord,
-  KondisiBarang,
-  StatusBarang,
-  KategoriBarang,
   createInventaris,
   updateInventaris,
   deleteInventaris,
@@ -27,10 +23,19 @@ import {
   getInventarisList,
   getRiwayatPeminjaman,
 } from '@/actions/inventaris';
-import { uploadLampiran } from '@/actions/storage';
-import { convertHeicToJpeg } from '@/lib/client-image';
-import { PreviewImage } from '@/components/common/preview-image';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
+import {
+  INVENTARIS_ITEMS_QUERY_KEY,
+  INVENTARIS_RIWAYAT_QUERY_KEY,
+  InventarisFormData,
+} from '@/constants/inventaris';
+import { InventarisStats } from './components/inventaris-stats';
+import { InventarisTable } from './components/inventaris-table';
+import { RiwayatTable } from './components/riwayat-table';
+import { InventarisFormDialog } from './components/inventaris-form-dialog';
+import { InventarisPinjamDialog, PinjamFormData } from './components/inventaris-pinjam-dialog';
+import { InventarisDetailDialog } from './components/inventaris-detail-dialog';
+import { InventarisDeleteDialog } from './components/inventaris-delete-dialog';
 
 interface InventarisManagerProps {
   initialItems?: ItemInventaris[];
@@ -41,9 +46,6 @@ interface InventarisManagerProps {
   loading?: boolean;
   children?: ReactNode;
 }
-
-const INVENTARIS_ITEMS_QUERY_KEY = ['inventaris', 'items'] as const;
-const INVENTARIS_RIWAYAT_QUERY_KEY = ['inventaris', 'riwayat'] as const;
 
 interface InventarisData {
   items: ItemInventaris[];
@@ -68,58 +70,21 @@ export function InventarisDataBridge({ data }: { data: InventarisData }) {
   return null;
 }
 
-function InventarisTableRowsSkeleton({ history = false }: { history?: boolean }) {
-  return (
-    <>
-      {Array.from({ length: 5 }).map((_, row) => (
-        <TableRow key={row}>
-          {Array.from({ length: 7 }).map((__, cell) => (
-            <TableCell key={cell} className="py-4">
-              <div className={`h-3 animate-pulse rounded bg-muted ${history && cell === 0 ? 'w-36' : cell === 6 ? 'ml-auto w-16' : 'w-24'}`} />
-            </TableCell>
-          ))}
-        </TableRow>
-      ))}
-    </>
-  );
-}
-
-function InventarisMobileRowsSkeleton() {
-  return (
-    <div className="divide-y divide-border/60" aria-label="Memuat daftar inventaris">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="p-3.5 sm:p-4 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 space-y-2">
-              <div className="flex gap-2">
-                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
-                <div className="h-4 w-14 animate-pulse rounded bg-muted" />
-              </div>
-              <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
-              <div className="h-3.5 w-1/2 animate-pulse rounded bg-muted/70" />
-            </div>
-            <div className="h-16 w-16 sm:h-20 sm:w-20 animate-pulse rounded-xl bg-muted/60 shrink-0" />
-          </div>
-          <div className="flex items-center justify-between pt-2 border-t border-border/40">
-            <div className="h-8 w-24 animate-pulse rounded-lg bg-muted/60" />
-            <div className="flex gap-1">
-              <div className="h-8 w-8 animate-pulse rounded-lg bg-muted/60" />
-              <div className="h-8 w-8 animate-pulse rounded-lg bg-muted/60" />
-              <div className="h-8 w-8 animate-pulse rounded-lg bg-muted/60" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function InventarisManager({ initialItems = [], initialRiwayat = [], userRole = 'anggota', currentUserId: initialCurrentUserId, settings: initialSettings, loading = false, children }: InventarisManagerProps) {
+export function InventarisManager({
+  initialItems = [],
+  initialRiwayat = [],
+  userRole: _userRole = 'anggota',
+  currentUserId: initialCurrentUserId,
+  settings: initialSettings,
+  loading = false,
+  children,
+}: InventarisManagerProps) {
   const queryClient = useQueryClient();
   const [dataReady, setDataReady] = useState(!loading);
-  const [currentUserRole, setCurrentUserRole] = useState(userRole);
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>(initialCurrentUserId);
+  const [_currentUserRole, setCurrentUserRole] = useState(_userRole);
+  const [_currentUserId, setCurrentUserId] = useState<string | undefined>(initialCurrentUserId);
   const [settings, setSettings] = useState(initialSettings);
+
   const dataSetter = useMemo(
     () => (data: InventarisData) => {
       setCurrentUserRole(data.profile?.role || 'anggota');
@@ -127,8 +92,9 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
       setSettings(data.settings);
       setDataReady(true);
     },
-    [],
+    []
   );
+
   const { data: items = initialItems } = useQuery({
     queryKey: INVENTARIS_ITEMS_QUERY_KEY,
     queryFn: () => getInventarisList(),
@@ -136,6 +102,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
+
   const { data: riwayat = initialRiwayat } = useQuery({
     queryKey: INVENTARIS_RIWAYAT_QUERY_KEY,
     queryFn: () => getRiwayatPeminjaman(),
@@ -143,6 +110,7 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
+
   const [activeTab, setActiveTab] = useState<'daftar' | 'riwayat'>('daftar');
   const [isPending, startTransition] = useTransition();
 
@@ -172,45 +140,11 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isPinjamOpen, setIsPinjamOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
   // Selected item
   const [selectedItem, setSelectedItem] = useState<ItemInventaris | null>(null);
 
-  // Form states for Create & Edit
-  const [formData, setFormData] = useState<{
-    nama: string;
-    kategori: KategoriBarang;
-    jumlah: number;
-    satuan: string;
-    kondisi: KondisiBarang;
-    lokasi: string;
-    fotoUrl: string;
-    keterangan: string;
-  }>({
-    nama: '',
-    kategori: 'Elektronik & Sound',
-    jumlah: 1,
-    satuan: 'Unit',
-    kondisi: 'baik',
-    lokasi: 'Ruang Sekretariat Katar',
-    fotoUrl: '',
-    keterangan: '',
-  });
-
-  // Form state for Peminjaman
-  const [pinjamForm, setPinjamForm] = useState({
-    peminjam: '',
-    tanggalPinjam: new Date().toISOString().split('T')[0],
-    tanggalKembaliRencana: '',
-    jumlahPinjam: 1,
-    keterangan: '',
-  });
-
-  const createFileInputRef = useRef<HTMLInputElement>(null);
-  const editFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Calculate statistics
+  // Statistics
   const stats = useMemo(() => {
     const totalJenis = items.length;
     const totalUnit = items.reduce((acc, curr) => acc + curr.jumlah, 0);
@@ -238,276 +172,6 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
     });
   }, [items, searchQuery, filterKategori, filterKondisi, filterStatus]);
 
-  // Handle Photo Upload
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploading(true);
-      let uploadFile: File;
-      try {
-        uploadFile = await convertHeicToJpeg(file);
-      } catch {
-        triggerNotification('File HEIC tidak dapat dikonversi menjadi JPG.', 'warning');
-        return;
-      }
-
-      const res = await uploadLampiran(uploadFile, 'inventaris');
-      if (res.error || !res.url) {
-        triggerNotification(res.error || 'Gagal mengunggah foto.', 'warning');
-      } else {
-        setFormData((prev) => ({ ...prev, fotoUrl: res.url! }));
-        triggerNotification('Foto inventaris berhasil diunggah!', 'success');
-      }
-    } catch (err: any) {
-      triggerNotification(err.message || 'Gagal mengunggah foto.', 'warning');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  // Handlers
-  const handleOpenCreate = () => {
-    setFormData({
-      nama: '',
-      kategori: 'Elektronik & Sound',
-      jumlah: 1,
-      satuan: 'Unit',
-      kondisi: 'baik',
-      lokasi: 'Ruang Sekretariat Katar',
-      fotoUrl: '',
-      keterangan: '',
-    });
-    setIsCreateOpen(true);
-  };
-
-  const handleCreateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.nama.trim()) return;
-
-    startTransition(async () => {
-      const res = await createInventaris({
-        nama: formData.nama,
-        kategori: formData.kategori,
-        jumlah: Number(formData.jumlah) || 1,
-        satuan: formData.satuan || 'Unit',
-        kondisi: formData.kondisi,
-        lokasi: formData.lokasi || 'Sekretariat',
-        fotoUrl: formData.fotoUrl || null,
-        keterangan: formData.keterangan,
-      });
-
-      if (res.success && res.data) {
-        queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) => [res.data!, ...prev]);
-        setIsCreateOpen(false);
-        triggerNotification(`Barang "${res.data.nama}" berhasil ditambahkan ke database!`, 'success');
-      } else {
-        triggerNotification(res.error || 'Gagal menambahkan barang.', 'warning');
-      }
-    });
-  };
-
-  const handleOpenEdit = (item: ItemInventaris) => {
-    setSelectedItem(item);
-    setFormData({
-      nama: item.nama,
-      kategori: (item.kategori as KategoriBarang) || 'Lainnya',
-      jumlah: item.jumlah,
-      satuan: item.satuan,
-      kondisi: item.kondisi,
-      lokasi: item.lokasi,
-      fotoUrl: item.fotoUrl || '',
-      keterangan: item.keterangan || '',
-    });
-    setIsEditOpen(true);
-  };
-
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedItem || !formData.nama.trim()) return;
-
-    startTransition(async () => {
-      const res = await updateInventaris(selectedItem.id, {
-        nama: formData.nama,
-        kategori: formData.kategori,
-        jumlah: Number(formData.jumlah) || 1,
-        satuan: formData.satuan,
-        kondisi: formData.kondisi,
-        lokasi: formData.lokasi,
-        fotoUrl: formData.fotoUrl || null,
-        keterangan: formData.keterangan,
-      });
-
-      if (res.success) {
-        queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
-          prev.map((i) =>
-            i.id === selectedItem.id
-              ? {
-                  ...i,
-                  nama: formData.nama,
-                  kategori: formData.kategori,
-                  jumlah: Number(formData.jumlah) || 1,
-                  satuan: formData.satuan,
-                  kondisi: formData.kondisi,
-                  lokasi: formData.lokasi,
-                  fotoUrl: formData.fotoUrl || null,
-                  keterangan: formData.keterangan,
-                }
-              : i,
-          ),
-        );
-        setIsEditOpen(false);
-        triggerNotification(`Data barang "${formData.nama}" berhasil diperbarui!`, 'success');
-      } else {
-        triggerNotification(res.error || 'Gagal memperbarui barang.', 'warning');
-      }
-    });
-  };
-
-  const handleOpenDetail = (item: ItemInventaris) => {
-    setSelectedItem(item);
-    setIsDetailOpen(true);
-  };
-
-  const handleOpenDelete = (item: ItemInventaris) => {
-    setSelectedItem(item);
-    setIsDeleteOpen(true);
-  };
-
-  const handleDeleteSubmit = () => {
-    if (!selectedItem) return;
-
-    startTransition(async () => {
-      const res = await deleteInventaris(selectedItem.id);
-      if (res.success) {
-        queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) => prev.filter((i) => i.id !== selectedItem.id));
-        setIsDeleteOpen(false);
-        triggerNotification(`Barang "${selectedItem.nama}" berhasil dihapus dari inventaris.`, 'warning');
-        setSelectedItem(null);
-      } else {
-        triggerNotification(res.error || 'Gagal menghapus barang.', 'warning');
-      }
-    });
-  };
-
-  const handleOpenPinjam = (item: ItemInventaris) => {
-    setSelectedItem(item);
-    const today = new Date();
-    const maxHari = parseInt(settings?.operasional.maxHariPinjamInventaris || '3') || 3;
-    const defaultKembali = new Date(today);
-    defaultKembali.setDate(defaultKembali.getDate() + maxHari);
-
-    setPinjamForm({
-      peminjam: item.peminjam || '',
-      tanggalPinjam: item.tglPinjam || today.toISOString().split('T')[0],
-      tanggalKembaliRencana: item.tglKembaliRencana || defaultKembali.toISOString().split('T')[0],
-      jumlahPinjam: 1,
-      keterangan: '',
-    });
-    setIsPinjamOpen(true);
-  };
-
-  const handlePinjamSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedItem) return;
-
-    startTransition(async () => {
-      if (selectedItem.status === 'Tersedia') {
-        if (!pinjamForm.peminjam.trim()) {
-          triggerNotification('Nama peminjam wajib diisi.', 'warning');
-          return;
-        }
-        if (!pinjamForm.tanggalKembaliRencana) {
-          triggerNotification('Rencana tanggal pengembalian wajib diisi.', 'warning');
-          return;
-        }
-
-        const res = await pinjamInventaris({
-          inventarisId: selectedItem.id,
-          peminjam: pinjamForm.peminjam,
-          tanggalPinjam: pinjamForm.tanggalPinjam,
-          tanggalKembaliRencana: pinjamForm.tanggalKembaliRencana,
-          jumlahPinjam: pinjamForm.jumlahPinjam,
-          keterangan: pinjamForm.keterangan,
-        });
-
-        if (res.success) {
-          queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
-            prev.map((i) =>
-              i.id === selectedItem.id
-                ? {
-                    ...i,
-                    status: 'Dipinjam',
-                    peminjam: pinjamForm.peminjam,
-                    tglPinjam: pinjamForm.tanggalPinjam,
-                    tglKembaliRencana: pinjamForm.tanggalKembaliRencana,
-                  }
-                : i,
-            ),
-          );
-          await queryClient.invalidateQueries({ queryKey: INVENTARIS_RIWAYAT_QUERY_KEY });
-          triggerNotification(`Peminjaman "${selectedItem.nama}" oleh ${pinjamForm.peminjam} berhasil dicatat.`, 'info');
-          setIsPinjamOpen(false);
-        } else {
-          triggerNotification(res.error || 'Gagal mencatat peminjaman.', 'warning');
-        }
-      } else {
-        // Pengembalian barang
-        if (!selectedItem.aktifPinjamId) {
-          // Fallback if loan id wasn't preloaded
-          const activeRecord = riwayat.find((r) => r.inventarisId === selectedItem.id && r.status === 'dipinjam');
-          if (activeRecord) {
-            const res = await kembalikanInventaris(activeRecord.id);
-            if (res.success) {
-              queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
-                prev.map((i) =>
-                  i.id === selectedItem.id
-                    ? {
-                        ...i,
-                        status: 'Tersedia',
-                        peminjam: undefined,
-                        tglPinjam: undefined,
-                        tglKembaliRencana: undefined,
-                        aktifPinjamId: undefined,
-                      }
-                    : i,
-                ),
-              );
-              await queryClient.invalidateQueries({ queryKey: INVENTARIS_RIWAYAT_QUERY_KEY });
-              triggerNotification(`Barang "${selectedItem.nama}" telah berhasil dikembalikan!`, 'success');
-              setIsPinjamOpen(false);
-              return;
-            }
-          }
-        } else {
-          const res = await kembalikanInventaris(selectedItem.aktifPinjamId);
-          if (res.success) {
-            queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
-              prev.map((i) =>
-                i.id === selectedItem.id
-                  ? {
-                      ...i,
-                      status: 'Tersedia',
-                      peminjam: undefined,
-                      tglPinjam: undefined,
-                      tglKembaliRencana: undefined,
-                      aktifPinjamId: undefined,
-                    }
-                  : i,
-              ),
-            );
-            await queryClient.invalidateQueries({ queryKey: INVENTARIS_RIWAYAT_QUERY_KEY });
-            triggerNotification(`Barang "${selectedItem.nama}" telah berhasil dikembalikan!`, 'success');
-            setIsPinjamOpen(false);
-            return;
-          }
-        }
-        triggerNotification('Gagal memproses pengembalian barang.', 'warning');
-      }
-    });
-  };
-
   const resetFilters = () => {
     setSearchQuery('');
     setFilterKategori('all');
@@ -515,10 +179,152 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
     setFilterStatus('all');
   };
 
+  // Handlers
+  const handleOpenDetail = (item: ItemInventaris) => {
+    setSelectedItem(item);
+    setIsDetailOpen(true);
+  };
+
+  const handleOpenEdit = (item: ItemInventaris) => {
+    setSelectedItem(item);
+    setIsEditOpen(true);
+  };
+
+  const handleOpenDelete = (item: ItemInventaris) => {
+    setSelectedItem(item);
+    setIsDeleteOpen(true);
+  };
+
+  const handleOpenPinjam = (item: ItemInventaris) => {
+    setSelectedItem(item);
+    setIsPinjamOpen(true);
+  };
+
+  const handleCreateSubmit = (data: InventarisFormData) => {
+    startTransition(async () => {
+      try {
+        const res = await createInventaris(data);
+        if (res.error) {
+          triggerNotification(res.error, 'warning');
+          return;
+        }
+
+        if (res.data) {
+          queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) => [
+            res.data!,
+            ...prev,
+          ]);
+        }
+        queryClient.invalidateQueries({ queryKey: INVENTARIS_ITEMS_QUERY_KEY });
+        setIsCreateOpen(false);
+        triggerNotification(`Barang "${data.nama}" berhasil ditambahkan!`, 'success');
+      } catch (err: unknown) {
+        triggerNotification(err instanceof Error ? err.message : 'Terjadi kesalahan sistem.', 'warning');
+      }
+    });
+  };
+
+  const handleEditSubmit = (data: InventarisFormData) => {
+    if (!selectedItem) return;
+
+    startTransition(async () => {
+      try {
+        const res = await updateInventaris(selectedItem.id, data);
+        if (res.error) {
+          triggerNotification(res.error, 'warning');
+          return;
+        }
+
+        queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
+          prev.map((i) => (i.id === selectedItem.id ? { ...i, ...data } : i))
+        );
+        queryClient.invalidateQueries({ queryKey: INVENTARIS_ITEMS_QUERY_KEY });
+        setIsEditOpen(false);
+        triggerNotification(`Data barang "${data.nama}" berhasil diperbarui!`, 'success');
+      } catch (err: unknown) {
+        triggerNotification(err instanceof Error ? err.message : 'Terjadi kesalahan sistem.', 'warning');
+      }
+    });
+  };
+
+  const handleDeleteSubmit = () => {
+    if (!selectedItem) return;
+
+    startTransition(async () => {
+      try {
+        const res = await deleteInventaris(selectedItem.id);
+        if (res.error) {
+          triggerNotification(res.error, 'warning');
+          return;
+        }
+
+        queryClient.setQueryData<ItemInventaris[]>(INVENTARIS_ITEMS_QUERY_KEY, (prev = []) =>
+          prev.filter((i) => i.id !== selectedItem.id)
+        );
+        queryClient.invalidateQueries({ queryKey: INVENTARIS_ITEMS_QUERY_KEY });
+        setIsDeleteOpen(false);
+        triggerNotification(`Barang "${selectedItem.nama}" berhasil dihapus.`, 'info');
+      } catch (err: unknown) {
+        triggerNotification(err instanceof Error ? err.message : 'Gagal menghapus data.', 'warning');
+      }
+    });
+  };
+
+  const handlePinjamSubmit = (data: PinjamFormData) => {
+    if (!selectedItem) return;
+
+    startTransition(async () => {
+      try {
+        const res = await pinjamInventaris({
+          inventarisId: selectedItem.id,
+          peminjam: data.peminjam,
+          tanggalPinjam: data.tanggalPinjam,
+          tanggalKembaliRencana: data.tanggalKembaliRencana,
+          jumlahPinjam: data.jumlahPinjam,
+          keterangan: data.keterangan,
+        });
+
+        if (res.error) {
+          triggerNotification(res.error, 'warning');
+          return;
+        }
+
+        queryClient.invalidateQueries({ queryKey: INVENTARIS_ITEMS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: INVENTARIS_RIWAYAT_QUERY_KEY });
+        setIsPinjamOpen(false);
+        triggerNotification(`Peminjaman barang "${selectedItem.nama}" berhasil dicatat!`, 'success');
+      } catch (err: unknown) {
+        triggerNotification(err instanceof Error ? err.message : 'Gagal memproses peminjaman.', 'warning');
+      }
+    });
+  };
+
+  const handleKembalikanSubmit = () => {
+    if (!selectedItem) return;
+
+    startTransition(async () => {
+      try {
+        const loanId = selectedItem.aktifPinjamId || selectedItem.id;
+        const res = await kembalikanInventaris(loanId);
+        if (res.error) {
+          triggerNotification(res.error, 'warning');
+          return;
+        }
+
+        queryClient.invalidateQueries({ queryKey: INVENTARIS_ITEMS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: INVENTARIS_RIWAYAT_QUERY_KEY });
+        setIsPinjamOpen(false);
+        triggerNotification(`Barang "${selectedItem.nama}" telah ditandai kembali!`, 'success');
+      } catch (err: unknown) {
+        triggerNotification(err instanceof Error ? err.message : 'Gagal memproses pengembalian.', 'warning');
+      }
+    });
+  };
+
   return (
     <InventarisDataContext.Provider value={dataSetter}>
+      {children}
       <div className="space-y-6">
-        {children}
         {/* Toast Notification Banner */}
         {notification.show && (
           <div
@@ -531,96 +337,42 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
             }`}
           >
             <div className="flex items-center gap-2.5">
-              {notification.type === 'success' && <Check className="h-4 w-4 text-emerald-400" />}
+              {notification.type === 'success' && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
               {notification.type === 'warning' && <AlertTriangle className="h-4 w-4 text-amber-400" />}
               {notification.type === 'info' && <Clock className="h-4 w-4 text-sky-400" />}
               <span className="font-medium">{notification.message}</span>
             </div>
-            <button onClick={() => setNotification((prev) => ({ ...prev, show: false }))} className="text-muted-foreground hover:text-foreground text-xs">
+            <button
+              onClick={() => setNotification((prev) => ({ ...prev, show: false }))}
+              className="text-muted-foreground hover:text-foreground text-xs ml-4"
+            >
               Tutup
             </button>
           </div>
         )}
 
-        {/* Header & Main Actions */}
+        {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Inventaris & Aset Organisasi</h1>
-            <p className="text-sm text-muted-foreground">Kelola data aset, status kepemilikan, kondisi fisik, dan sirkulasi pinjam-pakai barang.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Manajemen Inventaris & Aset</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Pendataan terpusat seluruh perlengkapan, kontrol kondisi barang, dan sirkulasi peminjaman aset.
+            </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <Button variant="default" size="sm" onClick={handleOpenCreate} className="gap-1.5 font-medium w-full sm:w-auto">
-              <Plus className="h-4 w-4" />
-              Tambah Barang
-            </Button>
-          </div>
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 shrink-0 shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Tambah Barang Baru</span>
+          </Button>
         </div>
 
         {/* Summary Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <Card className="bg-card/50 border-border/80">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Total Inventaris</p>
-                <div className="flex items-baseline gap-1 mt-1">
-                  {dataReady ? <span className="text-2xl font-bold text-foreground">{stats.totalJenis}</span> : <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />}
-                  <span className="text-xs text-muted-foreground">jenis ({dataReady ? `${stats.totalUnit} unit` : '...'} )</span>
-                </div>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                <Boxes className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border/80">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Kondisi Baik</p>
-                <div className="flex items-baseline gap-1 mt-1">
-                  {dataReady ? <span className="text-2xl font-bold text-emerald-400">{stats.kondisiBaik}</span> : <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />}
-                  <span className="text-xs text-muted-foreground">jenis</span>
-                </div>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border/80">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Perlu Perbaikan</p>
-                <div className="flex items-baseline gap-1 mt-1">
-                  {dataReady ? <span className="text-2xl font-bold text-amber-400">{stats.kondisiRusak}</span> : <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />}
-                  <span className="text-xs text-muted-foreground">jenis</span>
-                </div>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border/80">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Sedang Dipinjam</p>
-                <div className="flex items-baseline gap-1 mt-1">
-                  {dataReady ? <span className="text-2xl font-bold text-sky-400">{stats.dipinjam}</span> : <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />}
-                  <span className="text-xs text-muted-foreground">barang</span>
-                </div>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                <Clock className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <InventarisStats dataReady={dataReady} stats={stats} />
 
         {/* Main Tabs: Daftar Barang vs Riwayat Peminjaman */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'daftar' | 'riwayat')} className="w-full">
           <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
             <TabsList className="bg-muted/60">
               <TabsTrigger value="daftar" className="gap-2">
@@ -636,1011 +388,83 @@ export function InventarisManager({ initialItems = [], initialRiwayat = [], user
 
           {/* TAB 1: DAFTAR BARANG */}
           <TabsContent value="daftar" className="space-y-4 mt-4">
-            {/* Filter & Search Bar */}
-            <Card className="bg-card/40 border-border/60">
-              <CardContent className="p-3.5 space-y-3">
-                <div className="flex flex-col md:flex-row gap-3">
-                  <div className="relative flex-1">
-                    <Input
-                      placeholder="Cari nama barang, kategori, lokasi, atau peminjam..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 pr-8 h-9 text-sm"
-                    />
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                        aria-label="Bersihkan pencarian"
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full md:flex md:w-auto">
-                    {/* Select Kategori */}
-                    <div className="w-full md:w-48">
-                      <Select value={filterKategori} onValueChange={setFilterKategori}>
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Kategori" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Semua Kategori</SelectItem>
-                          <SelectItem value="Elektronik & Sound">Elektronik & Sound</SelectItem>
-                          <SelectItem value="Tenda & Panggung">Tenda & Panggung</SelectItem>
-                          <SelectItem value="Meja & Kursi">Meja & Kursi</SelectItem>
-                          <SelectItem value="Logistik & Kebersihan">Logistik & Kebersihan</SelectItem>
-                          <SelectItem value="Olahraga">Olahraga</SelectItem>
-                          <SelectItem value="Lainnya">Lainnya</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Select Kondisi */}
-                    <div className="w-full md:w-40">
-                      <Select value={filterKondisi} onValueChange={setFilterKondisi}>
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Kondisi" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Semua Kondisi</SelectItem>
-                          <SelectItem value="baik">Baik</SelectItem>
-                          <SelectItem value="rusak_ringan">Rusak Ringan</SelectItem>
-                          <SelectItem value="rusak_berat">Rusak Berat</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Select Status */}
-                    <div className="w-full md:w-40">
-                      <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Status Pinjam" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Semua Status</SelectItem>
-                          <SelectItem value="Tersedia">Tersedia</SelectItem>
-                          <SelectItem value="Dipinjam">Dipinjam</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
-                  <span>
-                    Menampilkan <strong className="text-foreground">{filteredItems.length}</strong> dari {items.length} total barang
-                  </span>
-                  {(searchQuery || filterKategori !== 'all' || filterKondisi !== 'all' || filterStatus !== 'all') && (
-                    <button onClick={resetFilters} className="text-primary hover:underline flex items-center gap-1 font-medium">
-                      Hapus Semua Filter
-                    </button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Main Data Table */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <Package className="h-5 w-5 text-primary" />
-                      Daftar Inventaris Barang
-                    </CardTitle>
-                    <CardDescription>Daftar lengkap aset fisik karang taruna beserta kondisi dan status peminjaman.</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {/* Mobile Card List (< md) */}
-                <div className="md:hidden divide-y divide-border/60">
-                  {!dataReady ? (
-                    <InventarisMobileRowsSkeleton />
-                  ) : filteredItems.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground text-xs">Tidak ada data barang yang cocok dengan filter.</div>
-                  ) : (
-                    filteredItems.map((item, index) => (
-                      <div
-                        key={item.id}
-                        className={`p-3.5 sm:p-4 space-y-3 transition-colors ${
-                          index % 2 === 0
-                            ? 'bg-background'
-                            : 'bg-muted/60 dark:bg-muted/35'
-                        } hover:bg-primary/5 dark:hover:bg-primary/10`}
-                      >
-                        {/* Baris Utama: Info di Kiri, Preview Gambar di Pojok Kanan */}
-                        <div className="flex items-start justify-between gap-3">
-                          {/* Sisi Kiri: Badge Kategori, Status, Kondisi, Nama Barang, dan Info Jumlah/Lokasi */}
-                          <div className="min-w-0 flex-1 space-y-1.5">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium border-border/80">
-                                {item.kategori}
-                              </Badge>
-                              <Badge
-                                variant={item.status === 'Tersedia' ? 'outline' : 'default'}
-                                className={`text-[10px] py-0 px-1.5 shrink-0 ${
-                                  item.status === 'Tersedia'
-                                    ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10 font-medium'
-                                    : 'bg-sky-500/15 text-sky-400 border border-sky-500/30 font-medium'
-                                }`}
-                              >
-                                {item.status}
-                              </Badge>
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] py-0 px-1.5 capitalize ${
-                                  item.kondisi === 'baik'
-                                    ? 'border-emerald-500/30 text-emerald-500/90'
-                                    : item.kondisi === 'rusak_ringan'
-                                    ? 'border-amber-500/30 text-amber-500/90'
-                                    : 'border-destructive/30 text-destructive'
-                                }`}
-                              >
-                                {item.kondisi.replace('_', ' ')}
-                              </Badge>
-                            </div>
-
-                            <h4
-                              onClick={() => handleOpenDetail(item)}
-                              className="font-bold text-sm sm:text-base text-foreground leading-snug break-words cursor-pointer hover:text-primary transition-colors"
-                            >
-                              {item.nama}
-                            </h4>
-
-                            <div className="flex items-center gap-2.5 text-xs text-muted-foreground flex-wrap pt-0.5">
-                              <span className="font-semibold text-foreground">
-                                {item.jumlah} <span className="font-normal text-muted-foreground">{item.satuan}</span>
-                              </span>
-                              <span>•</span>
-                              <span className="inline-flex items-center gap-1 text-[11px] truncate max-w-[140px]" title={item.lokasi}>
-                                <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-                                {item.lokasi}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Pojok Kanan: Preview Gambar Inventaris */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDetail(item)}
-                            className="shrink-0 relative group rounded-xl overflow-hidden border border-border/80 bg-muted/40 p-0 text-left focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-xs"
-                            title={item.fotoUrl ? 'Klik untuk memperbesar foto' : 'Rincian barang'}
-                          >
-                            {item.fotoUrl ? (
-                              <div className="h-16 w-16 sm:h-20 sm:w-20 relative">
-                                <PreviewImage
-                                  src={item.fotoUrl}
-                                  alt={item.nama}
-                                  className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                                />
-                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <Eye className="h-4 w-4 text-white drop-shadow" />
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="h-16 w-16 sm:h-20 sm:w-20 flex flex-col items-center justify-center text-muted-foreground/50 border border-dashed border-border/70 rounded-xl group-hover:text-muted-foreground group-hover:border-primary/40 transition-colors">
-                                <Package className="h-5 w-5 sm:h-6 sm:w-6" />
-                                <span className="text-[9px] mt-0.5 font-medium">No Foto</span>
-                              </div>
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Info Pinjam (jika status Dipinjam) */}
-                        {item.status === 'Dipinjam' && item.peminjam && (
-                          <div className="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-xs text-sky-700 dark:text-sky-300 flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 font-medium truncate">
-                              <User className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400 shrink-0" />
-                              <span className="truncate">{item.peminjam}</span>
-                            </div>
-                            <div className="text-[11px] text-muted-foreground shrink-0 flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-sky-500 dark:text-sky-400" />
-                              <span>Kembali: {item.tglKembaliRencana || '-'}</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Baris Tombol Aksi Mobile-First */}
-                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className={`h-8 text-xs px-3 font-medium rounded-lg ${
-                              item.status === 'Tersedia'
-                                ? 'hover:bg-sky-500/10 hover:text-sky-500 border-border/80'
-                                : 'bg-sky-500/10 text-sky-500 dark:text-sky-400 border-sky-500/30 hover:bg-sky-500/20'
-                            }`}
-                            onClick={() => handleOpenPinjam(item)}
-                          >
-                            <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
-                            {item.status === 'Tersedia' ? 'Pinjam' : 'Kembali'}
-                          </Button>
-
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
-                              onClick={() => handleOpenDetail(item)}
-                              title="Lihat Detail Barang"
-                              aria-label="Lihat Detail Barang"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg"
-                              onClick={() => handleOpenEdit(item)}
-                              title="Edit Data Barang"
-                              aria-label="Edit Data Barang"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                              onClick={() => handleOpenDelete(item)}
-                              title="Hapus Barang"
-                              aria-label="Hapus Barang"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Desktop Table (>= md) */}
-                <div className="hidden md:block overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nama Barang & Kategori</TableHead>
-                        <TableHead className="w-24 text-center">Jumlah</TableHead>
-                        <TableHead className="w-32">Kondisi</TableHead>
-                        <TableHead className="w-28">Status</TableHead>
-                        <TableHead className="w-40">Lokasi Simpan</TableHead>
-                        <TableHead className="w-44">Status Pinjam</TableHead>
-                        <TableHead className="w-32 text-right">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {!dataReady ? (
-                        <InventarisTableRowsSkeleton />
-                      ) : filteredItems.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-sm">
-                            Tidak ada inventaris barang yang sesuai dengan filter.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredItems.map((item) => (
-                          <TableRow key={item.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30">
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                {item.fotoUrl ? (
-                                  <PreviewImage src={item.fotoUrl} alt={item.nama} className="h-10 w-10 rounded object-cover border border-border shrink-0" />
-                                ) : (
-                                  <div className="h-10 w-10 rounded bg-muted/60 border border-border flex items-center justify-center text-muted-foreground shrink-0">
-                                    <Package className="h-5 w-5" />
-                                  </div>
-                                )}
-                                <div>
-                                  <div className="font-semibold text-sm text-foreground">{item.nama}</div>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <Badge variant="outline" className="text-[10px] py-0">
-                                      {item.kategori}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <span className="font-semibold">{item.jumlah}</span> <span className="text-xs text-muted-foreground">{item.satuan}</span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={item.kondisi === 'baik' ? 'success' : item.kondisi === 'rusak_ringan' ? 'warning' : 'destructive'} className="text-xs capitalize font-medium">
-                                {item.kondisi === 'baik' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                                {item.kondisi === 'rusak_ringan' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                                {item.kondisi === 'rusak_berat' && <XCircle className="h-3 w-3 mr-1" />}
-                                {item.kondisi.replace('_', ' ')}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={item.status === 'Tersedia' ? 'outline' : 'default'}
-                                className={`text-xs ${item.status === 'Tersedia' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' : 'bg-sky-500/10 text-sky-400 border-sky-500/20'}`}
-                              >
-                                {item.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                                <span className="truncate max-w-[140px]" title={item.lokasi}>
-                                  {item.lokasi}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {item.status === 'Dipinjam' && item.peminjam ? (
-                                <div>
-                                  <div className="text-xs font-medium text-foreground line-clamp-1" title={item.peminjam}>
-                                    {item.peminjam}
-                                  </div>
-                                  <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                                    <Clock className="h-3 w-3 text-sky-400" />
-                                    Kembali: {item.tglKembaliRencana || '-'}
-                                  </div>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={`h-8 w-8 ${item.status === 'Tersedia' ? 'text-muted-foreground hover:text-sky-400' : 'text-sky-400 hover:text-emerald-400'}`}
-                                  onClick={() => handleOpenPinjam(item)}
-                                  title={item.status === 'Tersedia' ? 'Pinjamkan Barang Ini' : 'Proses Pengembalian'}
-                                >
-                                  <ArrowRightLeft className="h-4 w-4" />
-                                </Button>
-
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handleOpenDetail(item)} title="Lihat Detail Barang">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleOpenEdit(item)} title="Edit Data Barang">
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                                  onClick={() => handleOpenDelete(item)}
-                                  title="Hapus Barang"
-                                  aria-label="Hapus Barang"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+            <InventarisTable
+              items={items}
+              filteredItems={filteredItems}
+              dataReady={dataReady}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              filterKategori={filterKategori}
+              setFilterKategori={setFilterKategori}
+              filterKondisi={filterKondisi}
+              setFilterKondisi={setFilterKondisi}
+              filterStatus={filterStatus}
+              setFilterStatus={setFilterStatus}
+              resetFilters={resetFilters}
+              onPinjam={handleOpenPinjam}
+              onDetail={handleOpenDetail}
+              onEdit={handleOpenEdit}
+              onDelete={handleOpenDelete}
+            />
           </TabsContent>
 
           {/* TAB 2: RIWAYAT PEMINJAMAN */}
           <TabsContent value="riwayat" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <History className="h-5 w-5 text-primary" />
-                  Catatan Riwayat Peminjaman & Sirkulasi
-                </CardTitle>
-                <CardDescription>Log pencatatan siapa yang meminjam barang, tanggal pinjam, dan status pengembalian fisik.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                {/* Mobile View for Riwayat Peminjaman (< md) */}
-                <div className="md:hidden divide-y divide-border/60">
-                  {!dataReady ? (
-                    <div className="p-4 space-y-3">
-                      <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
-                      <div className="h-3 w-1/3 bg-muted animate-pulse rounded" />
-                    </div>
-                  ) : riwayat.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground text-xs">Belum ada riwayat peminjaman barang tercatat.</div>
-                  ) : (
-                    riwayat.map((rec, index) => (
-                      <div
-                        key={rec.id}
-                        className={`p-3.5 space-y-2 transition-colors ${
-                          index % 2 === 0
-                            ? 'bg-background'
-                            : 'bg-muted/60 dark:bg-muted/35'
-                        } hover:bg-primary/5 dark:hover:bg-primary/10`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <h4 className="font-semibold text-xs sm:text-sm text-foreground leading-snug break-words">
-                              {rec.namaBarang || 'Barang Inventaris'}
-                            </h4>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
-                              <User className="h-3.5 w-3.5 text-primary shrink-0" />
-                              <span className="font-medium text-foreground">{rec.peminjam}</span>
-                              <span className="text-[11px] text-muted-foreground">({rec.jumlahPinjam} unit)</span>
-                            </p>
-                          </div>
-                          <Badge
-                            variant={rec.status === 'dipinjam' ? 'default' : 'outline'}
-                            className={`text-[10px] shrink-0 ${
-                              rec.status === 'dipinjam'
-                                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/5'
-                            }`}
-                          >
-                            {rec.status === 'dipinjam' ? 'Dipinjam' : 'Kembali'}
-                          </Badge>
-                        </div>
-                        {rec.keterangan && (
-                          <p className="text-[11px] text-muted-foreground bg-muted/30 p-1.5 rounded border border-border/40">
-                            {rec.keterangan}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/30">
-                          <span>Pinjam: {rec.tanggalPinjam}</span>
-                          <span>Kembali: {rec.tanggalKembaliRencana}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Desktop View (>= md) */}
-                <div className="hidden md:block overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nama Barang</TableHead>
-                        <TableHead>Peminjam</TableHead>
-                        <TableHead>Jumlah</TableHead>
-                        <TableHead>Tanggal Pinjam</TableHead>
-                        <TableHead>Rencana Kembali</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Dicatat Oleh</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {!dataReady ? (
-                        <InventarisTableRowsSkeleton history />
-                      ) : riwayat.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-sm">
-                            Belum ada riwayat peminjaman barang tercatat.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        riwayat.map((rec) => (
-                          <TableRow key={rec.id} className="odd:bg-muted/20 even:bg-background hover:bg-muted/30">
-                            <TableCell className="font-medium text-foreground">{rec.namaBarang || 'Barang Inventaris'}</TableCell>
-                            <TableCell>
-                              <div className="font-medium text-foreground">{rec.peminjam}</div>
-                              {rec.keterangan && <div className="text-xs text-muted-foreground">{rec.keterangan}</div>}
-                            </TableCell>
-                            <TableCell>{rec.jumlahPinjam} unit</TableCell>
-                            <TableCell className="text-xs">{rec.tanggalPinjam}</TableCell>
-                            <TableCell className="text-xs">{rec.tanggalKembaliRencana}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={rec.status === 'dipinjam' ? 'default' : 'outline'}
-                                className={`text-xs ${rec.status === 'dipinjam' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5'}`}
-                              >
-                                {rec.status === 'dipinjam' ? 'Sedang Dipinjam' : 'Sudah Kembali'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{rec.dibuatOleh || 'Pengurus'}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+            <RiwayatTable riwayat={riwayat} dataReady={dataReady} />
           </TabsContent>
         </Tabs>
 
-        {/* ========================================================= */}
-        {/* 1. DIALOG CREATE (TAMBAH BARANG)                          */}
-        {/* ========================================================= */}
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent className="sm:max-w-[540px] w-[95vw] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
-                Tambah Aset Barang Baru
-              </DialogTitle>
-              <DialogDescription>Isi data detail barang inventaris baru untuk didaftarkan ke database organisasi.</DialogDescription>
-            </DialogHeader>
+        {/* Dialog 1: Create Item */}
+        <InventarisFormDialog
+          open={isCreateOpen}
+          mode="create"
+          item={null}
+          isPending={isPending}
+          onClose={() => setIsCreateOpen(false)}
+          onSubmit={handleCreateSubmit}
+          onToast={triggerNotification}
+        />
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="create-nama" className="text-xs">
-                  Nama Barang <span className="text-destructive">*</span>
-                </Label>
-                <Input id="create-nama" placeholder="Contoh: Sound System Portable 12 Inch" value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} required />
-              </div>
+        {/* Dialog 2: Edit Item */}
+        <InventarisFormDialog
+          open={isEditOpen}
+          mode="edit"
+          item={selectedItem}
+          isPending={isPending}
+          onClose={() => setIsEditOpen(false)}
+          onSubmit={handleEditSubmit}
+          onDeleteRequest={handleOpenDelete}
+          onToast={triggerNotification}
+        />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="create-kategori" className="text-xs">
-                    Kategori
-                  </Label>
-                  <Select value={formData.kategori} onValueChange={(val: KategoriBarang) => setFormData({ ...formData, kategori: val })}>
-                    <SelectTrigger id="create-kategori">
-                      <SelectValue placeholder="Pilih Kategori" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Elektronik & Sound">Elektronik & Sound</SelectItem>
-                      <SelectItem value="Tenda & Panggung">Tenda & Panggung</SelectItem>
-                      <SelectItem value="Meja & Kursi">Meja & Kursi</SelectItem>
-                      <SelectItem value="Logistik & Kebersihan">Logistik & Kebersihan</SelectItem>
-                      <SelectItem value="Olahraga">Olahraga</SelectItem>
-                      <SelectItem value="Lainnya">Lainnya</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Dialog 3: Pinjam / Kembalikan Item */}
+        <InventarisPinjamDialog
+          open={isPinjamOpen}
+          item={selectedItem}
+          settings={settings}
+          isPending={isPending}
+          onClose={() => setIsPinjamOpen(false)}
+          onSubmit={handlePinjamSubmit}
+          onReturn={handleKembalikanSubmit}
+        />
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="create-kondisi" className="text-xs">
-                    Kondisi Fisik
-                  </Label>
-                  <Select value={formData.kondisi} onValueChange={(val: KondisiBarang) => setFormData({ ...formData, kondisi: val })}>
-                    <SelectTrigger id="create-kondisi">
-                      <SelectValue placeholder="Pilih Kondisi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="baik">Baik (Normal)</SelectItem>
-                      <SelectItem value="rusak_ringan">Rusak Ringan</SelectItem>
-                      <SelectItem value="rusak_berat">Rusak Berat</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+        {/* Dialog 4: Detail Item */}
+        <InventarisDetailDialog
+          open={isDetailOpen}
+          item={selectedItem}
+          onClose={() => setIsDetailOpen(false)}
+          onEdit={handleOpenEdit}
+          onDelete={handleOpenDelete}
+        />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="create-jumlah" className="text-xs">
-                    Jumlah
-                  </Label>
-                  <Input id="create-jumlah" type="number" min="1" value={formData.jumlah} onChange={(e) => setFormData({ ...formData, jumlah: parseInt(e.target.value) || 1 })} required />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="create-satuan" className="text-xs">
-                    Satuan
-                  </Label>
-                  <Input id="create-satuan" placeholder="Unit / Pcs / Set / Roll" value={formData.satuan} onChange={(e) => setFormData({ ...formData, satuan: e.target.value })} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="create-lokasi" className="text-xs">
-                  Lokasi Penyimpanan
-                </Label>
-                <Input id="create-lokasi" placeholder="Contoh: Ruang Sekretariat Katar / Gudang RW" value={formData.lokasi} onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })} />
-              </div>
-
-              {/* Foto Upload */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">Foto Barang (Opsional)</Label>
-                <div className="flex items-center gap-3">
-                  {formData.fotoUrl ? (
-                    <div className="relative group">
-                      <PreviewImage src={formData.fotoUrl} alt="Preview" className="h-16 w-16 rounded-md object-cover border border-border" />
-                      <button type="button" onClick={() => setFormData({ ...formData, fotoUrl: '' })} className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs shadow">
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="h-16 w-16 rounded-md border border-dashed border-border flex items-center justify-center text-muted-foreground">
-                      <ImageIcon className="h-6 w-6" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <input ref={createFileInputRef} type="file" accept="image/*,.heic,.heif" onChange={handleFileUpload} className="hidden" />
-                    <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => createFileInputRef.current?.click()} className="gap-1.5 text-xs">
-                      {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                      {isUploading ? 'Mengunggah...' : 'Unggah Foto'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="create-keterangan" className="text-xs">
-                  Keterangan Tambahan (Opsional)
-                </Label>
-                <Textarea id="create-keterangan" placeholder="Catatan kelengkapan, nomor seri, dll..." value={formData.keterangan} onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })} rows={2} />
-              </div>
-
-              <DialogFooter className="gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isPending}>
-                  Batal
-                </Button>
-                <Button type="submit" loading={isPending} disabled={isUploading} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  Simpan ke Inventaris
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* ========================================================= */}
-        {/* 2. DIALOG EDIT                                            */}
-        {/* ========================================================= */}
-        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="sm:max-w-[540px] w-[95vw] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Pencil className="h-5 w-5 text-primary" />
-                Edit Data Barang
-              </DialogTitle>
-              <DialogDescription>Perbarui rincian aset inventaris barang.</DialogDescription>
-            </DialogHeader>
-
-            <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-nama" className="text-xs">
-                  Nama Barang <span className="text-destructive">*</span>
-                </Label>
-                <Input id="edit-nama" value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} required />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-kategori" className="text-xs">
-                    Kategori
-                  </Label>
-                  <Select value={formData.kategori} onValueChange={(val: KategoriBarang) => setFormData({ ...formData, kategori: val })}>
-                    <SelectTrigger id="edit-kategori">
-                      <SelectValue placeholder="Pilih Kategori" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Elektronik & Sound">Elektronik & Sound</SelectItem>
-                      <SelectItem value="Tenda & Panggung">Tenda & Panggung</SelectItem>
-                      <SelectItem value="Meja & Kursi">Meja & Kursi</SelectItem>
-                      <SelectItem value="Logistik & Kebersihan">Logistik & Kebersihan</SelectItem>
-                      <SelectItem value="Olahraga">Olahraga</SelectItem>
-                      <SelectItem value="Lainnya">Lainnya</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-kondisi" className="text-xs">
-                    Kondisi Fisik
-                  </Label>
-                  <Select value={formData.kondisi} onValueChange={(val: KondisiBarang) => setFormData({ ...formData, kondisi: val })}>
-                    <SelectTrigger id="edit-kondisi">
-                      <SelectValue placeholder="Pilih Kondisi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="baik">Baik</SelectItem>
-                      <SelectItem value="rusak_ringan">Rusak Ringan</SelectItem>
-                      <SelectItem value="rusak_berat">Rusak Berat</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-jumlah" className="text-xs">
-                    Jumlah
-                  </Label>
-                  <Input id="edit-jumlah" type="number" min="1" value={formData.jumlah} onChange={(e) => setFormData({ ...formData, jumlah: parseInt(e.target.value) || 1 })} required />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-satuan" className="text-xs">
-                    Satuan
-                  </Label>
-                  <Input id="edit-satuan" value={formData.satuan} onChange={(e) => setFormData({ ...formData, satuan: e.target.value })} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-lokasi" className="text-xs">
-                  Lokasi Penyimpanan
-                </Label>
-                <Input id="edit-lokasi" value={formData.lokasi} onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })} />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Foto / Lampiran Barang (Opsional)</Label>
-                <p className="text-xs text-muted-foreground">Unggah gambar baru untuk mengganti foto yang tersimpan.</p>
-                <div className="flex items-center gap-3">
-                  {formData.fotoUrl ? (
-                    <div className="relative group">
-                      <PreviewImage src={formData.fotoUrl} alt={`Foto ${formData.nama || 'barang'}`} className="h-16 w-16 rounded-md border border-border object-cover" />
-                      <button type="button" onClick={() => setFormData({ ...formData, fotoUrl: '' })} className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-0.5 text-xs text-destructive-foreground shadow" aria-label="Hapus foto barang">
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
-                      <ImageIcon className="h-6 w-6" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <input ref={editFileInputRef} type="file" accept="image/*,.heic,.heif" onChange={handleFileUpload} className="hidden" />
-                    <Button type="button" variant="outline" size="sm" disabled={isUploading} onClick={() => editFileInputRef.current?.click()} className="gap-1.5 text-xs">
-                      {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                      {isUploading ? 'Mengunggah...' : formData.fotoUrl ? 'Ganti Foto' : 'Unggah Foto'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-keterangan" className="text-xs">
-                  Keterangan Tambahan
-                </Label>
-                <Textarea id="edit-keterangan" value={formData.keterangan} onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })} rows={2} />
-              </div>
-
-              <DialogFooter className="flex-row items-center justify-between gap-2 pt-2 sm:justify-between">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive h-9 px-2.5 text-xs gap-1.5"
-                  onClick={() => {
-                    setIsEditOpen(false);
-                    if (selectedItem) handleOpenDelete(selectedItem);
-                  }}
-                  disabled={isPending || isUploading}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Hapus Barang</span>
-                </Button>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} disabled={isPending}>
-                    Batal
-                  </Button>
-                  <Button type="submit" disabled={isPending || isUploading} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                    {isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                        Memperbarui...
-                      </>
-                    ) : (
-                      'Simpan Perubahan'
-                    )}
-                  </Button>
-                </div>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* ========================================================= */}
-        {/* 3. DIALOG PINJAM / KEMBALIKAN                            */}
-        {/* ========================================================= */}
-        <Dialog open={isPinjamOpen} onOpenChange={setIsPinjamOpen}>
-          <DialogContent className="sm:max-w-[480px] w-[95vw]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <ArrowRightLeft className="h-5 w-5 text-sky-400" />
-                {selectedItem?.status === 'Tersedia' ? 'Form Peminjaman Barang' : 'Konfirmasi Pengembalian Barang'}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedItem?.status === 'Tersedia' ? `Catat rincian warga/panitia yang meminjam "${selectedItem?.nama}".` : `Pastikan barang "${selectedItem?.nama}" telah dikembalikan dalam kondisi fisik yang baik.`}
-              </DialogDescription>
-            </DialogHeader>
-
-            {selectedItem && selectedItem.status === 'Tersedia' ? (
-              <form onSubmit={handlePinjamSubmit} className="space-y-4 py-2">
-                {settings?.operasional && (
-                  <div className="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-xs text-sky-700 dark:text-sky-300 space-y-1">
-                    <div className="font-semibold flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 shrink-0" />
-                      <span>Kebijakan Peminjaman {settings.profil.nama || 'Organisasi'}:</span>
-                    </div>
-                    <p>
-                      • Batas maksimal peminjaman: <strong>{settings.operasional.maxHariPinjamInventaris} hari</strong>.
-                    </p>
-                    {settings.operasional.wajibPersetujuanKetua && <p>• Peminjaman aset wajib mendapatkan persetujuan / konfirmasi dari Ketua.</p>}
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="pinjam-nama" className="text-xs">
-                    Nama Peminjam / Acara <span className="text-destructive">*</span>
-                  </Label>
-                  <Input id="pinjam-nama" placeholder="Contoh: Pak RT 03 / Panitia Acara Senam" value={pinjamForm.peminjam} onChange={(e) => setPinjamForm({ ...pinjamForm, peminjam: e.target.value })} required />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pinjam-tgl-pinjam" className="text-xs">
-                      Tanggal Pinjam (Otomatis)
-                    </Label>
-                    <Input id="pinjam-tgl-pinjam" type="date" value={pinjamForm.tanggalPinjam} onChange={(e) => setPinjamForm({ ...pinjamForm, tanggalPinjam: e.target.value })} required />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pinjam-tgl-kembali" className="text-xs">
-                      Rencana Tanggal Kembali <span className="text-destructive">*</span>
-                    </Label>
-                    <Input id="pinjam-tgl-kembali" type="date" value={pinjamForm.tanggalKembaliRencana} onChange={(e) => setPinjamForm({ ...pinjamForm, tanggalKembaliRencana: e.target.value })} required />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="pinjam-keterangan" className="text-xs">
-                    Keperluan / Catatan
-                  </Label>
-                  <Input id="pinjam-keterangan" placeholder="Contoh: Dipinjam untuk kegiatan syukuran warga" value={pinjamForm.keterangan} onChange={(e) => setPinjamForm({ ...pinjamForm, keterangan: e.target.value })} />
-                </div>
-
-                <DialogFooter className="gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setIsPinjamOpen(false)} disabled={isPending}>
-                    Batal
-                  </Button>
-                  <Button type="submit" disabled={isPending} className="bg-sky-600 hover:bg-sky-700">
-                    {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                    Konfirmasi Pinjam
-                  </Button>
-                </DialogFooter>
-              </form>
-            ) : (
-              <div className="space-y-4 py-2">
-                <div className="p-3.5 rounded-lg bg-muted/50 border border-border space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Peminjam:</span>
-                    <span className="font-semibold text-foreground">{selectedItem?.peminjam || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tanggal Pinjam:</span>
-                    <span className="font-medium text-foreground">{selectedItem?.tglPinjam || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Target Kembali:</span>
-                    <span className="font-medium text-foreground">{selectedItem?.tglKembaliRencana || '-'}</span>
-                  </div>
-                </div>
-
-                <DialogFooter className="gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setIsPinjamOpen(false)} disabled={isPending}>
-                    Batal
-                  </Button>
-                  <Button type="button" onClick={handlePinjamSubmit} disabled={isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                    {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                    Tandai Sudah Kembali
-                  </Button>
-                </DialogFooter>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* ========================================================= */}
-        {/* 4. DIALOG DETAIL                                          */}
-        {/* ========================================================= */}
-        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-          <DialogContent className="sm:max-w-[480px] w-[95vw]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
-                Rincian Inventaris
-              </DialogTitle>
-            </DialogHeader>
-
-            {selectedItem && (
-              <div className="space-y-4 py-2 text-sm">
-                {selectedItem.fotoUrl && (
-                  <div className="h-48 overflow-hidden rounded-lg border border-border">
-                    <PreviewImage src={selectedItem.fotoUrl} alt={selectedItem.nama} className="h-full w-full object-cover object-center" />
-                  </div>
-                )}
-
-                <div>
-                  <h3 className="font-bold text-base text-foreground">{selectedItem.nama}</h3>
-                  <Badge variant="outline" className="text-xs mt-1">
-                    {selectedItem.kategori}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/40 border border-border text-xs">
-                  <div>
-                    <span className="text-muted-foreground block">Jumlah:</span>
-                    <span className="font-semibold text-foreground text-sm">
-                      {selectedItem.jumlah} {selectedItem.satuan}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block">Kondisi:</span>
-                    <span className="capitalize font-semibold text-foreground text-sm">{selectedItem.kondisi.replace('_', ' ')}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block">Lokasi:</span>
-                    <span className="font-medium text-foreground">{selectedItem.lokasi}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block">Status:</span>
-                    <span className="font-semibold text-foreground">{selectedItem.status}</span>
-                  </div>
-                </div>
-
-                {selectedItem.keterangan && (
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground block mb-1">Keterangan:</span>
-                    <p className="text-xs bg-muted/20 p-2.5 rounded border border-border text-muted-foreground">{selectedItem.keterangan}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <DialogFooter className="flex-row items-center justify-between gap-2 pt-2 sm:justify-between">
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive h-9 px-2.5 text-xs gap-1.5"
-                onClick={() => {
-                  setIsDetailOpen(false);
-                  if (selectedItem) handleOpenDelete(selectedItem);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>Hapus Barang</span>
-              </Button>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 text-xs"
-                  onClick={() => {
-                    setIsDetailOpen(false);
-                    if (selectedItem) handleOpenEdit(selectedItem);
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5 mr-1" />
-                  Edit
-                </Button>
-                <Button variant="secondary" size="sm" className="h-9 text-xs" onClick={() => setIsDetailOpen(false)}>
-                  Tutup
-                </Button>
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* ========================================================= */}
-        {/* 5. DIALOG DELETE                                          */}
-        {/* ========================================================= */}
-        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-          <DialogContent className="sm:max-w-[420px] w-[95vw]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-destructive">
-                <Trash2 className="h-5 w-5" />
-                Hapus Aset Barang?
-              </DialogTitle>
-              <DialogDescription>
-                Apakah Anda yakin ingin menghapus <strong>{selectedItem?.nama}</strong> dari inventaris organisasi? Tindakan ini tidak dapat dibatalkan.
-              </DialogDescription>
-            </DialogHeader>
-
-            <DialogFooter className="gap-2 pt-3">
-              <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isPending}>
-                Batal
-              </Button>
-              <Button variant="destructive" onClick={handleDeleteSubmit} disabled={isPending}>
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                Hapus Barang
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Dialog 5: Delete Item */}
+        <InventarisDeleteDialog
+          open={isDeleteOpen}
+          item={selectedItem}
+          isPending={isPending}
+          onClose={() => setIsDeleteOpen(false)}
+          onConfirm={handleDeleteSubmit}
+        />
       </div>
     </InventarisDataContext.Provider>
   );
