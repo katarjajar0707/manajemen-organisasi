@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   Wallet,
   Users,
@@ -11,10 +10,8 @@ import {
   MessagesSquare,
   ArrowRight,
   TrendingUp,
-  TrendingDown,
   PlusCircle,
   MessageCircle,
-  ShieldCheck,
   Clock,
   MapPin,
 } from "lucide-react";

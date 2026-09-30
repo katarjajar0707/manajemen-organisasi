@@ -49,7 +49,7 @@ export interface PeminjamanRecord {
 /**
  * Mengambil daftar seluruh barang inventaris beserta status peminjaman aktif.
  */
-export async function getInventarisList(filters?: {
+export async function getInventarisList(_filters?: {
   search?: string;
   kategori?: string;
   kondisi?: string;

@@ -194,6 +194,7 @@ export function GlobalSearchDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden shadow-2xl border-border/80">
         <DialogHeader className="p-3 border-b border-border/60">
+          <DialogTitle className="sr-only">Pencarian Fitur & Modul</DialogTitle>
           <div className="flex items-center gap-2.5 px-1">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Phone, Users, Download, ShieldCheck, ArrowRight, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { AnggotaDetail } from '@/actions/anggota';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { normalizeWhatsAppNumber } from '@/lib/utils';
 import { PreviewImage } from '@/components/common/preview-image';
 

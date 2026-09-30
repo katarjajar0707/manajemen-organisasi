@@ -15,13 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import Link from "next/link";
 import { ArrowLeft, Plus, ArrowRight, FolderKanban, Users, Calendar, AlertCircle, Loader2 } from "lucide-react";
 import { AgendaData, createAgenda } from "@/actions/agenda";

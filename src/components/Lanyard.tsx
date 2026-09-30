@@ -26,7 +26,15 @@ extend({ MeshLineGeometry, MeshLineMaterial });
 declare module '@react-three/fiber' {
   interface ThreeElements {
     meshLineGeometry: ThreeElement<typeof MeshLineGeometry>;
-    meshLineMaterial: ThreeElement<typeof MeshLineMaterial>;
+    meshLineMaterial: ThreeElement<typeof MeshLineMaterial> & {
+      color?: THREE.ColorRepresentation;
+      depthTest?: boolean;
+      resolution?: [number, number] | THREE.Vector2;
+      useMap?: boolean | number;
+      map?: THREE.Texture | null;
+      repeat?: [number, number] | THREE.Vector2;
+      lineWidth?: number;
+    };
   }
 }
 

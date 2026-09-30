@@ -9,7 +9,6 @@ import { getCachedBagianOptions } from '@/lib/cache/bagian';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 export default async function UserManagementPage() {
   const [currentProfile, users, bagianList] = await Promise.all([getProfile(), getUsers(), getCachedBagianOptions()]);
@@ -58,7 +57,7 @@ export default async function UserManagementPage() {
         <CardContent className="p-0">
           {/* Mobile Card View (< md) */}
           <div className="md:hidden divide-y divide-border/60">
-            {users.map((u: any) => (
+            {users.map((u) => (
               <div key={u.id} className="p-3.5 space-y-2 hover:bg-muted/20 transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <div>

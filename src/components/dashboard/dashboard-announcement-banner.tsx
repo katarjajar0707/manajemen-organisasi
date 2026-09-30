@@ -33,7 +33,7 @@ interface DashboardAnnouncementBannerProps {
 
 export function DashboardAnnouncementBanner({
   announcements = [],
-  userRole = "anggota",
+  userRole: _userRole = "anggota",
   userBagianNama,
 }: DashboardAnnouncementBannerProps) {
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Wallet, Users, Calendar, Megaphone, MessagesSquare, ArrowRight, TrendingUp, TrendingDown, PlusCircle, MessageCircle, ShieldCheck, Settings, Building2, Activity, BarChart3, UserCheck, Clock, Sparkles } from 'lucide-react';
+import { Wallet, Users, Calendar, Megaphone, MessagesSquare, ArrowRight, TrendingUp, TrendingDown, MessageCircle, ShieldCheck, Settings, Building2, Activity, BarChart3, UserCheck, Clock, Sparkles } from 'lucide-react';
 import { LogoutButton } from '@/components/common/logout-button';
 import { DashboardAnnouncementBanner } from '@/components/dashboard/dashboard-announcement-banner';
 import { PublicTransparencyData } from '@/actions/transparansi';

@@ -84,7 +84,6 @@ export async function getKegiatanList(filters?: { search?: string; status?: stri
 
   const items: KegiatanData[] = data.map((item: any) => {
     const bagianObj = Array.isArray(item.bagian) ? item.bagian[0] : item.bagian;
-    const authorObj = Array.isArray(item.author) ? item.author[0] : item.author;
 
     const mulaiDate = new Date(item.tanggal_mulai);
     const selesaiDate = item.tanggal_selesai ? new Date(item.tanggal_selesai) : null;

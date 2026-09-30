@@ -1,9 +1,26 @@
-import { LayoutDashboard, Home, User, Users, Building2, FolderKanban, Calendar, MessagesSquare, Package, FileText, Archive, Wallet, ShieldCheck, Settings, NotebookPen } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Home,
+  User,
+  Users,
+  Building2,
+  FolderKanban,
+  Calendar,
+  MessagesSquare,
+  Package,
+  FileText,
+  Archive,
+  Wallet,
+  ShieldCheck,
+  Settings,
+  NotebookPen,
+  type LucideIcon,
+} from 'lucide-react';
 
 export interface NavItem {
   title: string;
   href: string;
-  icon: any;
+  icon: LucideIcon;
   roles?: ('admin' | 'ketua' | 'anggota')[];
   bagianSlugs?: string[];
   badge?: string;

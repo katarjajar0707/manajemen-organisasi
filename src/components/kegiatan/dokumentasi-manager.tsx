@@ -3,15 +3,14 @@
 import { useState, useTransition, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { isImageFile } from '@/lib/utils';
 import { convertHeicToJpeg } from '@/lib/client-image';
 import { PreviewImage } from '@/components/common/preview-image';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Camera, Upload, X, Pencil, Trash2, ZoomIn, ImageOff, Plus, Download, ChevronLeft, ChevronRight, Loader2, Calendar, MapPin, AlertCircle, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Camera, Upload, X, Pencil, Trash2, ZoomIn, ImageOff, Plus, Download, ChevronLeft, ChevronRight, Loader2, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { uploadDokumentasi, updateCaptionDokumentasi, deleteDokumentasi } from '@/actions/dokumentasi';
 
@@ -25,13 +24,21 @@ export interface FotoItem {
   tanggal?: string;
 }
 
+export interface KegiatanDokumentasiMeta {
+  id: string;
+  judul: string;
+  tanggalMulai?: string;
+  lokasi?: string;
+  bagian?: { nama?: string } | null;
+}
+
 interface DokumentasiManagerProps {
-  kegiatan: any;
+  kegiatan: KegiatanDokumentasiMeta;
   initialFotos?: FotoItem[];
   userRole?: string;
 }
 
-export function DokumentasiManager({ kegiatan, initialFotos = [], userRole = 'anggota' }: DokumentasiManagerProps) {
+export function DokumentasiManager({ kegiatan, initialFotos = [], userRole: _userRole = 'anggota' }: DokumentasiManagerProps) {
   const [fotos, setFotos] = useState<FotoItem[]>(initialFotos);
   const [preview, setPreview] = useState<FotoItem | null>(null);
 

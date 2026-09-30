@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
-  Archive,
   Upload,
   Download,
   Search,
@@ -24,8 +23,6 @@ import {
   Edit,
   Eye,
   Calendar,
-  Layers,
-  HardDrive,
   File,
   CheckCircle2,
   Check,
@@ -34,7 +31,6 @@ import {
   ExternalLink,
   Plus,
   ImageIcon,
-  Link as LinkIcon,
 } from 'lucide-react';
 import { ArsipItem, KategoriArsip, createArsip, updateArsip, deleteArsip } from '@/actions/arsip';
 import { uploadLampiran } from '@/actions/storage';
@@ -49,7 +45,7 @@ interface ArsipManagerProps {
   currentUserId?: string;
 }
 
-export function ArsipManager({ initialArchives = [], agendaList = [], userRole = 'anggota', currentUserId }: ArsipManagerProps) {
+export function ArsipManager({ initialArchives = [], agendaList = [], userRole = 'anggota', currentUserId: _currentUserId }: ArsipManagerProps) {
   const [archives, setArchives] = useState<ArsipItem[]>(initialArchives);
   const [activeCategory, setActiveCategory] = useState<string>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,11 +78,7 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
   const [deskripsi, setDeskripsi] = useState('');
   const [driveUrl, setDriveUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [nomorSurat, setNomorSurat] = useState('');
   const [kategori, setKategori] = useState<KategoriArsip>('lainnya');
-  const [fileUrl, setFileUrl] = useState('');
-  const [fileType, setFileType] = useState('PDF');
-  const [fileSize, setFileSize] = useState('1 MB');
   const [agendaId, setAgendaId] = useState<string>('none');
   const [selectedFileName, setSelectedFileName] = useState('');
 
@@ -99,16 +91,6 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
     try {
       setIsUploading(true);
       setSelectedFileName(file.name);
-
-      // Extract size
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-      const sizeStr = `${sizeMb} MB`;
-      setFileSize(sizeStr);
-
-      // Extract type
-      let ext = file.name.split('.').pop()?.toUpperCase() || 'IMG';
-      if (isImageFile(file)) ext = 'IMG';
-      setFileType(ext);
 
       let uploadFile: File;
       try {
@@ -123,11 +105,11 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
         triggerNotification(res.error || 'Gagal mengunggah gambar.', 'warning');
       } else {
         setImageUrl(res.url);
-        setFileUrl(res.url);
         triggerNotification('Gambar berhasil diunggah ke storage!', 'success');
       }
-    } catch (err: any) {
-      triggerNotification(err.message || 'Gagal mengunggah gambar.', 'warning');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal mengunggah gambar.';
+      triggerNotification(msg, 'warning');
     } finally {
       setIsUploading(false);
     }
@@ -139,8 +121,6 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
     setDeskripsi('');
     setDriveUrl('');
     setImageUrl('');
-    setFileUrl('');
-    setNomorSurat('');
     setKategori('lainnya');
     setAgendaId('none');
     setSelectedFileName('');
@@ -153,8 +133,6 @@ export function ArsipManager({ initialArchives = [], agendaList = [], userRole =
     setDeskripsi(item.deskripsi);
     setDriveUrl(item.driveUrl || '');
     setImageUrl(item.imageUrl || (item.fileType === 'IMG' ? item.fileUrl : ''));
-    setFileUrl(item.fileUrl);
-    setNomorSurat(item.nomorSurat === '-' ? '' : item.nomorSurat);
     setKategori(item.kategori);
     setAgendaId(item.agendaOrganisasiId || 'none');
     setSelectedFileName(item.imageUrl ? 'Gambar Terlampir' : '');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LanyardHero } from '@/components/public/lanyard-hero';
@@ -41,25 +41,23 @@ const MEMBER_IMAGES = [
   '/lanyard/user/fb883738-90f1-45c0-ae23-a25147614ff0.png',
 ].map((path) => ({ image: path }));
 
-// Cached formatter instance — avoids creating a new Intl.NumberFormat on each call
-const rupiahFormatter = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-});
-const formatRupiah = (amount: number): string => rupiahFormatter.format(amount);
+function subscribeMobileQuery(callback: () => void) {
+  const mql = window.matchMedia('(max-width: 639px)');
+  mql.addEventListener('change', callback);
+  return () => mql.removeEventListener('change', callback);
+}
+
+function getMobileSnapshot() {
+  return window.matchMedia('(max-width: 639px)').matches;
+}
+
+function getMobileServerSnapshot() {
+  return false;
+}
 
 /** Responsive wrapper: ukuran tile lebih kecil di mobile (<640 px). */
 function DriftWallSection() {
-  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
-
-  useEffect(() => {
-    const mql = window.matchMedia('(max-width: 639px)');
-    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    setIsMobile(mql.matches);
-    mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
-  }, []);
+  const isMobile = useSyncExternalStore(subscribeMobileQuery, getMobileSnapshot, getMobileServerSnapshot);
 
   return (
     <section aria-label="Galeri Anggota" className="relative mt-4">

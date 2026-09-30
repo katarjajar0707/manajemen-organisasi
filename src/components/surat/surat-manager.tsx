@@ -43,7 +43,6 @@ import {
   Search,
   Printer,
   Check,
-  CheckCircle2,
   Trash2,
   Sparkles,
   MoreVertical,
@@ -149,7 +148,7 @@ function formatNomorSuratDinamis(formatPattern?: string) {
 export function SuratManager({
   initialTemplates = [],
   userRole = "anggota",
-  currentUserId,
+  currentUserId: _currentUserId,
   settings,
 }: SuratManagerProps) {
   const orgName = settings?.profil.nama || "Karang Taruna";
@@ -679,7 +678,7 @@ export function SuratManager({
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Kategori Surat</Label>
-                <Select value={templateJenis} onValueChange={(val: any) => setTemplateJenis(val)}>
+                <Select value={templateJenis} onValueChange={(val: TemplateSurat['jenis']) => setTemplateJenis(val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih jenis" />
                   </SelectTrigger>

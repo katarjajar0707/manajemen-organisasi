@@ -3,6 +3,10 @@
 import { createClient, getProfile } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Terjadi kesalahan sistem.";
+}
+
 /**
  * Menambahkan periode kepengurusan baru di bawah sebuah agenda.
  * Khusus role 'admin' atau 'ketua'.
@@ -53,8 +57,8 @@ export async function createPeriode(formData: FormData) {
 
     revalidatePath("/struktur");
     return { success: true, periode: data };
-  } catch (err: any) {
-    return { error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    return { error: getErrorMessage(err) };
   }
 }
 
@@ -89,15 +93,15 @@ export async function setActivePeriode(agendaId: string, periodeId: string) {
 
     revalidatePath("/struktur");
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    return { error: getErrorMessage(err) };
   }
 }
 
 /**
  * Menghapus periode kepengurusan.
  */
-export async function deletePeriode(id: string, agendaId: string) {
+export async function deletePeriode(id: string, _agendaId?: string) {
   try {
     const profile = await getProfile();
     if (!profile) return { error: "Silakan login terlebih dahulu." };
@@ -117,7 +121,7 @@ export async function deletePeriode(id: string, agendaId: string) {
 
     revalidatePath("/struktur");
     return { success: true };
-  } catch (err: any) {
-    return { error: err.message || "Terjadi kesalahan sistem." };
+  } catch (err: unknown) {
+    return { error: getErrorMessage(err) };
   }
 }

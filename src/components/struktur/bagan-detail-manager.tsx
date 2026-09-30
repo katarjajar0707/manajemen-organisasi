@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -14,28 +14,21 @@ import {
   ArrowLeft,
   UserPlus,
   Users,
-  Shield,
   Phone,
-  MapPin,
   MoreVertical,
   Edit,
   Trash2,
-  FolderKanban,
   LayoutGrid,
   Table as TableIcon,
-  Download,
   Calendar,
-  Sparkles,
   CheckCircle2,
   Plus,
   Loader2,
   AlertCircle,
-  Clock,
   Printer,
-  ShieldAlert,
 } from 'lucide-react';
 import { createAnggota, updateAnggota, deleteAnggota } from '@/actions/anggota';
-import { createPeriode, setActivePeriode, deletePeriode } from '@/actions/periode';
+import { createPeriode, setActivePeriode } from '@/actions/periode';
 import { convertHeicToJpeg } from '@/lib/client-image';
 
 export interface DBPeriode {
@@ -58,10 +51,21 @@ export interface DBAnggota {
   created_at?: string;
 }
 
+export interface AgendaDetailItem {
+  id: string;
+  nama?: string;
+  nama_agenda?: string;
+  deskripsi?: string | null;
+  status?: string | null;
+  bagian_id?: string;
+  bagian?: { id?: string; nama?: string; slug?: string } | null;
+  periode_kepengurusan?: DBPeriode[];
+}
+
 interface BaganDetailManagerProps {
   bagian: string;
   id: string;
-  initialAgenda: any;
+  initialAgenda: AgendaDetailItem | null;
   userRole?: string;
 }
 
@@ -78,8 +82,8 @@ const JABATAN_SUGGESTIONS = [
   'Anggota Pelaksana',
 ];
 
-export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'anggota' }: BaganDetailManagerProps) {
-  const [agenda, setAgenda] = useState<any>(initialAgenda);
+export function BaganDetailManager({ bagian, id: _id, initialAgenda, userRole = 'anggota' }: BaganDetailManagerProps) {
+  const [agenda, setAgenda] = useState<AgendaDetailItem | null>(initialAgenda);
   const periods: DBPeriode[] = agenda?.periode_kepengurusan || [];
 
   // Cari periode aktif atau yang pertama
@@ -187,7 +191,7 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
       formData.set('kontak', kontak);
       formData.set('status', status);
       formData.set('periode_id', currentPeriode.id);
-      formData.set('bagian_id', agenda.bagian_id);
+      formData.set('bagian_id', agenda?.bagian_id || '');
 
       const foto = formData.get('foto');
       if (foto instanceof File && foto.size > 0) {
@@ -207,17 +211,22 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
         }
 
         // Update local state
-        setAgenda((prev: any) => ({
-          ...prev,
-          periode_kepengurusan: prev.periode_kepengurusan.map((p: any) =>
-            p.id === currentPeriode.id
-              ? {
-                ...p,
-                anggota: p.anggota.map((m: any) => (m.id === editingMember.id ? { ...m, nama, jabatan, rt_rw: rt, kontak, status } : m)),
-              }
-              : p,
-          ),
-        }));
+        setAgenda((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            periode_kepengurusan: (prev.periode_kepengurusan || []).map((p) =>
+              p.id === currentPeriode?.id
+                ? {
+                    ...p,
+                    anggota: (p.anggota || []).map((m) =>
+                      m.id === editingMember.id ? { ...m, nama, jabatan, rt_rw: rt, kontak, status } : m
+                    ),
+                  }
+                : p
+            ),
+          };
+        });
       } else {
         const res = await createAnggota(formData);
         if (res.error) {
@@ -235,17 +244,20 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
           foto_url: null,
         };
 
-        setAgenda((prev: any) => ({
-          ...prev,
-          periode_kepengurusan: prev.periode_kepengurusan.map((p: any) =>
-            p.id === currentPeriode.id
-              ? {
-                ...p,
-                anggota: [newAnggota, ...(p.anggota || [])],
-              }
-              : p,
-          ),
-        }));
+        setAgenda((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            periode_kepengurusan: (prev.periode_kepengurusan || []).map((p) =>
+              p.id === currentPeriode?.id
+                ? {
+                    ...p,
+                    anggota: [newAnggota, ...(p.anggota || [])],
+                  }
+                : p
+            ),
+          };
+        });
       }
 
       setIsMemberDialogOpen(false);
@@ -262,17 +274,20 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
         return;
       }
 
-      setAgenda((prev: any) => ({
-        ...prev,
-        periode_kepengurusan: prev.periode_kepengurusan.map((p: any) =>
-          p.id === currentPeriode.id
-            ? {
-              ...p,
-              anggota: (p.anggota || []).filter((m: any) => m.id !== deleteMemberId),
-            }
-            : p,
-        ),
-      }));
+      setAgenda((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          periode_kepengurusan: (prev.periode_kepengurusan || []).map((p) =>
+            p.id === currentPeriode?.id
+              ? {
+                  ...p,
+                  anggota: (p.anggota || []).filter((m) => m.id !== deleteMemberId),
+                }
+              : p
+          ),
+        };
+      });
       setDeleteMemberId(null);
     });
   };
@@ -286,7 +301,7 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
 
     startTransition(async () => {
       const formData = new FormData();
-      formData.set('agenda_organisasi_id', agenda.id);
+      formData.set('agenda_organisasi_id', agenda?.id || '');
       formData.set('nama_periode', namaPeriode);
       formData.set('tanggal_mulai', tanggalMulai);
       if (tanggalSelesai) formData.set('tanggal_selesai', tanggalSelesai);
@@ -303,10 +318,15 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
         anggota: [],
       };
 
-      setAgenda((prev: any) => ({
-        ...prev,
-        periode_kepengurusan: isAktifBaru ? [createdP, ...prev.periode_kepengurusan.map((p: any) => ({ ...p, is_aktif: false }))] : [createdP, ...prev.periode_kepengurusan],
-      }));
+      setAgenda((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          periode_kepengurusan: isAktifBaru
+            ? [createdP, ...(prev.periode_kepengurusan || []).map((p) => ({ ...p, is_aktif: false }))]
+            : [createdP, ...(prev.periode_kepengurusan || [])],
+        };
+      });
 
       setSelectedPeriodeId(createdP.id);
       setIsPeriodeDialogOpen(false);
@@ -316,19 +336,22 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
 
   const handleSetActivePeriod = (pId: string) => {
     startTransition(async () => {
-      const res = await setActivePeriode(agenda.id, pId);
+      const res = await setActivePeriode(agenda?.id || '', pId);
       if (res.error) {
         alert(res.error);
         return;
       }
 
-      setAgenda((prev: any) => ({
-        ...prev,
-        periode_kepengurusan: prev.periode_kepengurusan.map((p: any) => ({
-          ...p,
-          is_aktif: p.id === pId,
-        })),
-      }));
+      setAgenda((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          periode_kepengurusan: (prev.periode_kepengurusan || []).map((p) => ({
+            ...p,
+            is_aktif: p.id === pId,
+          })),
+        };
+      });
     });
   };
 
@@ -355,14 +378,14 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="default" className="text-xs">
-              {agenda.status || 'Aktif'}
+              {agenda?.status || 'Aktif'}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              • Bagian: <span className="font-semibold text-foreground">{agenda.bagian?.nama || bagian}</span>
+              • Bagian: <span className="font-semibold text-foreground">{agenda?.bagian?.nama || bagian}</span>
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mt-1">{agenda.nama_agenda}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">{agenda.deskripsi || 'Susunan struktural panitia dan pengurus pelaksana kegiatan.'}</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mt-1">{agenda?.nama_agenda || agenda?.nama || ''}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">{agenda?.deskripsi || 'Susunan struktural panitia dan pengurus pelaksana kegiatan.'}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -722,7 +745,7 @@ export function BaganDetailManager({ bagian, id, initialAgenda, userRole = 'angg
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Status Keaktifan</Label>
-                <Select value={status} onValueChange={(v: any) => setStatus(v)}>
+                <Select value={status} onValueChange={(v: DBAnggota['status']) => setStatus(v)}>
                   <SelectTrigger className="text-xs">
                     <SelectValue />
                   </SelectTrigger>

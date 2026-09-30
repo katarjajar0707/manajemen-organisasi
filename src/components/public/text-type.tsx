@@ -1,11 +1,12 @@
 'use client';
 
 import {
-  type ElementType,
   useEffect,
   useRef,
   useMemo,
 } from 'react';
+
+type ValidTextTypeElement = 'div' | 'p' | 'span' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
 interface TextTypeProps {
   className?: string;
@@ -15,7 +16,7 @@ interface TextTypeProps {
   cursorBlinkDuration?: number;
   cursorClassName?: string;
   text: string | string[];
-  as?: ElementType;
+  as?: ValidTextTypeElement;
   typingSpeed?: number;
   initialDelay?: number;
   pauseDuration?: number;
@@ -167,9 +168,11 @@ const TextType = ({
     animationDirection: 'alternate',
   } as React.CSSProperties), [cursorBlinkDuration]);
 
+  const ComponentTag = (Component || 'div') as ValidTextTypeElement;
+
   return (
-    <Component
-      ref={containerRef}
+    <ComponentTag
+      ref={containerRef as React.RefObject<HTMLDivElement>}
       className={`inline-block whitespace-pre-wrap tracking-tight ${className}`}
       {...props}
     >
@@ -183,7 +186,7 @@ const TextType = ({
           {cursorCharacter}
         </span>
       )}
-    </Component>
+    </ComponentTag>
   );
 };
 
