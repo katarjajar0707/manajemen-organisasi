@@ -257,10 +257,11 @@ function Band({
     return composite;
   }, [frontImage, backImage, imageFit, frontTex, backTex, materials.base?.map]);
 
-  const [curve] = useState(
-    () =>
-      new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
-  );
+  const curve = useMemo(() => {
+    const c = new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]);
+    c.curveType = 'chordal';
+    return c;
+  }, []);
   const [dragged, drag] = useState<false | THREE.Vector3>(false);
   const [hovered, hover] = useState(false);
 
@@ -340,12 +341,13 @@ function Band({
   });
 
   useEffect(() => {
-    curve.curveType = 'chordal';
     if (texture) {
+      // Three.js WebGL texture setup
+      // eslint-disable-next-line react-hooks/immutability
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.needsUpdate = true;
     }
-  }, [curve, texture]);
+  }, [texture]);
 
   return (
     <>

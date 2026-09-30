@@ -5,7 +5,6 @@ import {
   useEffect,
   useRef,
   useMemo,
-  createElement,
 } from 'react';
 
 interface TextTypeProps {
@@ -168,25 +167,23 @@ const TextType = ({
     animationDirection: 'alternate',
   } as React.CSSProperties), [cursorBlinkDuration]);
 
-  return createElement(
-    Component,
-    {
-      ref: containerRef,
-      className: `inline-block whitespace-pre-wrap tracking-tight ${className}`,
-      ...props,
-    },
-    <>
+  return (
+    <Component
+      ref={containerRef}
+      className={`inline-block whitespace-pre-wrap tracking-tight ${className}`}
+      {...props}
+    >
       <style>{`@keyframes texttype-blink{0%{opacity:1}100%{opacity:0}}`}</style>
       <span ref={textSpanRef} className="inline" />
-    </>,
-    showCursor && (
-      <span
-        className={`ml-0.5 inline-block ${cursorClassName}`}
-        style={blinkStyle}
-      >
-        {cursorCharacter}
-      </span>
-    )
+      {showCursor && (
+        <span
+          className={`ml-0.5 inline-block ${cursorClassName}`}
+          style={blinkStyle}
+        >
+          {cursorCharacter}
+        </span>
+      )}
+    </Component>
   );
 };
 
