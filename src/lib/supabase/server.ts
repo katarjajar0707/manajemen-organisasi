@@ -70,6 +70,18 @@ export function createPublicClient() {
 
 export const getProfile = cache(async () => {
   try {
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    const hasAuthCookie = allCookies.some(
+      (c) => c.name.startsWith('sb-') && c.name.includes('-auth-token')
+    );
+
+    // Jika tidak ada cookie autentikasi Supabase sama sekali, jangan buang waktu
+    // melakukan panggilan jaringan ke endpoint auth Supabase.
+    if (!hasAuthCookie) {
+      return null;
+    }
+
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 

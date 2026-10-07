@@ -126,7 +126,15 @@ export function LanyardHero({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsIntersecting(true);
+          // Beri prioritas rendering UI & layout PWA terlebih dahulu sebelum memuat Rapier WASM dan 3D Canvas
+          if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(
+              () => setIsIntersecting(true),
+              { timeout: 800 }
+            );
+          } else {
+            setTimeout(() => setIsIntersecting(true), 200);
+          }
           observer.disconnect();
         }
       },

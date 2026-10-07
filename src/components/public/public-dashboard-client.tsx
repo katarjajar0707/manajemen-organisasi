@@ -18,7 +18,15 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, ArrowRight, Shield, MapPin, Clock, Mail, AlertTriangle } from 'lucide-react';
 import { PublicTransparencyData } from '@/actions/transparansi';
 import type { PengaturanSistemData } from '@/actions/pengaturan';
-import DriftWall from '@/components/public/drift-wall';
+const DriftWall = dynamic(() => import('@/components/public/drift-wall'), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="h-full min-h-80 w-full animate-pulse rounded-2xl bg-muted/20"
+      aria-label="Memuat galeri tim"
+    />
+  ),
+});
 import FoldText from '@/components/public/fold-text';
 import StarBorder from '@/components/public/star-border';
 import TextType from '@/components/public/text-type';
