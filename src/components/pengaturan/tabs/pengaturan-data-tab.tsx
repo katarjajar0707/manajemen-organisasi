@@ -4,21 +4,15 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Server,
   Download,
   Clock,
   RefreshCw,
-  ShieldAlert,
-  Trash2,
-  AlertTriangle,
   Loader2,
 } from 'lucide-react';
 import {
   exportModuleData,
-  clearSystemCache,
-  clearAllDummyData,
   getRecentAuditLogs,
 } from '@/actions/pengaturan';
 import { ActiveUsersPanel } from '@/components/pengaturan/active-users-panel';
@@ -54,10 +48,6 @@ export function PengaturanDataTab({
   const [logs, setLogs] = useState<AuditLogItem[]>(initialLogs);
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const [isRefreshingLogs, setIsRefreshingLogs] = useState(false);
-  const [isClearingCache, setIsClearingCache] = useState(false);
-  const [isClearingDummy, setIsClearingDummy] = useState(false);
-  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [isClearDummyDialogOpen, setIsClearDummyDialogOpen] = useState(false);
 
   // Handle Export Data Module (CSV download)
   const handleExportData = async (moduleType: 'anggota' | 'keuangan' | 'inventaris') => {
@@ -98,44 +88,6 @@ export function PengaturanDataTab({
       onToast('Gagal memperbarui log.', 'warning');
     } finally {
       setIsRefreshingLogs(false);
-    }
-  };
-
-  // Handle Clear Cache
-  const handleConfirmReset = async () => {
-    setIsClearingCache(true);
-    try {
-      const res = await clearSystemCache();
-      if (res.success) {
-        onToast('Cache sistem & sesi berhasil dibersihkan! Seluruh data disinkronkan ulang.', 'success');
-        setIsResetDialogOpen(false);
-      } else {
-        onToast(res.message || 'Gagal membersihkan cache.', 'warning');
-      }
-    } catch (err: unknown) {
-      onToast(err instanceof Error ? err.message : 'Terjadi kesalahan koneksi.', 'warning');
-    } finally {
-      setIsClearingCache(false);
-    }
-  };
-
-  // Handle Clear Dummy Data
-  const handleConfirmClearDummy = async () => {
-    setIsClearingDummy(true);
-    try {
-      const res = await clearAllDummyData();
-      if (res.success) {
-        onToast('Semua data percobaan dummy berhasil dihapus secara bersih dari database!', 'success');
-        setIsClearDummyDialogOpen(false);
-        const freshLogs = await getRecentAuditLogs();
-        setLogs(freshLogs);
-      } else {
-        onToast(res.message || 'Gagal menghapus data dummy.', 'warning');
-      }
-    } catch (err: unknown) {
-      onToast(err instanceof Error ? err.message : 'Terjadi kesalahan sistem saat pembersihan data.', 'warning');
-    } finally {
-      setIsClearingDummy(false);
     }
   };
 
@@ -312,118 +264,6 @@ export function PengaturanDataTab({
       </Card>
 
       <ActiveUsersPanel />
-
-      {/* Zona Bahaya */}
-      <Card className="border-destructive/30 bg-destructive/5">
-        <CardHeader>
-          <CardTitle className="text-base text-destructive flex items-center gap-2">
-            <ShieldAlert className="h-4 w-4" />
-            Zona Pemeliharaan & Data (Zona Bahaya)
-          </CardTitle>
-          <CardDescription>Tindakan administratif tingkat tinggi untuk pemeliharaan server, revalidasi cache, dan pembersihan data awal.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-background/80 rounded-lg border border-destructive/20">
-            <div>
-              <h5 className="font-medium text-sm text-foreground">Bersihkan Cache & Refresh Layout</h5>
-              <p className="text-xs text-muted-foreground">Menyegarkan server cache Next.js dan data profil di seluruh layout portal secara instan.</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsResetDialogOpen(true)}
-              className="shrink-0 gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Bersihkan Cache
-            </Button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-destructive/10 rounded-lg border border-destructive/30">
-            <div>
-              <div className="flex items-center gap-2">
-                <h5 className="font-medium text-sm text-destructive">Hapus Semua Data Dummy</h5>
-                <Badge variant="destructive" className="text-[10px] uppercase font-bold">
-                  Permanen
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Menghapus seluruh rekaman percobaan awal (kegiatan, kas keuangan, inventaris, pengumuman, diskusi, dan anggota dummy seed). Akun login resmi dan struktur organisasi tetap aman.
-              </p>
-            </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setIsClearDummyDialogOpen(true)}
-              className="shrink-0 gap-1.5 text-xs bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Hapus Data Dummy
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Confirmation Dialog for Cache Clear */}
-      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-        <DialogContent className="sm:max-w-[420px] w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="h-10 w-10 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center mb-2">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <DialogTitle>Bersihkan Cache Sistem?</DialogTitle>
-            <DialogDescription>Tindakan ini akan merevalidasi cache server dan menyegarkan tampilan data organisasi untuk seluruh pengurus.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="pt-2 gap-2">
-            <Button variant="outline" onClick={() => setIsResetDialogOpen(false)} disabled={isClearingCache}>
-              Batal
-            </Button>
-            <Button variant="default" onClick={handleConfirmReset} disabled={isClearingCache} className="bg-amber-600 hover:bg-amber-500 text-white gap-1.5">
-              {isClearingCache && <Loader2 className="h-4 w-4 animate-spin" />}
-              <span>{isClearingCache ? 'Membersihkan...' : 'Ya, Bersihkan Cache'}</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation Dialog for Clear Dummy Data */}
-      <Dialog open={isClearDummyDialogOpen} onOpenChange={setIsClearDummyDialogOpen}>
-        <DialogContent className="sm:max-w-[440px] w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="h-10 w-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-2">
-              <Trash2 className="h-5 w-5" />
-            </div>
-            <DialogTitle className="text-destructive">Hapus Seluruh Data Dummy?</DialogTitle>
-            <DialogDescription className="space-y-2 text-xs leading-relaxed">
-              <span className="block text-foreground font-normal">Tindakan ini akan menghapus seluruh data contoh/percobaan sistem:</span>
-              <ul className="list-disc pl-4 space-y-1 text-muted-foreground mt-1">
-                <li>Seluruh kalender & dokumentasi kegiatan</li>
-                <li>Seluruh catatan transaksi kas masuk & keluar</li>
-                <li>Seluruh daftar inventaris & peminjaman aset</li>
-                <li>Seluruh pengumuman, arsip surat, dan diskusi</li>
-                <li>Daftar anggota dummy bawaan sistem</li>
-              </ul>
-              <span className="block font-medium text-foreground pt-1">
-                Akun pengguna resmi Anda di Manajemen Pengguna dan struktur organisasi tetap aman dan dipertahankan.
-              </span>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="pt-3 gap-2">
-            <Button variant="outline" onClick={() => setIsClearDummyDialogOpen(false)} disabled={isClearingDummy}>
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmClearDummy}
-              disabled={isClearingDummy}
-              className="bg-red-600 hover:bg-red-700 text-white gap-1.5 font-medium"
-            >
-              {isClearingDummy && <Loader2 className="h-4 w-4 animate-spin" />}
-              <span>{isClearingDummy ? 'Membersihkan...' : 'Ya, Hapus Semua Data Dummy'}</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
