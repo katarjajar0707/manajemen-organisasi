@@ -14,7 +14,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, TrendingDown, TrendingUp, MoreVertical, Trash2, FileText, FileDown, Eye, Pencil } from 'lucide-react';
+import { Search, TrendingDown, TrendingUp, MoreVertical, Trash2, FileText, FileDown, Eye, Pencil, Lock } from 'lucide-react';
 import { cn, isImageUrl } from '@/lib/utils';
 import { PreviewImage } from '@/components/common/preview-image';
 import type { Transaksi } from '@/constants/keuangan';
@@ -42,6 +42,8 @@ interface TransaksiTableProps {
   paginatedList: Transaksi[];
   filterJenis: 'semua' | 'masuk' | 'keluar';
   setFilterJenis: (val: 'semua' | 'masuk' | 'keluar') => void;
+  filterClosing?: 'semua' | 'aktif' | 'closed';
+  setFilterClosing?: (val: 'semua' | 'aktif' | 'closed') => void;
   filterCounts: { total: number; masuk: number; keluar: number };
   searchQuery: string;
   setSearchQuery: (val: string) => void;
@@ -52,6 +54,7 @@ interface TransaksiTableProps {
   totalPages: number;
   pageNumbers: (number | string)[];
   canManage?: boolean;
+  userRole?: string;
   formatRupiah: (angka: number | string) => string;
   onOpenEdit: (trx: Transaksi) => void;
   onDelete: (id: string) => void;
@@ -60,6 +63,7 @@ interface TransaksiTableProps {
   children?: ReactNode;
 }
 
+
 export function TransaksiTable({
   dataReady,
   realtimeStatus,
@@ -67,6 +71,8 @@ export function TransaksiTable({
   paginatedList,
   filterJenis,
   setFilterJenis,
+  filterClosing,
+  setFilterClosing,
   filterCounts,
   searchQuery,
   setSearchQuery,
@@ -77,6 +83,7 @@ export function TransaksiTable({
   totalPages,
   pageNumbers,
   canManage = false,
+  userRole = 'anggota',
   formatRupiah,
   onOpenEdit,
   onDelete,
@@ -84,6 +91,7 @@ export function TransaksiTable({
   onExportPDF,
   children,
 }: TransaksiTableProps) {
+
   return (
     <Card>
       <CardHeader className="pb-4 border-b">
@@ -187,7 +195,7 @@ export function TransaksiTable({
                 }}
                 className={cn(
                   'flex-1 justify-center px-2.5 sm:flex-none sm:px-3 py-1.5 rounded-md font-medium transition-all text-xs flex items-center gap-1 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  filterJenis === 'keluar' ? 'bg-rose-600 text-white shadow-xs' : 'text-muted-foreground hover:text-rose-600',
+                  filterJenis === 'keluar' ? 'bg-red-600 text-white shadow-xs dark:bg-red-600' : 'text-muted-foreground hover:text-red-600 dark:hover:text-red-400',
                 )}
               >
                 <TrendingDown className="h-3 w-3" />
@@ -196,6 +204,20 @@ export function TransaksiTable({
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
+              {/* Filter Status Closing */}
+              {filterClosing && setFilterClosing && (
+                <Select value={filterClosing} onValueChange={(val: 'semua' | 'aktif' | 'closed') => setFilterClosing(val)}>
+                  <SelectTrigger className="h-8 text-xs w-[130px] shrink-0">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semua">Semua Status</SelectItem>
+                    <SelectItem value="aktif">Kas Aktif</SelectItem>
+                    <SelectItem value="closed">Terkunci Closing</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
               {/* Input Pencarian */}
               <div className="relative flex-1 min-w-0">
                 <Input placeholder="Cari transaksi..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8 h-8 text-xs w-full" />
@@ -251,6 +273,12 @@ export function TransaksiTable({
                             {trx.kategori}
                           </Badge>
                         )}
+                        {trx.closing_id && (
+                          <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 font-mono">
+                            <Lock className="h-2.5 w-2.5" />
+                            {trx.closing?.nomor_closing || 'Terkunci Closing'}
+                          </Badge>
+                        )}
                       </div>
                       {(trx.displayKeterangan || trx.keterangan) && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{trx.displayKeterangan || trx.keterangan}</div>}
                       <div className="text-[10px] text-muted-foreground mt-1">Oleh: {trx.author?.nama || 'Unknown'}</div>
@@ -297,12 +325,30 @@ export function TransaksiTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onOpenEdit(trx)}>
-                              <Pencil className="h-4 w-4 mr-2" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(trx.id)}>
-                              <Trash2 className="h-4 w-4 mr-2" /> Hapus
-                            </DropdownMenuItem>
+                            {(!trx.closing_id || userRole === 'admin') ? (
+                              <DropdownMenuItem onClick={() => onOpenEdit(trx)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                {trx.closing_id ? 'Edit (Admin Audit)' : 'Edit'}
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+                                <Lock className="h-4 w-4 mr-2" /> Terkunci (Hanya Admin)
+                              </DropdownMenuItem>
+                            )}
+
+                            {!trx.closing_id ? (
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(trx.id)}>
+                                <Trash2 className="h-4 w-4 mr-2" /> Hapus
+                              </DropdownMenuItem>
+                            ) : userRole === 'admin' ? (
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(trx.id)}>
+                                <Trash2 className="h-4 w-4 mr-2" /> Hapus (Admin Audit)
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
+                                <Lock className="h-4 w-4 mr-2" /> Terkunci (Telah Closing)
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>

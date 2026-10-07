@@ -182,3 +182,25 @@ export interface ArsipDokumen {
   created_at: string;
   agenda?: AgendaOrganisasi | null;
 }
+
+export interface ClosingKeuangan {
+  id: string;
+  nomor_closing: string;
+  judul: string;
+  bagian_id: string;
+  tanggal_closing: string;
+  tanggal_mulai?: string | null;
+  tanggal_selesai?: string | null;
+  saldo_awal: number;
+  total_masuk: number;
+  total_keluar: number;
+  saldo_akhir: number;
+  total_transaksi: number;
+  catatan?: string | null;
+  status: "closed" | "reopened";
+  dibuat_oleh: string;
+  created_at: string;
+  bagian?: Bagian;
+  author?: Profile;
+}
+

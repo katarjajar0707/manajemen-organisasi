@@ -109,7 +109,9 @@ export async function updateSession(request: NextRequest) {
       return redirectWithSessionCookies(url, supabaseResponse);
     }
 
-    if (!user && !isAuthRoute && !isPublicRoute && !isSystemRoute) {
+    const isServerAction = request.headers.has('next-action');
+
+    if (!user && !isAuthRoute && !isPublicRoute && !isSystemRoute && !isServerAction) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.search = '';

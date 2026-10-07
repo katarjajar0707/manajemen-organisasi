@@ -3,7 +3,8 @@
 import { createContext, useContext, useState, useTransition, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { TrendingDown, TrendingUp } from 'lucide-react';
+import { TrendingDown, TrendingUp, BookCheck } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { convertHeicToJpeg } from '@/lib/client-image';
 import {
@@ -13,6 +14,7 @@ import {
   getKegiatanOptions,
   getTargetRabKegiatanList,
   getKeuanganSaldoAgregat,
+  getClosingKeuanganList,
   type KegiatanOption,
   type TargetRabKegiatanItem,
 } from '@/actions/keuangan';
@@ -22,7 +24,9 @@ import {
   type BendaharaData,
   type BendaharaSaldo,
   type BendaharaManagerProps,
+  type ClosingKeuangan,
   KEUANGAN_QUERY_KEY,
+  CLOSING_QUERY_KEY,
   formatRupiahCached,
   normalizeTransaction,
 } from '@/constants/keuangan';
@@ -32,7 +36,10 @@ import { TransaksiTable, TransactionRowsSkeleton } from './components/transaksi-
 import { TransaksiFormDialog, type RabPreviewInfo } from './components/transaksi-form-dialog';
 import { TransaksiDeleteDialog } from './components/transaksi-delete-dialog';
 import { PreviewLampiranDialog } from './components/preview-lampiran-dialog';
+import { ClosingDialog } from './components/closing-dialog';
+import { RiwayatClosingTab } from './components/riwayat-closing-tab';
 import { exportKeuanganToPdf } from './utils/export-pdf';
+
 
 export { TransactionRowsSkeleton };
 
@@ -71,7 +78,7 @@ async function fetchKeuanganTransactions(initialBagianId: string | null): Promis
 
   const { data, error } = await supabase
     .from('catatan_keuangan')
-    .select('id, judul, keterangan, jenis, jumlah, tanggal, created_at, lampiran_url, kegiatan_id, bagian_id, dibuat_oleh, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)')
+    .select('id, judul, keterangan, jenis, jumlah, tanggal, created_at, lampiran_url, kegiatan_id, bagian_id, closing_id, dibuat_oleh, author:profiles!catatan_keuangan_dibuat_oleh_fkey(nama, role)')
     .eq('bagian_id', bagianId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
@@ -88,6 +95,7 @@ export function BendaharaManager({
   agendaCategories = [],
   settings: initialSettings,
   canManage = false,
+  userRole = 'anggota',
   children,
 }: BendaharaManagerProps) {
   const queryClient = useQueryClient();
@@ -96,6 +104,19 @@ export function BendaharaManager({
   const [currentCategories, setCurrentCategories] = useState(agendaCategories);
   const [currentSettings, setCurrentSettings] = useState(initialSettings);
   const [currentSaldo, setCurrentSaldo] = useState<BendaharaSaldo>(_initialSaldo || { masuk: 0, keluar: 0, sisa: 0 });
+
+  // Tab View: Kas Berjalan vs Riwayat Closing
+  const [activeTab, setActiveTab] = useState<'berjalan' | 'closing'>('berjalan');
+  const [filterClosing, setFilterClosing] = useState<'semua' | 'aktif' | 'closed'>('aktif');
+  const [isClosingDialogOpen, setIsClosingDialogOpen] = useState(false);
+
+  const { data: closingList = [], isLoading: isLoadingClosing } = useQuery<ClosingKeuangan[]>({
+    queryKey: CLOSING_QUERY_KEY,
+    queryFn: () => getClosingKeuanganList('bendahara'),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
   const dataContext = useMemo(
     () => ({
@@ -156,6 +177,7 @@ export function BendaharaManager({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+
 
   // Form dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -354,39 +376,47 @@ export function BendaharaManager({
 
     setError(null);
     startTransition(async () => {
-      const cleanNominal = jumlah.replace(/[^0-9]/g, '');
-      const formData = new FormData();
-      formData.append('jenis', jenis);
-      formData.append('judul', judul);
-      formData.append('keterangan', keterangan);
-      formData.append('kategori', selectedKategori);
-      formData.append('jumlah', cleanNominal);
-      if (activeKegiatanRab?.id) {
-        formData.append('kegiatan_id', activeKegiatanRab.id);
-      }
-      if (file) {
-        try {
-          formData.append('lampiran', await convertHeicToJpeg(file));
-        } catch {
-          const message = 'File HEIC tidak dapat dikonversi menjadi JPG.';
-          setError(message);
-          toast.error(message);
-          return;
+      try {
+        const cleanNominal = jumlah.replace(/[^0-9]/g, '');
+        const formData = new FormData();
+        formData.append('jenis', jenis);
+        formData.append('judul', judul);
+        formData.append('keterangan', keterangan);
+        formData.append('kategori', selectedKategori);
+        formData.append('jumlah', cleanNominal);
+        if (activeKegiatanRab?.id) {
+          formData.append('kegiatan_id', activeKegiatanRab.id);
         }
-      }
+        if (file) {
+          try {
+            formData.append('lampiran', await convertHeicToJpeg(file));
+          } catch {
+            const message = 'File HEIC tidak dapat dikonversi menjadi JPG.';
+            setError(message);
+            toast.error(message);
+            return;
+          }
+        }
 
-      const res = editingId ? await updateTransaksi(editingId, formData, 'bendahara') : await createTransaksi(formData, 'bendahara');
+        const res = editingId ? await updateTransaksi(editingId, formData, 'bendahara') : await createTransaksi(formData, 'bendahara');
 
-      if (res?.error) {
-        setError(res.error);
-        toast.error(res.error);
-      } else {
-        await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
-        await queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
-        await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
-        toast.success(editingId ? 'Transaksi berhasil diperbarui.' : `Transaksi kas ${jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} berhasil disimpan.`);
-        setIsDialogOpen(false);
-        setEditingId(null);
+        if (res?.error) {
+          setError(res.error);
+          toast.error(res.error);
+        } else {
+          await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
+          await queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
+          await queryClient.invalidateQueries({ queryKey: CLOSING_QUERY_KEY });
+          await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
+          toast.success(editingId ? 'Transaksi berhasil diperbarui.' : `Transaksi kas ${jenis === 'masuk' ? 'pemasukan' : 'pengeluaran'} berhasil disimpan.`);
+          setIsDialogOpen(false);
+          setEditingId(null);
+        }
+      } catch (err: unknown) {
+        console.error('Error saat menyimpan transaksi:', err);
+        const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem saat menghubungi server.';
+        setError(message);
+        toast.error(message);
       }
     });
   };
@@ -394,16 +424,24 @@ export function BendaharaManager({
   const handleDelete = () => {
     if (deleteId) {
       startTransition(async () => {
-        const res = await deleteTransaksi(deleteId, 'bendahara');
-        if (res?.error) {
-          toast.error('Gagal menghapus: ' + res.error);
-        } else {
-          await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
-          await queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
-          await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
-          toast.success('Transaksi berhasil dihapus.');
+        try {
+          const res = await deleteTransaksi(deleteId, 'bendahara');
+          if (res?.error) {
+            toast.error('Gagal menghapus: ' + res.error);
+          } else {
+            await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
+            await queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
+            await queryClient.invalidateQueries({ queryKey: CLOSING_QUERY_KEY });
+            await queryClient.invalidateQueries({ queryKey: ['target-rab-kegiatan'] });
+            toast.success('Transaksi berhasil dihapus.');
+          }
+        } catch (err: unknown) {
+          console.error('Error saat menghapus transaksi:', err);
+          const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem saat menghubungi server.';
+          toast.error(message);
+        } finally {
+          setDeleteId(null);
         }
-        setDeleteId(null);
       });
     }
   };
@@ -411,6 +449,8 @@ export function BendaharaManager({
   const filteredList = useMemo(() => {
     return transactions.filter((item) => {
       if (filterJenis !== 'semua' && item.jenis !== filterJenis) return false;
+      if (filterClosing === 'aktif' && item.closing_id) return false;
+      if (filterClosing === 'closed' && !item.closing_id) return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       return (
@@ -418,20 +458,52 @@ export function BendaharaManager({
         (item.displayKeterangan || '').toLowerCase().includes(q) ||
         (item.keterangan || '').toLowerCase().includes(q) ||
         (item.kategori || '').toLowerCase().includes(q) ||
-        (item.author?.nama || '').toLowerCase().includes(q)
+        (item.author?.nama || '').toLowerCase().includes(q) ||
+        (item.closing?.nomor_closing || '').toLowerCase().includes(q)
       );
     });
-  }, [transactions, filterJenis, searchQuery]);
+  }, [transactions, filterJenis, filterClosing, searchQuery]);
+
+
+  const effectiveSaldo = useMemo<BendaharaSaldo>(() => {
+    let masukAktif = saldo.masukAktif;
+    let keluarAktif = saldo.keluarAktif;
+
+    if (masukAktif === undefined || keluarAktif === undefined) {
+      let m = 0;
+      let k = 0;
+      for (const trx of transactions) {
+        const amt = Number(trx.jumlah) || 0;
+        if (!trx.closing_id) {
+          if (trx.jenis === 'masuk') m += amt;
+          else if (trx.jenis === 'keluar') k += amt;
+        }
+      }
+      masukAktif = m;
+      keluarAktif = k;
+    }
+
+    return {
+      ...saldo,
+      masukAktif,
+      keluarAktif,
+      sisaAktif: masukAktif - keluarAktif,
+    };
+  }, [saldo, transactions]);
 
   const filterCounts = useMemo(() => {
     let masuk = 0;
     let keluar = 0;
+    let total = 0;
     for (const item of transactions) {
+      if (filterClosing === 'aktif' && item.closing_id) continue;
+      if (filterClosing === 'closed' && !item.closing_id) continue;
+      total++;
       if (item.jenis === 'masuk') masuk++;
       else keluar++;
     }
-    return { total: transactions.length, masuk, keluar };
-  }, [transactions]);
+    return { total, masuk, keluar };
+  }, [transactions, filterClosing]);
 
   const totalPages = Math.max(1, Math.ceil(filteredList.length / rowsPerPage));
 
@@ -488,10 +560,10 @@ export function BendaharaManager({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Manajemen Keuangan</h1>
-            <p className="text-sm text-muted-foreground mt-1">Catatan arus kas, kas masuk, dan pengeluaran organisasi.</p>
+            <p className="text-sm text-muted-foreground mt-1">Catatan arus kas, kas masuk, pengeluaran, dan penutupan buku organisasi.</p>
           </div>
           {canManage && (
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
               <Button
                 className="flex-1 sm:flex-none gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
                 size="sm"
@@ -501,49 +573,111 @@ export function BendaharaManager({
                 <span>Kas Masuk</span>
               </Button>
               <Button
-                className="flex-1 sm:flex-none gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
+                className="flex-1 sm:flex-none gap-2 bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 shadow-xs"
                 size="sm"
                 onClick={() => handleOpenCreate('keluar')}
               >
                 <TrendingDown className="h-4 w-4" />
                 <span>Kas Keluar</span>
               </Button>
+              <Button
+                className="flex-1 sm:flex-none gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
+                size="sm"
+                onClick={() => setIsClosingDialogOpen(true)}
+              >
+                <BookCheck className="h-4 w-4" />
+                <span>Tutup Buku</span>
+              </Button>
             </div>
           )}
         </div>
 
-        {/* Saldo Cards */}
-        <KeuanganStats saldo={saldo} dataReady={dataReady} formatRupiah={formatRupiah} />
+        {/* Tab Switcher: Kas Berjalan vs Riwayat Closing */}
+        <div className="border-b pb-2">
+          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'berjalan' | 'closing')}>
+            <TabsList className="h-9">
+              <TabsTrigger value="berjalan" className="text-xs px-3 sm:px-4">
+                Kas Berjalan
+              </TabsTrigger>
+              <TabsTrigger value="closing" className="text-xs px-3 sm:px-4 gap-1.5">
+                Riwayat Closing
+                <span className="rounded-full bg-primary/10 text-primary px-1.5 py-0.2 text-[10px] font-mono">
+                  {closingList.filter((c) => c.status === 'closed').length}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-        {/* Section: Target RAB Kegiatan */}
-        <TargetRabSection targetRabList={targetRabList} formatRupiah={formatRupiah} />
+        {activeTab === 'berjalan' ? (
+          <>
+            {/* Saldo Cards */}
+            <KeuanganStats saldo={effectiveSaldo} dataReady={dataReady} formatRupiah={formatRupiah} filterClosing={filterClosing} />
 
-        {/* Transaksi Table */}
-        <TransaksiTable
-          dataReady={dataReady}
-          realtimeStatus={realtimeStatus}
-          filteredList={filteredList}
-          paginatedList={paginatedList}
-          filterJenis={filterJenis}
-          setFilterJenis={setFilterJenis}
-          filterCounts={filterCounts}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          rowsPerPage={rowsPerPage}
-          setRowsPerPage={setRowsPerPage}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          totalPages={totalPages}
-          pageNumbers={pageNumbers}
-          canManage={canManage}
-          formatRupiah={formatRupiah}
-          onOpenEdit={handleOpenEdit}
-          onDelete={setDeleteId}
-          onPreview={setPreviewUrl}
-          onExportPDF={handleExportPDF}
-        >
-          {children}
-        </TransaksiTable>
+            {/* Section: Target RAB Kegiatan */}
+            <TargetRabSection targetRabList={targetRabList} formatRupiah={formatRupiah} />
+
+            {/* Transaksi Table */}
+            <TransaksiTable
+              dataReady={dataReady}
+              realtimeStatus={realtimeStatus}
+              filteredList={filteredList}
+              paginatedList={paginatedList}
+              filterJenis={filterJenis}
+              setFilterJenis={setFilterJenis}
+              filterClosing={filterClosing}
+              setFilterClosing={setFilterClosing}
+              filterCounts={filterCounts}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              rowsPerPage={rowsPerPage}
+              setRowsPerPage={setRowsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalPages={totalPages}
+              pageNumbers={pageNumbers}
+              canManage={canManage}
+              userRole={userRole}
+              formatRupiah={formatRupiah}
+              onOpenEdit={handleOpenEdit}
+              onDelete={setDeleteId}
+              onPreview={setPreviewUrl}
+              onExportPDF={handleExportPDF}
+            >
+              {children}
+            </TransaksiTable>
+          </>
+        ) : (
+          <RiwayatClosingTab
+            closingList={closingList}
+            isLoading={isLoadingClosing}
+            canManage={canManage}
+            userRole={userRole}
+            formatRupiah={formatRupiah}
+            orgName={currentSettings?.profil?.nama || 'Karang Taruna'}
+            onRefresh={async () => {
+              await queryClient.invalidateQueries({ queryKey: CLOSING_QUERY_KEY });
+              await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
+              await queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
+            }}
+            onPreviewImage={setPreviewUrl}
+            onEditTransaksi={handleOpenEdit}
+          />
+        )}
+
+        {/* Dialog Closing Keuangan (Tutup Buku) */}
+        {canManage && (
+          <ClosingDialog
+            open={isClosingDialogOpen}
+            onOpenChange={setIsClosingDialogOpen}
+            formatRupiah={formatRupiah}
+            onSuccess={async () => {
+              await queryClient.invalidateQueries({ queryKey: KEUANGAN_QUERY_KEY });
+              await queryClient.invalidateQueries({ queryKey: SALDO_QUERY_KEY });
+              await queryClient.invalidateQueries({ queryKey: CLOSING_QUERY_KEY });
+            }}
+          />
+        )}
 
         {/* Dialog Add/Edit Transaksi */}
         {canManage && (

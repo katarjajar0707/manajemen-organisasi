@@ -6,6 +6,12 @@ export interface TransaksiAuthor {
   role: string;
 }
 
+export interface TransaksiClosingInfo {
+  id?: string;
+  nomor_closing?: string;
+  judul?: string;
+}
+
 export interface Transaksi {
   id: string;
   judul: string;
@@ -18,6 +24,8 @@ export interface Transaksi {
   created_at?: string;
   lampiran_url: string | null;
   kegiatan_id?: string | null;
+  closing_id?: string | null;
+  closing?: TransaksiClosingInfo | null;
   author?: TransaksiAuthor;
 }
 
@@ -25,6 +33,40 @@ export interface BendaharaSaldo {
   masuk: number;
   keluar: number;
   sisa: number;
+  masukAktif?: number;
+  keluarAktif?: number;
+  sisaAktif?: number;
+}
+
+export interface ClosingKeuangan {
+  id: string;
+  nomor_closing: string;
+  judul: string;
+  bagian_id: string;
+  tanggal_closing: string;
+  tanggal_mulai: string | null;
+  tanggal_selesai: string | null;
+  saldo_awal: number;
+  total_masuk: number;
+  total_keluar: number;
+  saldo_akhir: number;
+  total_transaksi: number;
+  catatan: string | null;
+  status: 'closed' | 'reopened';
+  dibuat_oleh: string;
+  created_at: string;
+  author?: TransaksiAuthor;
+}
+
+export interface ClosingPreviewData {
+  saldo_awal: number;
+  total_masuk: number;
+  total_keluar: number;
+  saldo_akhir: number;
+  total_transaksi: number;
+  tanggal_mulai: string | null;
+  tanggal_selesai: string | null;
+  transaksi_list: Transaksi[];
 }
 
 export interface BendaharaManagerProps {
@@ -34,6 +76,7 @@ export interface BendaharaManagerProps {
   agendaCategories?: string[];
   settings?: PengaturanSistemData;
   canManage?: boolean;
+  userRole?: string;
   children?: ReactNode;
 }
 
@@ -46,6 +89,7 @@ export interface BendaharaData {
 }
 
 export const KEUANGAN_QUERY_KEY = ['keuangan', 'bendahara'] as const;
+export const CLOSING_QUERY_KEY = ['closing-keuangan', 'bendahara'] as const;
 
 export function formatRupiahCached(angka: number | string) {
   const num = Math.round(Number(angka) || 0);
@@ -64,8 +108,10 @@ export interface RawTransactionRecord {
   lampiran_url?: string | null;
   kegiatan_id?: string | null;
   bagian_id?: string | null;
+  closing_id?: string | null;
   dibuat_oleh?: string | null;
   author?: TransaksiAuthor | TransaksiAuthor[] | null;
+  closing?: TransaksiClosingInfo | TransaksiClosingInfo[] | null;
 }
 
 export function normalizeTransaction(item: RawTransactionRecord): Transaksi {
@@ -79,6 +125,8 @@ export function normalizeTransaction(item: RawTransactionRecord): Transaksi {
     kategori = item.kategori;
   }
   const authorObj = Array.isArray(item.author) ? item.author[0] : item.author;
+  const closingObj = Array.isArray(item.closing) ? item.closing[0] : item.closing;
+
   return {
     id: item.id,
     judul: item.judul || '',
@@ -92,6 +140,8 @@ export function normalizeTransaction(item: RawTransactionRecord): Transaksi {
     kategori,
     displayKeterangan,
     kegiatan_id: item.kegiatan_id || null,
+    closing_id: item.closing_id || null,
+    closing: closingObj || undefined,
   };
 }
 

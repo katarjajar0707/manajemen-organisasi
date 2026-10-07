@@ -86,7 +86,7 @@ export function TransaksiFormDialog({
         <form onSubmit={onSubmit} className="min-w-0">
           <DialogHeader className="min-w-0">
             <DialogTitle className="pr-8 text-base sm:text-lg flex items-center gap-2">
-              {jenis === 'masuk' ? <TrendingUp className="h-5 w-5 text-emerald-600" /> : <TrendingDown className="h-5 w-5 text-rose-600" />}
+              {jenis === 'masuk' ? <TrendingUp className="h-5 w-5 text-emerald-600" /> : <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />}
               <span>{editingId ? 'Edit Transaksi' : jenis === 'masuk' ? 'Catat Kas Masuk' : 'Catat Kas Keluar'}</span>
             </DialogTitle>
             <DialogDescription className="text-xs leading-relaxed">

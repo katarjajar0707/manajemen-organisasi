@@ -23,7 +23,12 @@ export default async function KeuanganPage() {
   const canManage = profile?.role === 'admin' || profile?.role === 'ketua' || profile?.bagian?.slug === 'bendahara';
 
   return (
-    <BendaharaManager initialList={[]} initialSaldo={{ masuk: 0, keluar: 0, sisa: 0 }} canManage={canManage}>
+    <BendaharaManager
+      initialList={[]}
+      initialSaldo={{ masuk: 0, keluar: 0, sisa: 0 }}
+      canManage={canManage}
+      userRole={profile?.role || 'anggota'}
+    >
       <Suspense fallback={<TransactionRowsSkeleton />}>
         <KeuanganData dataPromise={dataPromise} />
       </Suspense>
