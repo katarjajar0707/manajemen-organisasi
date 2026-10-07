@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useTransition, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { TrendingDown, TrendingUp, BookCheck } from 'lucide-react';
+import { TrendingDown, TrendingUp, BookCheck, Wallet } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { convertHeicToJpeg } from '@/lib/client-image';
@@ -592,16 +592,28 @@ export function BendaharaManager({
           )}
         </div>
 
-        {/* Tab Switcher: Kas Berjalan vs Riwayat Closing */}
+        {/* Tab Switcher: Kas Berjalan vs Riwayat Closing (Full width on mobile, responsive) */}
         <div className="border-b pb-2">
-          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'berjalan' | 'closing')}>
-            <TabsList className="h-9">
-              <TabsTrigger value="berjalan" className="text-xs px-3 sm:px-4">
-                Kas Berjalan
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as 'berjalan' | 'closing')}
+            className="w-full sm:w-auto"
+          >
+            <TabsList className="grid grid-cols-2 w-full h-10 p-1 sm:inline-flex sm:w-auto sm:h-9 bg-muted/70">
+              <TabsTrigger
+                value="berjalan"
+                className="w-full text-xs font-medium gap-1.5 sm:px-4"
+              >
+                <Wallet className="h-3.5 w-3.5 shrink-0" />
+                <span>Kas Berjalan</span>
               </TabsTrigger>
-              <TabsTrigger value="closing" className="text-xs px-3 sm:px-4 gap-1.5">
-                Riwayat Closing
-                <span className="rounded-full bg-primary/10 text-primary px-1.5 py-0.2 text-[10px] font-mono">
+              <TabsTrigger
+                value="closing"
+                className="w-full text-xs font-medium gap-1.5 sm:px-4"
+              >
+                <BookCheck className="h-3.5 w-3.5 shrink-0" />
+                <span>Riwayat Closing</span>
+                <span className="rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-mono leading-none">
                   {closingList.filter((c) => c.status === 'closed').length}
                 </span>
               </TabsTrigger>
