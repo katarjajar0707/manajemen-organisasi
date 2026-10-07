@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Wallet, Users, Calendar, Megaphone, MessagesSquare, ArrowRight, TrendingUp, TrendingDown, MessageCircle, ShieldCheck, Settings, Building2, Activity, BarChart3, UserCheck, Clock, Sparkles } from 'lucide-react';
 import { LogoutButton } from '@/components/common/logout-button';
 import { DashboardAnnouncementBanner } from '@/components/dashboard/dashboard-announcement-banner';
@@ -552,13 +553,14 @@ export function AdminDashboardShell({ profile, children = null }: { profile?: Pr
 export function DashboardSectionSkeleton({ variant, className = '' }: { variant: 'stats' | 'list' | 'organization' | 'card' | 'schedule'; className?: string }) {
   if (variant === 'stats') {
     return (
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div aria-busy="true" aria-live="polite" className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <span className="sr-only">Memuat statistik...</span>
         {Array.from({ length: 6 }).map((_, index) => (
           <Card key={index} className="h-28">
             <CardContent className="p-4 space-y-3">
-              <div className="h-3 w-24 animate-pulse rounded bg-muted" />
-              <div className="h-6 w-20 animate-pulse rounded bg-muted" />
-              <div className="h-2 w-28 animate-pulse rounded bg-muted" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-2 w-28" />
             </CardContent>
           </Card>
         ))}
@@ -567,40 +569,44 @@ export function DashboardSectionSkeleton({ variant, className = '' }: { variant:
   }
   if (variant === 'organization')
     return (
-      <Card className={className}>
+      <Card aria-busy="true" aria-live="polite" className={className}>
+        <span className="sr-only">Memuat informasi organisasi...</span>
         <CardContent className="p-5 space-y-3">
-          <div className="h-4 w-48 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-72 animate-pulse rounded bg-muted" />
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-3 w-72" />
         </CardContent>
       </Card>
     );
   if (variant === 'schedule')
     return (
-      <Card className={className}>
+      <Card aria-busy="true" aria-live="polite" className={className}>
+        <span className="sr-only">Memuat jadwal...</span>
         <CardHeader>
-          <div className="h-5 w-56 animate-pulse rounded bg-muted" />
+          <Skeleton className="h-5 w-56" />
         </CardHeader>
         <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-20 animate-pulse rounded-lg bg-muted" />
+            <Skeleton key={index} className="h-20 rounded-lg" />
           ))}
         </CardContent>
       </Card>
     );
   return (
-    <Card className={className}>
+    <Card aria-busy="true" aria-live="polite" className={className}>
+      <span className="sr-only">Memuat data...</span>
       <CardHeader>
-        <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-3 w-64 animate-pulse rounded bg-muted" />
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-3 w-64 mt-1" />
       </CardHeader>
       <CardContent className="space-y-3">
         {Array.from({ length: variant === 'list' ? 3 : 4 }).map((_, index) => (
-          <div key={index} className="h-12 animate-pulse rounded-lg bg-muted" />
+          <Skeleton key={index} className="h-12 rounded-lg" />
         ))}
       </CardContent>
     </Card>
   );
 }
+
 
 export async function AdminDashboardPeriod() {
   const settings = await getCachedPengaturanSistem();

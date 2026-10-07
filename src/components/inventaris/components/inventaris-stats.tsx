@@ -25,7 +25,7 @@ export function InventarisStats({ dataReady, stats }: InventarisStatsProps) {
               {dataReady ? (
                 <span className="text-2xl font-bold text-foreground">{stats.totalJenis}</span>
               ) : (
-                <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />
+                <span aria-hidden="true" className="inline-block h-8 w-12 motion-safe:animate-pulse rounded bg-muted" />
               )}
               <span className="text-xs text-muted-foreground">
                 jenis ({dataReady ? `${stats.totalUnit} unit` : '...'} )
@@ -46,7 +46,7 @@ export function InventarisStats({ dataReady, stats }: InventarisStatsProps) {
               {dataReady ? (
                 <span className="text-2xl font-bold text-emerald-400">{stats.kondisiBaik}</span>
               ) : (
-                <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />
+                <span aria-hidden="true" className="inline-block h-8 w-12 motion-safe:animate-pulse rounded bg-muted" />
               )}
               <span className="text-xs text-muted-foreground">jenis</span>
             </div>
@@ -65,7 +65,7 @@ export function InventarisStats({ dataReady, stats }: InventarisStatsProps) {
               {dataReady ? (
                 <span className="text-2xl font-bold text-amber-400">{stats.kondisiRusak}</span>
               ) : (
-                <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />
+                <span aria-hidden="true" className="inline-block h-8 w-12 motion-safe:animate-pulse rounded bg-muted" />
               )}
               <span className="text-xs text-muted-foreground">jenis</span>
             </div>
@@ -84,7 +84,7 @@ export function InventarisStats({ dataReady, stats }: InventarisStatsProps) {
               {dataReady ? (
                 <span className="text-2xl font-bold text-sky-400">{stats.dipinjam}</span>
               ) : (
-                <span className="inline-block h-8 w-12 animate-pulse rounded bg-muted" />
+                <span aria-hidden="true" className="inline-block h-8 w-12 motion-safe:animate-pulse rounded bg-muted" />
               )}
               <span className="text-xs text-muted-foreground">barang</span>
             </div>

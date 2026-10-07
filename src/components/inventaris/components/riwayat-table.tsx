@@ -28,9 +28,10 @@ export function RiwayatTable({ riwayat, dataReady }: RiwayatTableProps) {
         {/* Mobile View for Riwayat Peminjaman (< md) */}
         <div className="md:hidden divide-y divide-border/60">
           {!dataReady ? (
-            <div className="p-4 space-y-3">
-              <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
-              <div className="h-3 w-1/3 bg-muted animate-pulse rounded" />
+            <div aria-busy="true" aria-live="polite" className="p-4 space-y-3">
+              <span className="sr-only">Memuat riwayat peminjaman...</span>
+              <div aria-hidden="true" className="h-4 w-1/2 bg-muted motion-safe:animate-pulse rounded" />
+              <div aria-hidden="true" className="h-3 w-1/3 bg-muted motion-safe:animate-pulse rounded" />
             </div>
           ) : riwayat.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground text-xs">

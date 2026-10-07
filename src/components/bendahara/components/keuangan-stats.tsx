@@ -44,7 +44,7 @@ export function KeuanganStats({
         </CardHeader>
         <CardContent>
           <div suppressHydrationWarning className="text-2xl font-extrabold tabular-nums text-foreground dark:text-blue-300">
-            {dataReady ? formatRupiah(saldo.sisa) : <span className="inline-block h-7 w-36 animate-pulse rounded bg-muted" />}
+            {dataReady ? formatRupiah(saldo.sisa) : <span className="inline-block h-7 w-36 motion-safe:animate-pulse rounded bg-muted" aria-hidden="true" />}
           </div>
           <p className="text-xs text-muted-foreground dark:text-blue-400/80 font-medium mt-1">
             {isKasAktif ? 'Kas Riil Keseluruhan' : 'Kas Umum Organisasi'}
@@ -64,7 +64,7 @@ export function KeuanganStats({
         </CardHeader>
         <CardContent>
           <div suppressHydrationWarning className="text-lg font-extrabold tabular-nums text-emerald-800 dark:text-emerald-300 sm:text-2xl">
-            {dataReady ? formatRupiah(displayMasuk) : <span className="inline-block h-7 w-32 animate-pulse rounded bg-muted" />}
+            {dataReady ? formatRupiah(displayMasuk) : <span className="inline-block h-7 w-32 motion-safe:animate-pulse rounded bg-muted" aria-hidden="true" />}
           </div>
           <p className="text-[10px] text-slate-700 dark:text-emerald-400/80 font-medium mt-1 sm:text-xs">
             {subtitleMasuk}
@@ -84,7 +84,7 @@ export function KeuanganStats({
         </CardHeader>
         <CardContent>
           <div suppressHydrationWarning className="text-lg font-extrabold tabular-nums text-rose-800 dark:text-rose-300 sm:text-2xl">
-            {dataReady ? formatRupiah(displayKeluar) : <span className="inline-block h-7 w-32 animate-pulse rounded bg-muted" />}
+            {dataReady ? formatRupiah(displayKeluar) : <span className="inline-block h-7 w-32 motion-safe:animate-pulse rounded bg-muted" aria-hidden="true" />}
           </div>
           <p className="text-[10px] text-slate-700 dark:text-rose-400/80 font-medium mt-1 sm:text-xs">
             {subtitleKeluar}

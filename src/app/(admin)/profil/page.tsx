@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getMyProfile } from '@/actions/profil';
 import { ProfilManager } from '@/components/profil/profil-manager';
+import { Skeleton } from '@/components/ui/skeleton';
 
 async function ProfileAccount() {
   const profile = await getMyProfile();
@@ -11,12 +12,33 @@ async function ProfileAccount() {
 
 function ProfileAccountSkeleton() {
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div aria-busy="true" aria-live="polite" className="space-y-5 sm:space-y-6">
+      <span className="sr-only">Memuat profil...</span>
       <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
-        <div className="space-y-2 border-b border-border/60 p-5"><div className="h-4 w-24 animate-pulse rounded bg-muted" /><div className="h-3 w-56 animate-pulse rounded bg-muted" /></div>
-        <div className="flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-start sm:p-6"><div className="h-24 w-24 shrink-0 animate-pulse rounded-full bg-muted sm:h-28 sm:w-28" /><div className="w-full space-y-3"><div className="h-6 w-48 animate-pulse rounded bg-muted" /><div className="h-4 w-28 animate-pulse rounded bg-muted" /><div className="grid gap-3 sm:grid-cols-2"><div className="h-16 animate-pulse rounded-lg bg-muted" /><div className="h-16 animate-pulse rounded-lg bg-muted" /></div></div></div>
+        <div className="space-y-2 border-b border-border/60 p-5">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+        <div className="flex flex-col items-center gap-5 p-5 sm:flex-row sm:items-start sm:p-6">
+          <Skeleton className="h-24 w-24 shrink-0 rounded-full sm:h-28 sm:w-28" />
+          <div className="w-full space-y-3">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-28" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Skeleton className="h-16 rounded-lg" />
+              <Skeleton className="h-16 rounded-lg" />
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="rounded-xl border border-border/70 bg-card p-5 shadow-[0_4px_24px_rgba(0,0,0,0.3)] sm:p-6"><div className="h-4 w-24 animate-pulse rounded bg-muted" /><div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="h-20 animate-pulse rounded-lg bg-muted" /><div className="h-20 animate-pulse rounded-lg bg-muted" /><div className="h-20 animate-pulse rounded-lg bg-muted" /></div></div>
+      <div className="rounded-xl border border-border/70 bg-card p-5 shadow-[0_4px_24px_rgba(0,0,0,0.3)] sm:p-6">
+        <Skeleton className="h-4 w-24" />
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <Skeleton className="h-20 rounded-lg" />
+          <Skeleton className="h-20 rounded-lg" />
+          <Skeleton className="h-20 rounded-lg" />
+        </div>
+      </div>
     </div>
   );
 }

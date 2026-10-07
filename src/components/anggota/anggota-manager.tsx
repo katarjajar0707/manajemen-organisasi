@@ -62,7 +62,10 @@ export function TableRowsSkeleton() {
         <tr key={index} className="border-b border-border/60 last:border-0">
           {Array.from({ length: 7 }).map((__, cellIndex) => (
             <td key={cellIndex} className="py-3 px-4">
-              <div className={`h-3 animate-pulse rounded bg-muted ${cellIndex === 0 ? 'w-36' : cellIndex === 6 ? 'ml-auto w-20' : 'w-24'}`} />
+              <div
+                aria-hidden="true"
+                className={`h-3 motion-safe:animate-pulse rounded bg-muted ${cellIndex === 0 ? 'w-36' : cellIndex === 6 ? 'ml-auto w-20' : 'w-24'}`}
+              />
             </td>
           ))}
         </tr>

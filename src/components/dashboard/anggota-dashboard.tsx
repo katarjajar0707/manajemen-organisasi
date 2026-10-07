@@ -157,7 +157,8 @@ const MAX_DASHBOARD_DISCUSSIONS = 4;
 export function AnggotaDashboardDataSkeleton({ variant }: { variant: 'summary' | 'schedule' | 'discussion' }) {
   if (variant === 'summary') {
     return (
-      <div>
+      <div aria-busy="true" aria-live="polite">
+        <span className="sr-only">Memuat ringkasan organisasi...</span>
         <div className="mb-3">
           <Skeleton className="h-3 w-36" />
           <Skeleton className="mt-2 h-4 w-64" />
@@ -172,7 +173,8 @@ export function AnggotaDashboardDataSkeleton({ variant }: { variant: 'summary' |
 
   if (variant === 'schedule') {
     return (
-      <Card className="border-border/70 shadow-sm lg:col-span-3">
+      <Card aria-busy="true" aria-live="polite" className="border-border/70 shadow-sm lg:col-span-3">
+        <span className="sr-only">Memuat jadwal kegiatan...</span>
         <CardHeader className="border-b border-border/60 pb-4">
           <Skeleton className="h-5 w-48" />
           <Skeleton className="mt-2 h-3 w-64" />
@@ -187,7 +189,8 @@ export function AnggotaDashboardDataSkeleton({ variant }: { variant: 'summary' |
   }
 
   return (
-    <Card className="border-border/70 shadow-sm">
+    <Card aria-busy="true" aria-live="polite" className="border-border/70 shadow-sm">
+      <span className="sr-only">Memuat diskusi terbaru...</span>
       <CardHeader className="border-b border-border/60 pb-4">
         <Skeleton className="h-5 w-48" />
         <Skeleton className="mt-2 h-3 w-64" />
@@ -202,6 +205,7 @@ export function AnggotaDashboardDataSkeleton({ variant }: { variant: 'summary' |
     </Card>
   );
 }
+
 
 export async function AnggotaDashboardSummary() {
   const summaryData = await getCachedPublicTransparencyData();

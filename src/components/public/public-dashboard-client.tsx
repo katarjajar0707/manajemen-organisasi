@@ -22,8 +22,9 @@ const DriftWall = dynamic(() => import('@/components/public/drift-wall'), {
   ssr: false,
   loading: () => (
     <div
-      className="h-full min-h-80 w-full animate-pulse rounded-2xl bg-muted/20"
-      aria-label="Memuat galeri tim"
+      className="h-full min-h-80 w-full motion-safe:animate-pulse rounded-2xl bg-muted/20"
+      aria-hidden="true"
+      aria-busy="true"
     />
   ),
 });

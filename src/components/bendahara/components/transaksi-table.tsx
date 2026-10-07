@@ -26,7 +26,10 @@ export function TransactionRowsSkeleton() {
         <tr key={index} className="border-b border-border/60 last:border-0">
           {Array.from({ length: 6 }).map((__, cellIndex) => (
             <td key={cellIndex} className="px-3 py-3.5 sm:px-6">
-              <div className={`h-3 animate-pulse rounded bg-muted ${cellIndex === 1 ? 'w-48' : cellIndex === 5 ? 'ml-auto w-8' : 'w-20'}`} />
+              <div
+                aria-hidden="true"
+                className={`h-3 motion-safe:animate-pulse rounded bg-muted ${cellIndex === 1 ? 'w-48' : cellIndex === 5 ? 'ml-auto w-8' : 'w-20'}`}
+              />
             </td>
           ))}
         </tr>
@@ -115,7 +118,7 @@ export function TransaksiTable({
                 </span>
               </CardTitle>
               <Badge variant="outline" className="text-xs font-mono">
-                {dataReady ? `${filteredList.length} data` : <span className="inline-block h-4 w-12 animate-pulse rounded bg-muted align-middle" />}
+                {dataReady ? `${filteredList.length} data` : <span aria-hidden="true" className="inline-block h-4 w-12 motion-safe:animate-pulse rounded bg-muted align-middle" />}
               </Badge>
             </div>
             <CardDescription className="text-xs mt-0.5">Semua mutasi kas umum organisasi</CardDescription>
