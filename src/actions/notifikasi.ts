@@ -1,8 +1,20 @@
 'use server';
 
 import { createClient, getProfile } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
-export type NotificationType = 'keuangan' | 'kegiatan' | 'inventaris' | 'peminjaman' | 'pengumuman' | 'diskusi' | 'arsip' | 'agenda' | 'anggota' | 'catatan' | 'surat';
+export type NotificationType =
+  | 'keuangan'
+  | 'kegiatan'
+  | 'inventaris'
+  | 'peminjaman'
+  | 'pengumuman'
+  | 'diskusi'
+  | 'arsip'
+  | 'agenda'
+  | 'anggota'
+  | 'catatan'
+  | 'surat';
 
 export interface AppNotification {
   id: string;
@@ -30,8 +42,6 @@ export async function getNotifikasi(limit = 50): Promise<AppNotification[]> {
   ]);
 
   if (notificationsResult.error) {
-    // Notifikasi tidak boleh menghalangi halaman lain saat migrasi belum
-    // diterapkan atau cache schema Supabase masih diperbarui.
     return [];
   }
 
@@ -49,8 +59,22 @@ export async function getNotifikasi(limit = 50): Promise<AppNotification[]> {
 }
 
 export async function getUnreadNotificationCount(): Promise<number> {
-  const notifications = await getNotifikasi();
-  return notifications.filter((notification) => !notification.dibaca).length;
+  const profile = await getProfile();
+  if (!profile) return 0;
+
+  const supabase = await createClient();
+  const [notifRes, readRes] = await Promise.all([
+    supabase
+      .from('notifikasi')
+      .select('id')
+      .order('created_at', { ascending: false })
+      .limit(100),
+    supabase.from('notifikasi_status').select('notifikasi_id').eq('user_id', profile.id),
+  ]);
+
+  if (notifRes.error || !notifRes.data) return 0;
+  const readIds = new Set((readRes.data || []).map((r) => r.notifikasi_id));
+  return notifRes.data.filter((n) => !readIds.has(n.id)).length;
 }
 
 export async function markNotificationAsRead(notificationId: string): Promise<{ success: boolean }> {
@@ -64,24 +88,67 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
   );
 
   if (error) {
+    console.error('markNotificationAsRead error:', error);
     return { success: false };
+  }
+
+  try {
+    revalidatePath('/notifikasi');
+    revalidatePath('/', 'layout');
+  } catch {
+    // ignore
   }
 
   return { success: true };
 }
 
-export async function markAllNotificationsAsRead(notificationIds: string[]): Promise<{ success: boolean }> {
+export async function markAllNotificationsAsRead(notificationIds?: string[]): Promise<{ success: boolean }> {
   const profile = await getProfile();
-  if (!profile || notificationIds.length === 0) return { success: !!profile };
+  if (!profile) return { success: false };
 
   const supabase = await createClient();
-  const { error } = await supabase.from('notifikasi_status').upsert(
-    notificationIds.map((notificationId) => ({ notifikasi_id: notificationId, user_id: profile.id, dibaca_at: new Date().toISOString() })),
-    { onConflict: 'notifikasi_id,user_id', ignoreDuplicates: true },
-  );
+
+  let idsToMark = notificationIds && notificationIds.length > 0 ? notificationIds : undefined;
+
+  // Jika tidak diberikan ID spesifik, ambil semua notifikasi yang belum dibaca
+  if (!idsToMark || idsToMark.length === 0) {
+    const { data: allNotif } = await supabase
+      .from('notifikasi')
+      .select('id')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    idsToMark = (allNotif || []).map((n) => n.id);
+  }
+
+  if (idsToMark.length === 0) {
+    try {
+      revalidatePath('/notifikasi');
+      revalidatePath('/', 'layout');
+    } catch {}
+    return { success: true };
+  }
+
+  const rows = idsToMark.map((notificationId) => ({
+    notifikasi_id: notificationId,
+    user_id: profile.id,
+    dibaca_at: new Date().toISOString(),
+  }));
+
+  const { error } = await supabase.from('notifikasi_status').upsert(rows, {
+    onConflict: 'notifikasi_id,user_id',
+    ignoreDuplicates: true,
+  });
 
   if (error) {
+    console.error('markAllNotificationsAsRead error:', error);
     return { success: false };
+  }
+
+  try {
+    revalidatePath('/notifikasi');
+    revalidatePath('/', 'layout');
+  } catch {
+    // ignore
   }
 
   return { success: true };

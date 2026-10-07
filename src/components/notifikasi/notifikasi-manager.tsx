@@ -1,46 +1,116 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, CheckCheck } from 'lucide-react';
-import { markAllNotificationsAsRead, markNotificationAsRead, type AppNotification } from '@/actions/notifikasi';
+import { Bell, CheckCheck, Loader2 } from 'lucide-react';
+import { markAllNotificationsAsRead, markNotificationAsRead, getNotifikasi, type AppNotification } from '@/actions/notifikasi';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatNotificationDate, notificationStyle } from '@/components/notifikasi/notification-presentation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 
 export function NotifikasiManager({ initialNotifications }: { initialNotifications: AppNotification[] }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState(initialNotifications);
   const [filter, setFilter] = useState<'semua' | 'belum-dibaca'>('semua');
   const [isPending, startTransition] = useTransition();
 
-  const unreadCount = useMemo(() => notifications.filter((notification) => !notification.dibaca).length, [notifications]);
-  const visibleNotifications = useMemo(() => (filter === 'belum-dibaca' ? notifications.filter((notification) => !notification.dibaca) : notifications), [filter, notifications]);
+  // Query sinkronisasi dengan TanStack Query
+  const { data: queryNotifications } = useQuery({
+    queryKey: ['notifications', 'page'],
+    queryFn: () => getNotifikasi(100),
+    initialData: initialNotifications.length > 0 ? initialNotifications : undefined,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
 
-  const handleOpen = (notification: AppNotification) => {
-    startTransition(async () => {
-      if (!notification.dibaca) {
-        const result = await markNotificationAsRead(notification.id);
-        if (result.success) {
-          setNotifications((current) => current.map((item) => (item.id === notification.id ? { ...item, dibaca: true } : item)));
-          window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: Math.max(unreadCount - 1, 0) } }));
+  useEffect(() => {
+    if (queryNotifications) {
+      setNotifications(queryNotifications);
+    }
+  }, [queryNotifications]);
+
+  const unreadCount = useMemo(
+    () => notifications.filter((notification) => !notification.dibaca).length,
+    [notifications]
+  );
+
+  const visibleNotifications = useMemo(
+    () => (filter === 'belum-dibaca' ? notifications.filter((notification) => !notification.dibaca) : notifications),
+    [filter, notifications]
+  );
+
+  // Dengarkan event sinkronisasi lokal dan tab
+  useEffect(() => {
+    const handleReadEvent = (event: Event) => {
+      const detail = (event as CustomEvent<{ count: number }>).detail;
+      if (typeof detail?.count === 'number') {
+        if (detail.count === 0) {
+          setNotifications((current) => current.map((item) => ({ ...item, dibaca: true })));
         }
       }
-      router.push(notification.href);
-    });
+    };
+    window.addEventListener('notifications-read', handleReadEvent);
+    return () => window.removeEventListener('notifications-read', handleReadEvent);
+  }, []);
+
+  // Realtime Supabase listener
+  useEffect(() => {
+    const supabase = createSupabaseClient();
+    const channel = supabase
+      .channel('notifikasi-page')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifikasi' }, () => {
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifikasi_status' }, () => {
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const handleOpen = (notification: AppNotification) => {
+    if (!notification.dibaca) {
+      // Optimistic update instan
+      setNotifications((current) =>
+        current.map((item) => (item.id === notification.id ? { ...item, dibaca: true } : item))
+      );
+      const nextCount = Math.max(unreadCount - 1, 0);
+      window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: nextCount } }));
+      queryClient.setQueryData(['notifications', 'unread-count'], nextCount);
+      queryClient.setQueryData<AppNotification[]>(['notifications', 5], (current = []) =>
+        current.map((item) => (item.id === notification.id ? { ...item, dibaca: true } : item))
+      );
+
+      void markNotificationAsRead(notification.id).then(() => {
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      });
+    }
+
+    router.push(notification.href);
   };
 
   const handleMarkAllRead = () => {
-    const unreadIds = notifications.filter((notification) => !notification.dibaca).map((notification) => notification.id);
-    if (unreadIds.length === 0) return;
+    // 1. Optimistic update instan pada UI halaman & header
+    setNotifications((current) => current.map((notification) => ({ ...notification, dibaca: true })));
+    window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: 0 } }));
+    queryClient.setQueryData(['notifications', 'unread-count'], 0);
+    queryClient.setQueryData<AppNotification[]>(['notifications', 5], (current = []) =>
+      current.map((notification) => ({ ...notification, dibaca: true }))
+    );
 
+    // 2. Kirim update ke server
     startTransition(async () => {
-      const result = await markAllNotificationsAsRead(unreadIds);
+      const result = await markAllNotificationsAsRead();
       if (result.success) {
-        setNotifications((current) => current.map((notification) => ({ ...notification, dibaca: true })));
-        window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: 0 } }));
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }
     });
   };
@@ -60,9 +130,16 @@ export function NotifikasiManager({ initialNotifications }: { initialNotificatio
           </div>
         </div>
 
-        <Button type="button" variant="outline" size="sm" onClick={handleMarkAllRead} disabled={unreadCount === 0 || isPending} className="gap-2 self-start sm:self-auto">
-          <CheckCheck className="h-4 w-4" />
-          Tandai semua dibaca
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleMarkAllRead}
+          disabled={unreadCount === 0 || isPending}
+          className="gap-2 self-start sm:self-auto cursor-pointer"
+        >
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
+          <span>Tandai semua dibaca</span>
         </Button>
       </div>
 
@@ -83,7 +160,14 @@ export function NotifikasiManager({ initialNotifications }: { initialNotificatio
               { value: 'semua', label: `Semua (${notifications.length})` },
               { value: 'belum-dibaca', label: `Belum dibaca (${unreadCount})` },
             ].map((item) => (
-              <Button key={item.value} type="button" size="sm" variant={filter === item.value ? 'secondary' : 'ghost'} onClick={() => setFilter(item.value as 'semua' | 'belum-dibaca')} className="h-8">
+              <Button
+                key={item.value}
+                type="button"
+                size="sm"
+                variant={filter === item.value ? 'secondary' : 'ghost'}
+                onClick={() => setFilter(item.value as 'semua' | 'belum-dibaca')}
+                className="h-8"
+              >
                 {item.label}
               </Button>
             ))}
@@ -108,17 +192,26 @@ export function NotifikasiManager({ initialNotifications }: { initialNotificatio
                     type="button"
                     onClick={() => handleOpen(notification)}
                     disabled={isPending}
-                    className={cn('flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:px-5', !notification.dibaca && 'bg-primary/[0.035]')}
+                    className={cn(
+                      'flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:px-5 cursor-pointer',
+                      !notification.dibaca && 'bg-primary/[0.035]'
+                    )}
                   >
                     <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', style.className)}>
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className={cn('text-sm', !notification.dibaca ? 'font-bold' : 'font-semibold')}>{notification.judul}</span>
-                        {!notification.dibaca && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-label="Belum dibaca" />}
+                        <span className={cn('text-sm', !notification.dibaca ? 'font-bold text-foreground' : 'font-semibold text-foreground/90')}>
+                          {notification.judul}
+                        </span>
+                        {!notification.dibaca && (
+                          <span className="h-2 w-2 rounded-full bg-primary ring-2 ring-primary/20" aria-label="Belum dibaca" />
+                        )}
                       </span>
-                      {notification.pesan && <span className="mt-0.5 block truncate text-sm text-muted-foreground">{notification.pesan}</span>}
+                      {notification.pesan && (
+                        <span className="mt-0.5 block truncate text-sm text-muted-foreground">{notification.pesan}</span>
+                      )}
                       <span className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{style.label}</span>
                         <span aria-hidden="true">•</span>

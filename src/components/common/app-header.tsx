@@ -14,11 +14,12 @@ import { logout } from '@/actions/auth';
 import { GlobalSearchDialog } from '@/components/common/global-search-dialog';
 import { PreviewImage } from '@/components/common/preview-image';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
-import { getNotifikasi, markAllNotificationsAsRead, markNotificationAsRead, type AppNotification } from '@/actions/notifikasi';
+import { getNotifikasi, getUnreadNotificationCount, markAllNotificationsAsRead, markNotificationAsRead, type AppNotification } from '@/actions/notifikasi';
 import { formatNotificationDate, notificationStyle } from '@/components/notifikasi/notification-presentation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const NOTIFICATIONS_QUERY_KEY = ['notifications', 5] as const;
+const UNREAD_COUNT_QUERY_KEY = ['notifications', 'unread-count'] as const;
 
 // Map segment URL → label yang terbaca
 const SEGMENT_LABELS: Record<string, string> = {
@@ -90,6 +91,25 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
   const toggleSidebar = useSidebarStore((s) => s.toggle);
   const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
 
+  // Sync unreadCount with server and allow TanStack Query background refresh
+  const { data: serverUnreadCount } = useQuery({
+    queryKey: UNREAD_COUNT_QUERY_KEY,
+    queryFn: () => getUnreadNotificationCount(),
+    initialData: notificationCount,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
+  React.useEffect(() => {
+    if (typeof serverUnreadCount === 'number') {
+      setUnreadCount(serverUnreadCount);
+    }
+  }, [serverUnreadCount]);
+
+  React.useEffect(() => {
+    setUnreadCount(notificationCount);
+  }, [notificationCount]);
+
   const {
     data: notifications = initialNotifications,
     isLoading: isNotificationsLoading,
@@ -110,20 +130,33 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
     onSuccess: (result, notificationId) => {
       if (!result.success) return;
 
-      queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (current = []) => current.map((item) => (item.id === notificationId ? { ...item, dibaca: true } : item)));
-      setUnreadCount((current) => Math.max(current - 1, 0));
-      window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: Math.max(unreadCount - 1, 0) } }));
+      queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (current = []) =>
+        current.map((item) => (item.id === notificationId ? { ...item, dibaca: true } : item))
+      );
+      setUnreadCount((current) => {
+        const next = Math.max(current - 1, 0);
+        queryClient.setQueryData(UNREAD_COUNT_QUERY_KEY, next);
+        window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: next } }));
+        return next;
+      });
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
   const markAllNotificationsAsReadMutation = useMutation({
-    mutationFn: markAllNotificationsAsRead,
+    mutationFn: () => markAllNotificationsAsRead(),
+    onMutate: async () => {
+      // Optimistic update instan
+      queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (current = []) =>
+        current.map((notification) => ({ ...notification, dibaca: true }))
+      );
+      setUnreadCount(0);
+      queryClient.setQueryData(UNREAD_COUNT_QUERY_KEY, 0);
+      window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: 0 } }));
+    },
     onSuccess: (result) => {
       if (!result.success) return;
-
-      queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (current = []) => current.map((notification) => ({ ...notification, dibaca: true })));
-      setUnreadCount(0);
-      window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: 0 } }));
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
@@ -136,10 +169,17 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
   const handleNotificationOpen = (notification: AppNotification) => {
     setIsNotificationsOpen(false);
     if (!notification.dibaca) {
-      void markNotificationAsReadMutation.mutateAsync(notification.id).finally(() => {
-        router.push(notification.href);
+      queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (current = []) =>
+        current.map((item) => (item.id === notification.id ? { ...item, dibaca: true } : item))
+      );
+      const nextCount = Math.max(unreadCount - 1, 0);
+      setUnreadCount(nextCount);
+      queryClient.setQueryData(UNREAD_COUNT_QUERY_KEY, nextCount);
+      window.dispatchEvent(new CustomEvent('notifications-read', { detail: { count: nextCount } }));
+
+      void markNotificationAsRead(notification.id).then(() => {
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       });
-      return;
     }
 
     router.push(notification.href);
@@ -147,9 +187,7 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
 
   const handleMarkAllRead = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const unreadIds = notifications.filter((n) => !n.dibaca).map((n) => n.id);
-    if (unreadIds.length === 0) return;
-    void markAllNotificationsAsReadMutation.mutate(unreadIds);
+    void markAllNotificationsAsReadMutation.mutate();
   };
 
   const handleLogout = () => {
@@ -185,13 +223,24 @@ export function AppHeader({ userRole: propUserRole, userName: propUserName, user
     const supabase = createSupabaseClient();
     const handleNotificationsRead = (event: Event) => {
       const detail = (event as CustomEvent<{ count: number }>).detail;
-      if (typeof detail?.count === 'number') setUnreadCount(detail.count);
+      if (typeof detail?.count === 'number') {
+        setUnreadCount(detail.count);
+        queryClient.setQueryData(UNREAD_COUNT_QUERY_KEY, detail.count);
+        if (detail.count === 0) {
+          queryClient.setQueryData<AppNotification[]>(NOTIFICATIONS_QUERY_KEY, (current = []) =>
+            current.map((item) => ({ ...item, dibaca: true }))
+          );
+        }
+      }
     };
     const channel = supabase
       .channel('notifikasi-header')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifikasi' }, () => {
         setUnreadCount((current) => current + 1);
-        void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifikasi_status' }, () => {
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       })
       .subscribe();
 
